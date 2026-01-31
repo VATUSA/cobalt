@@ -1,0 +1,15 @@
+meta {
+  name: Who Am I
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{hostname}}/login/whoami
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

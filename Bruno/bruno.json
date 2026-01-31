@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "VATUSA Cobalt",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

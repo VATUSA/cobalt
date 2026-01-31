@@ -1,0 +1,15 @@
+meta {
+  name: Legacy Sync Roles
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{hostname}}/roles/legacy_sync
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

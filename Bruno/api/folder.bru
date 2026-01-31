@@ -1,0 +1,13 @@
+meta {
+  name: api
+}
+
+auth {
+  mode: apikey
+}
+
+auth:apikey {
+  key: X-Auth-Token
+  value: {{token}}
+  placement: header
+}

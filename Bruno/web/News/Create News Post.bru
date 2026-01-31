@@ -1,0 +1,15 @@
+meta {
+  name: Create News Post
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{hostname}}/web/news/new
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

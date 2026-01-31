@@ -1,0 +1,9 @@
+migrations are managed with golang-migrate
+
+Command to create migrations:
+
+migrate create -ext sql -dir sql/migrations -seq create_users_table
+
+Command to generate db models:
+
+sqlc generate

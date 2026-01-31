@@ -1,0 +1,16 @@
+meta {
+  name: Get News Posts (20)
+  type: http
+  seq: 1
+}
+
+get {
+  url: localhost:8080/web/news/20
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
