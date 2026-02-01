@@ -48,11 +48,12 @@ func (h EndpointHandler) Connect(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
 	}
 	c.SetCookie(&http.Cookie{
-		Name:    auth.JWT_COOKIE_NAME,
-		Value:   jwt,
-		Path:    "/",
-		Domain:  config.CookieDomain(),
-		Expires: time.Now().Add(time.Hour * 24 * 7),
+		Name:     auth.JWT_COOKIE_NAME,
+		Value:    jwt,
+		Path:     "/",
+		Domain:   config.CookieDomain(),
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(time.Hour * 24 * 7),
 	})
 
 	return c.Redirect(http.StatusFound, config.PostLoginURL())

@@ -9,6 +9,7 @@ import (
 	_middleware "vatusa-cobalt/middleware"
 
 	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 func SetupRoutes(e *echo.Echo) {
@@ -20,6 +21,8 @@ func SetupRoutes(e *echo.Echo) {
 
 	handler := endpoints.NewEndpointHandler(queries)
 	actorAuth := _middleware.NewActorAuth(queries)
+
+	e.Use(middleware.CORSWithConfig(config.CORSConfig()))
 
 	api := e.Group("/api")
 	api.Use(actorAuth.Middleware)
@@ -36,5 +39,9 @@ func SetupRoutes(e *echo.Echo) {
 	web := e.Group("/web")
 	web.Use(_middleware.CookieAuth)
 	web.GET("/news/:count", handler.GetLastPosts)
-	web.POST("/news/new", handler.CreatePost)
+
+	webRequireLogin := web.Group("")
+	webRequireLogin.Use(_middleware.RequireLogin)
+	webRequireLogin.POST("/news/new", handler.CreatePost)
+
 }

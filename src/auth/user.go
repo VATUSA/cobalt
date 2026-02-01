@@ -12,7 +12,8 @@ type UserPermission = string
 
 // All Permissions
 const (
-	PermPostNews UserPermission = "post_news"
+	PermPostNews     UserPermission = "post_news"
+	PermManageEvents UserPermission = "manage_events"
 )
 
 type UserRole = string
@@ -61,9 +62,11 @@ var (
 	RoleGlobalPermissions = map[UserRole][]UserPermission{
 		RoleVATUSAStaff: []UserPermission{
 			PermPostNews,
+			PermManageEvents,
 		},
 		RoleVATUSAManagement: []UserPermission{
 			PermPostNews,
+			PermManageEvents,
 		},
 		RoleAirTrafficManager: []UserPermission{
 			PermPostNews,
@@ -72,7 +75,17 @@ var (
 			PermPostNews,
 		},
 	}
-	RoleFacilityPermissions = map[UserRole][]UserPermission{}
+	RoleFacilityPermissions = map[UserRole][]UserPermission{
+		RoleAirTrafficManager: []UserPermission{
+			PermManageEvents,
+		},
+		RoleDeputyAirTrafficManager: []UserPermission{
+			PermManageEvents,
+		},
+		RoleEventCoordinator: []UserPermission{
+			PermManageEvents,
+		},
+	}
 )
 
 type FacilityRole struct {
