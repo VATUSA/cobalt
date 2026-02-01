@@ -66,3 +66,18 @@ func (h EndpointHandler) GetLastPosts(c *echo.Context) error {
 
 	return c.JSON(http.StatusOK, output)
 }
+
+func (h EndpointHandler) GetPost(c *echo.Context) error {
+	ctx := c.Request().Context()
+	id := c.Param("id")
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+	}
+	post, err := h.Queries.GetPostById(ctx, int32(idInt))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "post not found")
+	}
+	output := models.NewsPostFromDatabase(post)
+	return c.JSON(http.StatusOK, output)
+}

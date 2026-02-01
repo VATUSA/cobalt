@@ -39,6 +39,7 @@ func SetupRoutes(e *echo.Echo) {
 	web := e.Group("/web")
 	web.Use(_middleware.CookieAuth)
 	web.GET("/news/:count", handler.GetLastPosts)
+	web.GET("/news/post/:id", handler.GetPost)
 
 	webRequireLogin := web.Group("")
 	webRequireLogin.Use(_middleware.RequireLogin)

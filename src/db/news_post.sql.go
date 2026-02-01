@@ -30,6 +30,23 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) error {
 	return err
 }
 
+const getPostById = `-- name: GetPostById :one
+SELECT id, title, body, author_cid, post_time FROM news_post WHERE id = ?
+`
+
+func (q *Queries) GetPostById(ctx context.Context, id int32) (NewsPost, error) {
+	row := q.db.QueryRowContext(ctx, getPostById, id)
+	var i NewsPost
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Body,
+		&i.AuthorCid,
+		&i.PostTime,
+	)
+	return i, err
+}
+
 const getRecentNewsPosts = `-- name: GetRecentNewsPosts :many
 SELECT id, title, body, author_cid, post_time FROM news_post order by id desc limit ?
 `

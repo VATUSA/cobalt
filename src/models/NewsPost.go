@@ -11,6 +11,7 @@ type NewsPostRequest struct {
 }
 
 type NewsPost struct {
+	Id            int    `json:"id"`
 	Title         string `json:"title"`
 	Body          string `json:"body"`
 	AuthorCID     int    `json:"author_cid"`
@@ -22,6 +23,7 @@ func NewsPostFromDatabase(ent db.NewsPost) NewsPost {
 	postTime := time.Unix(ent.PostTime, 0)
 	dateString := postTime.Format("2006-01-02")
 	return NewsPost{
+		Id:            int(ent.ID),
 		Title:         ent.Title,
 		Body:          ent.Body,
 		AuthorCID:     int(ent.AuthorCid),

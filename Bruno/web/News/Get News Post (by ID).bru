@@ -1,0 +1,19 @@
+meta {
+  name: Get News Post (by ID)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{hostname}}/news/post/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+settings {
+  encodeUrl: true
+}
