@@ -33,6 +33,6 @@ func (h EndpointHandler) HasFacilityPermission(c *echo.Context, permission auth.
 func NewEndpointHandler(queries *db.Queries) *EndpointHandler {
 	return &EndpointHandler{
 		Queries:         queries,
-		PermissionCache: &auth.PermissionCache{},
+		PermissionCache: auth.NewPermissionCache(queries),
 	}
 }

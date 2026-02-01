@@ -188,12 +188,13 @@ func (uph *UserPermissionHandler) setFromRoles(globalRoles []UserRole, facilityR
 	uph.Unlock()
 }
 
-func NewUserPermissionHandler(cid int) *UserPermissionHandler {
+func NewUserPermissionHandler(queries *db.Queries, cid int) *UserPermissionHandler {
 	h := &UserPermissionHandler{
 		cid:                   cid,
 		globalPermissionMap:   make(map[UserPermission]bool),
 		facilityPermissionMap: make(map[string]map[UserPermission]bool),
 		loadedAt:              time.Unix(0, 0),
+		queries:               queries,
 	}
 	h.Load()
 	return h
@@ -202,6 +203,14 @@ func NewUserPermissionHandler(cid int) *UserPermissionHandler {
 type PermissionCache struct {
 	sync.RWMutex
 	userPermissionMap map[int]*UserPermissionHandler
+	Queries           *db.Queries
+}
+
+func NewPermissionCache(queries *db.Queries) *PermissionCache {
+	return &PermissionCache{
+		userPermissionMap: map[int]*UserPermissionHandler{},
+		Queries:           queries,
+	}
 }
 
 func (c *PermissionCache) Flush() {
@@ -221,7 +230,7 @@ func (c *PermissionCache) Get(cid int) *UserPermissionHandler {
 	permission, ok := c.userPermissionMap[cid]
 	c.RUnlock()
 	if !ok {
-		permission = NewUserPermissionHandler(cid)
+		permission = NewUserPermissionHandler(c.Queries, cid)
 		c.Lock()
 		c.userPermissionMap[cid] = permission
 		c.Unlock()

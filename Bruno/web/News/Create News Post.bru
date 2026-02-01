@@ -6,10 +6,18 @@ meta {
 
 post {
   url: {{hostname}}/web/news/new
-  body: none
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "title": "test",
+    "body": "this is a test"
+  }
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }
