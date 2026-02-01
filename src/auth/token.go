@@ -113,9 +113,13 @@ func (c *TokenActorCache) Load(ctx context.Context, queries *db.Queries) error {
 		newMap[token.Token] = &tokenActor
 	}
 	c.Lock()
+	oldLen := len(*c.tokenActorMap)
+	newLen := len(newMap)
 	c.tokenActorMap = &newMap
 	c.lastRefresh = time.Now()
 	c.Unlock()
-	log.Printf("Successfully loaded %d actor tokens.\n", len(*c.tokenActorMap))
+	if oldLen != newLen {
+		log.Printf("Successfully loaded %d actor tokens (was %d).\n", len(*c.tokenActorMap), oldLen)
+	}
 	return nil
 }
