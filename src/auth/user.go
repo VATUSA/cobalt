@@ -131,6 +131,15 @@ func (uph *UserPermissionHandler) HasFacilityPermission(permission UserPermissio
 	return result
 }
 
+func (uph *UserPermissionHandler) ReloadIfNeeded() {
+	uph.RLock()
+	loadedAt := uph.loadedAt
+	uph.RUnlock()
+	if loadedAt.Add(1 * time.Minute).After(time.Now()) {
+		uph.Load()
+	}
+}
+
 func (uph *UserPermissionHandler) Load() {
 	uph.Lock()
 	uph.globalPermissionMap = map[UserPermission]bool{}
