@@ -28,6 +28,8 @@ func SetupRoutes(e *echo.Echo) {
 	api.Use(actorAuth.Middleware)
 	api.GET("/token/:cid", handler.GetGenerateUserToken)
 	api.POST("/roles/legacy_sync", handler.LegacySyncRoles)
+	api.GET("/news/:id", handler.GetPost)
+	api.GET("/news/latest/:count", handler.GetLastPosts)
 
 	login := e.Group("/login")
 	login.Use(_middleware.CookieAuth)
