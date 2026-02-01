@@ -13,6 +13,7 @@ type UserPermission = string
 // All Permissions
 const (
 	PermPostNews     UserPermission = "post_news"
+	PermManageNews   UserPermission = "manage_news"
 	PermManageEvents UserPermission = "manage_events"
 )
 
@@ -62,10 +63,12 @@ var (
 	RoleGlobalPermissions = map[UserRole][]UserPermission{
 		RoleVATUSAStaff: {
 			PermPostNews,
+			PermManageNews,
 			PermManageEvents,
 		},
 		RoleVATUSAManagement: {
 			PermPostNews,
+			PermManageNews,
 			PermManageEvents,
 		},
 		RoleAirTrafficManager: {

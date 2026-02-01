@@ -39,6 +39,28 @@ func (h EndpointHandler) CreatePost(c *echo.Context) error {
 	return c.JSON(http.StatusOK, "Post Created")
 }
 
+func (h EndpointHandler) DeletePost(c *echo.Context) error {
+	postId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "invalid post id")
+	}
+	ctx := c.Request().Context()
+	post, err := h.Queries.GetPostById(ctx, int32(postId))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "post not found")
+	}
+
+	if !h.HasGlobalPermission(c, auth.PermManageNews) && int(post.AuthorCid) != auth.GetUserCid(c) {
+		return echo.NewHTTPError(http.StatusForbidden, "missing permission")
+	}
+
+	err = h.Queries.DeleteNewsPostById(ctx, int32(postId))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "post not found")
+	}
+	return c.JSON(http.StatusOK, "Post Deleted")
+}
+
 func (h EndpointHandler) GetLastPosts(c *echo.Context) error {
 	ctx := c.Request().Context()
 

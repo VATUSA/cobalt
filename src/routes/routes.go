@@ -46,5 +46,6 @@ func SetupRoutes(e *echo.Echo) {
 	webRequireLogin := web.Group("")
 	webRequireLogin.Use(_middleware.RequireLogin)
 	webRequireLogin.POST("/news/new", handler.CreatePost)
+	webRequireLogin.DELETE("/news/post/:id", handler.DeletePost)
 
 }
