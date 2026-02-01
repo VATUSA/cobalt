@@ -27,6 +27,8 @@ func CORSConfig() middleware.CORSConfig {
 			echo.HeaderXCSRFToken,
 			echo.HeaderXRequestedWith,
 			echo.HeaderContentType,
+			echo.HeaderCookie,
+			echo.HeaderSetCookie,
 		},
 		AllowCredentials: true,
 	}
