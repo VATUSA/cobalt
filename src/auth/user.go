@@ -60,29 +60,29 @@ var (
 		RoleMentor,
 	}
 	RoleGlobalPermissions = map[UserRole][]UserPermission{
-		RoleVATUSAStaff: []UserPermission{
+		RoleVATUSAStaff: {
 			PermPostNews,
 			PermManageEvents,
 		},
-		RoleVATUSAManagement: []UserPermission{
+		RoleVATUSAManagement: {
 			PermPostNews,
 			PermManageEvents,
 		},
-		RoleAirTrafficManager: []UserPermission{
+		RoleAirTrafficManager: {
 			PermPostNews,
 		},
-		RoleDeputyAirTrafficManager: []UserPermission{
+		RoleDeputyAirTrafficManager: {
 			PermPostNews,
 		},
 	}
 	RoleFacilityPermissions = map[UserRole][]UserPermission{
-		RoleAirTrafficManager: []UserPermission{
+		RoleAirTrafficManager: {
 			PermManageEvents,
 		},
-		RoleDeputyAirTrafficManager: []UserPermission{
+		RoleDeputyAirTrafficManager: {
 			PermManageEvents,
 		},
-		RoleEventCoordinator: []UserPermission{
+		RoleEventCoordinator: {
 			PermManageEvents,
 		},
 	}
