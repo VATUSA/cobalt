@@ -106,7 +106,7 @@ func (h EndpointHandler) GetPost(c *echo.Context) error {
 
 func (h EndpointHandler) GetNewsPage(c *echo.Context) error {
 	ctx := c.Request().Context()
-	page := c.QueryParam("page")
+	page := c.Param("page")
 	pageInt, err := strconv.Atoi(page)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid page")
