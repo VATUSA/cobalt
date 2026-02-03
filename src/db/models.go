@@ -62,6 +62,7 @@ type NewsPost struct {
 	Body      string
 	AuthorCid int32
 	PostTime  int64
+	EditTime  int64
 }
 
 type RoleFacility struct {

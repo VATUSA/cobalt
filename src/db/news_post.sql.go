@@ -40,7 +40,7 @@ func (q *Queries) DeleteNewsPostById(ctx context.Context, id int32) error {
 }
 
 const getNewsPostsPage = `-- name: GetNewsPostsPage :many
-SELECT id, title, body, author_cid, post_time
+SELECT id, title, body, author_cid, post_time, edit_time
 FROM news_post
 ORDER BY id DESC
 LIMIT ?, ?
@@ -66,6 +66,7 @@ func (q *Queries) GetNewsPostsPage(ctx context.Context, arg GetNewsPostsPagePara
 			&i.Body,
 			&i.AuthorCid,
 			&i.PostTime,
+			&i.EditTime,
 		); err != nil {
 			return nil, err
 		}
@@ -81,7 +82,7 @@ func (q *Queries) GetNewsPostsPage(ctx context.Context, arg GetNewsPostsPagePara
 }
 
 const getPostById = `-- name: GetPostById :one
-SELECT id, title, body, author_cid, post_time FROM news_post WHERE id = ?
+SELECT id, title, body, author_cid, post_time, edit_time FROM news_post WHERE id = ?
 `
 
 func (q *Queries) GetPostById(ctx context.Context, id int32) (NewsPost, error) {
@@ -93,12 +94,13 @@ func (q *Queries) GetPostById(ctx context.Context, id int32) (NewsPost, error) {
 		&i.Body,
 		&i.AuthorCid,
 		&i.PostTime,
+		&i.EditTime,
 	)
 	return i, err
 }
 
 const getRecentNewsPosts = `-- name: GetRecentNewsPosts :many
-SELECT id, title, body, author_cid, post_time FROM news_post order by id desc limit ?
+SELECT id, title, body, author_cid, post_time, edit_time FROM news_post order by id desc limit ?
 `
 
 func (q *Queries) GetRecentNewsPosts(ctx context.Context, limit int32) ([]NewsPost, error) {
@@ -116,6 +118,7 @@ func (q *Queries) GetRecentNewsPosts(ctx context.Context, limit int32) ([]NewsPo
 			&i.Body,
 			&i.AuthorCid,
 			&i.PostTime,
+			&i.EditTime,
 		); err != nil {
 			return nil, err
 		}
@@ -128,4 +131,27 @@ func (q *Queries) GetRecentNewsPosts(ctx context.Context, limit int32) ([]NewsPo
 		return nil, err
 	}
 	return items, nil
+}
+
+const updatePost = `-- name: UpdatePost :exec
+UPDATE news_post
+SET title = ?, body = ?, edit_time = ?
+WHERE id = ?
+`
+
+type UpdatePostParams struct {
+	Title    string
+	Body     string
+	EditTime int64
+	ID       int32
+}
+
+func (q *Queries) UpdatePost(ctx context.Context, arg UpdatePostParams) error {
+	_, err := q.db.ExecContext(ctx, updatePost,
+		arg.Title,
+		arg.Body,
+		arg.EditTime,
+		arg.ID,
+	)
+	return err
 }

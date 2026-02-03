@@ -1,0 +1,1 @@
+ALTER TABLE news_post ADD edit_time bigint not null default 0;

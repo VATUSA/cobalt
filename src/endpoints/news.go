@@ -39,6 +39,37 @@ func (h EndpointHandler) CreatePost(c *echo.Context) error {
 	return c.JSON(http.StatusOK, "Post Created")
 }
 
+func (h EndpointHandler) UpdatePost(c *echo.Context) error {
+	postId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "invalid post id")
+	}
+	ctx := c.Request().Context()
+	var request models.NewsPostRequest
+	err = c.Bind(&request)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+	post, err := h.Queries.GetPostById(ctx, int32(postId))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "post not found")
+	}
+	if !h.HasGlobalPermission(c, auth.PermManageNews) && int(post.AuthorCid) != auth.GetUserCid(c) {
+		return echo.NewHTTPError(http.StatusForbidden, "missing permission")
+	}
+
+	err = h.Queries.UpdatePost(ctx, db.UpdatePostParams{
+		Title:    request.Title,
+		Body:     request.Body,
+		EditTime: time.Now().Unix(),
+		ID:       int32(postId),
+	})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "failed to update post")
+	}
+	return c.JSON(http.StatusOK, "Post Updated")
+}
+
 func (h EndpointHandler) DeletePost(c *echo.Context) error {
 	postId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

@@ -1,0 +1,1 @@
+ALTER TABLE news_post DROP edit_time;
