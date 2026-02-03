@@ -30,7 +30,7 @@ func SetupRoutes(e *echo.Echo) {
 	api.POST("/roles/legacy_sync", handler.LegacySyncRoles)
 	api.GET("/news/:id", handler.GetPost)
 	api.GET("/news/latest/:count", handler.GetLastPosts)
-	api.GET("news/page/:page", handler.GetNewsPage)
+	api.GET("/news/page/:page", handler.GetNewsPage)
 
 	login := e.Group("/login")
 	login.Use(_middleware.CookieAuth)
