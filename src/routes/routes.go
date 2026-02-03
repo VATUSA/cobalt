@@ -30,6 +30,7 @@ func SetupRoutes(e *echo.Echo) {
 	api.POST("/roles/legacy_sync", handler.LegacySyncRoles)
 	api.GET("/news/:id", handler.GetPost)
 	api.GET("/news/latest/:count", handler.GetLastPosts)
+	api.GET("news/page/:page", handler.GetNewsPage)
 
 	login := e.Group("/login")
 	login.Use(_middleware.CookieAuth)
@@ -42,10 +43,19 @@ func SetupRoutes(e *echo.Echo) {
 	web.Use(_middleware.CookieAuth)
 	web.GET("/news/:count", handler.GetLastPosts)
 	web.GET("/news/post/:id", handler.GetPost)
+	web.GET("/news/page/:page", handler.GetNewsPage)
+
+	web.GET("/event/upcoming/:count", handler.GetUpcomingEvents)
+	web.GET("/event/page/:page", handler.GetEventsPage)
+	web.GET("/event/:id", handler.GetEventById)
 
 	webRequireLogin := web.Group("")
 	webRequireLogin.Use(_middleware.RequireLogin)
 	webRequireLogin.POST("/news/new", handler.CreatePost)
 	webRequireLogin.DELETE("/news/post/:id", handler.DeletePost)
+
+	webRequireLogin.POST("/event/create", handler.CreateEvent)
+	webRequireLogin.POST("/event/:id", handler.UpdateEvent)
+	webRequireLogin.DELETE("/event/:id", handler.DeleteEvent)
 
 }

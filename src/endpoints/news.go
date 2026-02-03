@@ -103,3 +103,24 @@ func (h EndpointHandler) GetPost(c *echo.Context) error {
 	output := models.NewsPostFromDatabase(post)
 	return c.JSON(http.StatusOK, output)
 }
+
+func (h EndpointHandler) GetNewsPage(c *echo.Context) error {
+	ctx := c.Request().Context()
+	page := c.QueryParam("page")
+	pageInt, err := strconv.Atoi(page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid page")
+	}
+	recordsPerPage := 25
+	offset := (pageInt - 1) * recordsPerPage
+
+	news, err := h.Queries.GetNewsPostsPage(ctx, db.GetNewsPostsPageParams{
+		Offset: int32(offset),
+		Limit:  int32(recordsPerPage),
+	})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "error loading posts")
+	}
+	output := models.NewsPostsFromDatabase(news)
+	return c.JSON(http.StatusOK, output)
+}

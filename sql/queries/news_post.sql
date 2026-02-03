@@ -9,3 +9,9 @@ SELECT * FROM news_post WHERE id = ?;
 
 -- name: DeleteNewsPostById :exec
 DELETE FROM news_post WHERE id = ?;
+
+-- name: GetNewsPostsPage :many
+SELECT *
+FROM news_post
+ORDER BY id DESC
+LIMIT ?, ?;

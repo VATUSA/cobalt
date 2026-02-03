@@ -42,6 +42,20 @@ type ActorToken struct {
 	UpdatedByCid int32
 }
 
+type Event struct {
+	ID             int64
+	Title          string
+	Body           string
+	BannerImageUrl string
+	Facility       string
+	StartTime      int64
+	EndTime        int64
+	CreatedAt      int64
+	CreatedBy      int32
+	UpdatedAt      int64
+	UpdatedBy      int32
+}
+
 type NewsPost struct {
 	ID        int32
 	Title     string

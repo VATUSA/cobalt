@@ -39,6 +39,47 @@ func (q *Queries) DeleteNewsPostById(ctx context.Context, id int32) error {
 	return err
 }
 
+const getNewsPostsPage = `-- name: GetNewsPostsPage :many
+SELECT id, title, body, author_cid, post_time
+FROM news_post
+ORDER BY id DESC
+LIMIT ?, ?
+`
+
+type GetNewsPostsPageParams struct {
+	Offset int32
+	Limit  int32
+}
+
+func (q *Queries) GetNewsPostsPage(ctx context.Context, arg GetNewsPostsPageParams) ([]NewsPost, error) {
+	rows, err := q.db.QueryContext(ctx, getNewsPostsPage, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []NewsPost
+	for rows.Next() {
+		var i NewsPost
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Body,
+			&i.AuthorCid,
+			&i.PostTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPostById = `-- name: GetPostById :one
 SELECT id, title, body, author_cid, post_time FROM news_post WHERE id = ?
 `
