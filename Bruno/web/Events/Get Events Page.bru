@@ -1,0 +1,19 @@
+meta {
+  name: Get Events Page
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{hostname}}/web/event/page/:page
+  body: none
+  auth: inherit
+}
+
+params:path {
+  page: 
+}
+
+settings {
+  encodeUrl: true
+}

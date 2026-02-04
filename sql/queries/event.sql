@@ -10,7 +10,7 @@ WHERE start_time > ?
 ORDER BY start_time DESC
 LIMIT ?, ?;
 
--- name: CreateEvent :exec
+-- name: CreateEvent :execresult
 INSERT INTO event
 (title, body, banner_image_url, facility, start_time, end_time, created_at, created_by, updated_at, updated_by)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);

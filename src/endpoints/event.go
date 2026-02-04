@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,23 +17,23 @@ func (h EndpointHandler) CreateEvent(c *echo.Context) error {
 	var request models.EventRequest
 	err := c.Bind(&request)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return GenericError(c, http.StatusBadRequest, err)
 	}
 
 	if !h.HasFacilityPermission(c, auth.PermManageEvents, request.Facility) {
-		return echo.NewHTTPError(http.StatusForbidden, "missing permission")
+		return GenericError(c, http.StatusForbidden, errors.New("missing permission"))
 	}
 
 	startTime, err := time.Parse("2006-01-02 15:04", request.StartTimestamp)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid start time")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid start time"))
 	}
 	endTime, err := time.Parse("2006-01-02 15:04", request.EndTimestamp)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid end time")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid end time"))
 	}
 
-	err = h.Queries.CreateEvent(ctx, db.CreateEventParams{
+	result, err := h.Queries.CreateEvent(ctx, db.CreateEventParams{
 		Title:          request.Title,
 		Body:           request.Body,
 		BannerImageUrl: request.BannerImageURL,
@@ -45,40 +46,43 @@ func (h EndpointHandler) CreateEvent(c *echo.Context) error {
 		UpdatedBy:      int32(auth.GetUserCid(c)),
 	})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return GenericError(c, http.StatusInternalServerError, err)
 	}
-
-	return c.JSON(http.StatusOK, "Event created")
+	insertId, err := result.LastInsertId()
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	return GenericSuccess(c, int(insertId))
 }
 
 func (h EndpointHandler) UpdateEvent(c *echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid event id"))
 	}
 	ctx := c.Request().Context()
 	var request models.EventRequest
 	err = c.Bind(&request)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return GenericError(c, http.StatusBadRequest, err)
 	}
 
 	event, err := h.Queries.GetEventById(ctx, int64(id))
 
 	if event.Facility != request.Facility && !h.HasFacilityPermission(c, auth.PermManageEvents, event.Facility) {
-		return echo.NewHTTPError(http.StatusForbidden, "missing permission")
+		return ErrorNoPermission(c)
 	}
 	if !h.HasFacilityPermission(c, auth.PermManageEvents, request.Facility) {
-		return echo.NewHTTPError(http.StatusForbidden, "missing permission")
+		return ErrorNoPermission(c)
 	}
 
 	startTime, err := time.Parse("2006-01-02 15:04", request.StartTimestamp)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid start time")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid start time"))
 	}
 	endTime, err := time.Parse("2006-01-02 15:04", request.EndTimestamp)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid end time")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid end time"))
 	}
 
 	err = h.Queries.UpdateEvent(ctx, db.UpdateEventParams{
@@ -92,43 +96,42 @@ func (h EndpointHandler) UpdateEvent(c *echo.Context) error {
 		UpdatedBy:      int32(auth.GetUserCid(c)),
 	})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return GenericError(c, http.StatusInternalServerError, err)
 	}
-
-	return c.JSON(http.StatusOK, "Event updated")
+	return GenericSuccess(c, id)
 }
 
 func (h EndpointHandler) DeleteEvent(c *echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid event id"))
 	}
 	ctx := c.Request().Context()
 	event, err := h.Queries.GetEventById(ctx, int64(id))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return GenericError(c, http.StatusInternalServerError, err)
 	}
 
 	if !h.HasFacilityPermission(c, auth.PermManageEvents, event.Facility) {
-		return echo.NewHTTPError(http.StatusForbidden, "missing permission")
+		return ErrorNoPermission(c)
 	}
 
 	err = h.Queries.DeleteEvent(ctx, int64(id))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return GenericError(c, http.StatusInternalServerError, err)
 	}
-	return c.JSON(http.StatusOK, "Event deleted")
+	return GenericSuccess(c, id)
 }
 
 func (h EndpointHandler) GetEventById(c *echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid event id"))
 	}
 	ctx := c.Request().Context()
 	event, err := h.Queries.GetEventById(ctx, int64(id))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return GenericError(c, http.StatusInternalServerError, err)
 	}
 	output := models.EventFromDatabase(event)
 	return c.JSON(http.StatusOK, output)
@@ -151,7 +154,7 @@ func (h EndpointHandler) GetUpcomingEvents(c *echo.Context) error {
 		Offset:    int32(0),
 	})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return GenericError(c, http.StatusInternalServerError, err)
 	}
 
 	output := models.EventsFromDatabase(events)
@@ -161,7 +164,7 @@ func (h EndpointHandler) GetUpcomingEvents(c *echo.Context) error {
 func (h EndpointHandler) GetEventsPage(c *echo.Context) error {
 	page, err := strconv.Atoi(c.QueryParamOr("page", "1"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid page")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid page"))
 	}
 	recordsPerPage := 25
 	offset := (page - 1) * recordsPerPage
@@ -173,7 +176,7 @@ func (h EndpointHandler) GetEventsPage(c *echo.Context) error {
 		Offset:    int32(offset),
 	})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return GenericError(c, http.StatusInternalServerError, err)
 	}
 
 	output := models.EventsFromDatabase(events)

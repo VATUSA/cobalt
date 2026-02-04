@@ -1,0 +1,19 @@
+meta {
+  name: Get Upcoming Events
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{hostname}}/web/event/upcoming/:count
+  body: none
+  auth: inherit
+}
+
+params:path {
+  count: 
+}
+
+settings {
+  encodeUrl: true
+}

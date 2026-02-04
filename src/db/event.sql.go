@@ -7,9 +7,10 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
-const createEvent = `-- name: CreateEvent :exec
+const createEvent = `-- name: CreateEvent :execresult
 INSERT INTO event
 (title, body, banner_image_url, facility, start_time, end_time, created_at, created_by, updated_at, updated_by)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -28,8 +29,8 @@ type CreateEventParams struct {
 	UpdatedBy      int32
 }
 
-func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error {
-	_, err := q.db.ExecContext(ctx, createEvent,
+func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createEvent,
 		arg.Title,
 		arg.Body,
 		arg.BannerImageUrl,
@@ -41,7 +42,6 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) error 
 		arg.UpdatedAt,
 		arg.UpdatedBy,
 	)
-	return err
 }
 
 const deleteEvent = `-- name: DeleteEvent :exec

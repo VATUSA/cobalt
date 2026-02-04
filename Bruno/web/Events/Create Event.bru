@@ -1,0 +1,15 @@
+meta {
+  name: Create Event
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{hostname}}/event/create
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

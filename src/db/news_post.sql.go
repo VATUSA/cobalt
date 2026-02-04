@@ -7,9 +7,10 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
-const createPost = `-- name: CreatePost :exec
+const createPost = `-- name: CreatePost :execresult
 INSERT INTO news_post (title, body, author_cid, post_time) VALUES (?, ?, ?, ?)
 `
 
@@ -20,14 +21,13 @@ type CreatePostParams struct {
 	PostTime  int64
 }
 
-func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) error {
-	_, err := q.db.ExecContext(ctx, createPost,
+func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createPost,
 		arg.Title,
 		arg.Body,
 		arg.AuthorCid,
 		arg.PostTime,
 	)
-	return err
 }
 
 const deleteNewsPostById = `-- name: DeleteNewsPostById :exec

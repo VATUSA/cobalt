@@ -1,12 +1,11 @@
 package endpoints
 
 import (
-	"log"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 	"vatusa-cobalt/auth"
-	"vatusa-cobalt/config"
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/models"
 
@@ -15,16 +14,16 @@ import (
 
 func (h EndpointHandler) CreatePost(c *echo.Context) error {
 	if !h.HasGlobalPermission(c, auth.PermPostNews) {
-		return echo.NewHTTPError(http.StatusForbidden, "missing permission")
+		return ErrorNoPermission(c)
 	}
 	ctx := c.Request().Context()
 	var request models.NewsPostRequest
 	err := c.Bind(&request)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return GenericError(c, http.StatusBadRequest, err)
 	}
 
-	err = h.Queries.CreatePost(
+	result, err := h.Queries.CreatePost(
 		ctx,
 		db.CreatePostParams{
 			Title:     request.Title,
@@ -33,29 +32,33 @@ func (h EndpointHandler) CreatePost(c *echo.Context) error {
 			PostTime:  time.Now().Unix(),
 		})
 	if err != nil {
-		return err
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	lastInsertId, err := result.LastInsertId()
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
 	}
 
-	return c.JSON(http.StatusOK, "Post Created")
+	return GenericSuccess(c, int(lastInsertId))
 }
 
 func (h EndpointHandler) UpdatePost(c *echo.Context) error {
 	postId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, "invalid post id")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid post id"))
 	}
 	ctx := c.Request().Context()
 	var request models.NewsPostRequest
 	err = c.Bind(&request)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return GenericError(c, http.StatusBadRequest, err)
 	}
 	post, err := h.Queries.GetPostById(ctx, int32(postId))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "post not found")
+		return GenericError(c, http.StatusNotFound, errors.New("post not found"))
 	}
 	if !h.HasGlobalPermission(c, auth.PermManageNews) && int(post.AuthorCid) != auth.GetUserCid(c) {
-		return echo.NewHTTPError(http.StatusForbidden, "missing permission")
+		return ErrorNoPermission(c)
 	}
 
 	err = h.Queries.UpdatePost(ctx, db.UpdatePostParams{
@@ -65,31 +68,31 @@ func (h EndpointHandler) UpdatePost(c *echo.Context) error {
 		ID:       int32(postId),
 	})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "failed to update post")
+		return GenericError(c, http.StatusInternalServerError, errors.New("failed to update post"))
 	}
-	return c.JSON(http.StatusOK, "Post Updated")
+	return GenericSuccess(c, postId)
 }
 
 func (h EndpointHandler) DeletePost(c *echo.Context) error {
 	postId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, "invalid post id")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid post id"))
 	}
 	ctx := c.Request().Context()
 	post, err := h.Queries.GetPostById(ctx, int32(postId))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "post not found")
+		return GenericError(c, http.StatusNotFound, errors.New("post not found"))
 	}
 
 	if !h.HasGlobalPermission(c, auth.PermManageNews) && int(post.AuthorCid) != auth.GetUserCid(c) {
-		return echo.NewHTTPError(http.StatusForbidden, "missing permission")
+		return ErrorNoPermission(c)
 	}
 
 	err = h.Queries.DeleteNewsPostById(ctx, int32(postId))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "post not found")
+		return GenericError(c, http.StatusInternalServerError, errors.New("failed to delete post"))
 	}
-	return c.JSON(http.StatusOK, "Post Deleted")
+	return GenericSuccess(c, postId)
 }
 
 func (h EndpointHandler) GetLastPosts(c *echo.Context) error {
@@ -107,12 +110,7 @@ func (h EndpointHandler) GetLastPosts(c *echo.Context) error {
 
 	posts, err := h.Queries.GetRecentNewsPosts(ctx, int32(countInt))
 	if err != nil {
-		log.Printf("Error getting recent posts: %s\n", err)
-		if config.IsDevelopment() {
-			return c.JSON(http.StatusInternalServerError, err)
-		} else {
-			return c.JSON(http.StatusInternalServerError, nil)
-		}
+		return GenericError(c, http.StatusInternalServerError, err)
 	}
 
 	output := models.NewsPostsFromDatabase(posts)
@@ -125,11 +123,11 @@ func (h EndpointHandler) GetPost(c *echo.Context) error {
 	id := c.Param("id")
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid post id"))
 	}
 	post, err := h.Queries.GetPostById(ctx, int32(idInt))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "post not found")
+		return GenericError(c, http.StatusNotFound, errors.New("post not found"))
 	}
 	output := models.NewsPostFromDatabase(post)
 	return c.JSON(http.StatusOK, output)
@@ -140,7 +138,7 @@ func (h EndpointHandler) GetNewsPage(c *echo.Context) error {
 	page := c.Param("page")
 	pageInt, err := strconv.Atoi(page)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid page")
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid page"))
 	}
 	recordsPerPage := 25
 	offset := (pageInt - 1) * recordsPerPage
@@ -150,7 +148,7 @@ func (h EndpointHandler) GetNewsPage(c *echo.Context) error {
 		Limit:  int32(recordsPerPage),
 	})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "error loading posts")
+		return GenericError(c, http.StatusInternalServerError, errors.New("error loading posts"))
 	}
 	output := models.NewsPostsFromDatabase(news)
 	return c.JSON(http.StatusOK, output)
