@@ -1,19 +1,20 @@
 meta {
-  name: Get Upcoming Events
+  name: Get Event By ID
   type: http
-  seq: 1
+  seq: 3
 }
 
 get {
-  url: {{hostname}}/web/event/upcoming/:count
+  url: {{hostname}}/event/:id
   body: none
   auth: inherit
 }
 
 params:path {
-  count: 
+  id: 
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }

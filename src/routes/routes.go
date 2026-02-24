@@ -23,9 +23,32 @@ func SetupRoutes(e *echo.Echo) {
 	actorAuth := _middleware.NewActorAuth(queries)
 
 	e.Use(middleware.CORSWithConfig(config.CORSConfig()))
+	e.Use(actorAuth.Middleware)
+	e.Use(_middleware.CookieAuth)
+
+	e.GET("/token/:cid", handler.GetGenerateUserToken)
+
+	news := e.Group("/news")
+	news.GET("/latest/:count", handler.GetLastPosts)
+	news.GET("/page/:page", handler.GetNewsPage)
+	news.POST("/new", handler.CreatePost)
+	news.GET("/post/:id", handler.GetPost)
+	news.POST("/post/:id", handler.UpdatePost)
+	news.DELETE("/post/:id", handler.DeletePost)
+
+	roles := e.Group("/roles")
+	roles.POST("/legacy_sync", handler.LegacySyncRoles)
+	roles.POST("/legacy_sync/bulk", handler.LegacySyncRolesBulk)
+
+	event := e.Group("/event")
+	event.GET("/upcoming/:count", handler.GetUpcomingEvents)
+	event.GET("/page/:page", handler.GetEventsPage)
+	event.GET("/:id", handler.GetEventById)
+	event.POST("/create", handler.CreateEvent)
+	event.POST("/:id", handler.UpdateEvent)
+	event.DELETE("/:id", handler.DeleteEvent)
 
 	api := e.Group("/api")
-	api.Use(actorAuth.Middleware)
 	api.GET("/token/:cid", handler.GetGenerateUserToken)
 	api.POST("/roles/legacy_sync", handler.LegacySyncRoles)
 	api.GET("/news/:id", handler.GetPost)
@@ -33,30 +56,20 @@ func SetupRoutes(e *echo.Echo) {
 	api.GET("/news/page/:page", handler.GetNewsPage)
 
 	login := e.Group("/login")
-	login.Use(_middleware.CookieAuth)
 	login.GET("", handler.GetLogin)
 	login.GET("/connect", handler.Connect)
 	login.GET("/as/:cid", handler.LoginAs)
 	login.GET("/whoami", handler.WhoAmI)
 
 	web := e.Group("/web")
-	web.Use(_middleware.CookieAuth)
 	web.GET("/news/:count", handler.GetLastPosts)
 	web.GET("/news/post/:id", handler.GetPost)
 	web.GET("/news/page/:page", handler.GetNewsPage)
-
-	web.GET("/event/upcoming/:count", handler.GetUpcomingEvents)
-	web.GET("/event/page/:page", handler.GetEventsPage)
-	web.GET("/event/:id", handler.GetEventById)
 
 	webRequireLogin := web.Group("")
 	webRequireLogin.Use(_middleware.RequireLogin)
 	webRequireLogin.POST("/news/new", handler.CreatePost)
 	webRequireLogin.POST("/news/post/:id", handler.UpdatePost)
 	webRequireLogin.DELETE("/news/post/:id", handler.DeletePost)
-
-	webRequireLogin.POST("/event/create", handler.CreateEvent)
-	webRequireLogin.POST("/event/:id", handler.UpdateEvent)
-	webRequireLogin.DELETE("/event/:id", handler.DeleteEvent)
 
 }

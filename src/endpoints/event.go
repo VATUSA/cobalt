@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"vatusa-cobalt/acl"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/models"
@@ -20,8 +21,8 @@ func (h EndpointHandler) CreateEvent(c *echo.Context) error {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
 
-	if !h.HasFacilityPermission(c, auth.PermManageEvents, request.Facility) {
-		return GenericError(c, http.StatusForbidden, errors.New("missing permission"))
+	if !h.AssertFacility(c, request.Facility, acl.ObjectEvent, acl.ActionWrite) {
+		return nil
 	}
 
 	startTime, err := time.Parse("2006-01-02 15:04", request.StartTimestamp)
@@ -69,11 +70,12 @@ func (h EndpointHandler) UpdateEvent(c *echo.Context) error {
 
 	event, err := h.Queries.GetEventById(ctx, int64(id))
 
-	if event.Facility != request.Facility && !h.HasFacilityPermission(c, auth.PermManageEvents, event.Facility) {
-		return ErrorNoPermission(c)
+	// Need to check both event.Facility and request.Facility as they might be different and the user must have write access to both
+	if !h.AssertFacility(c, event.Facility, acl.ObjectEvent, acl.ActionWrite) {
+		return err
 	}
-	if !h.HasFacilityPermission(c, auth.PermManageEvents, request.Facility) {
-		return ErrorNoPermission(c)
+	if !h.AssertFacility(c, request.Facility, acl.ObjectEvent, acl.ActionWrite) {
+		return err
 	}
 
 	startTime, err := time.Parse("2006-01-02 15:04", request.StartTimestamp)
@@ -112,8 +114,8 @@ func (h EndpointHandler) DeleteEvent(c *echo.Context) error {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
 
-	if !h.HasFacilityPermission(c, auth.PermManageEvents, event.Facility) {
-		return ErrorNoPermission(c)
+	if !h.AssertFacility(c, event.Facility, acl.ObjectEvent, acl.ActionWrite) {
+		return nil
 	}
 
 	err = h.Queries.DeleteEvent(ctx, int64(id))

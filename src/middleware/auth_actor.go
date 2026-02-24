@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"log"
-	"net/http"
 	"time"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/db"
@@ -20,10 +19,9 @@ func (a *ActorAuth) Middleware(next echo.HandlerFunc) echo.HandlerFunc {
 		tokenHeader := c.Request().Header.Get(auth.ActorTokenHeader)
 
 		tokenActor, ok := a.Cache.Get(tokenHeader)
-		if !ok {
-			return echo.NewHTTPError(http.StatusUnauthorized, "Token required")
+		if ok {
+			c.Set(auth.ContextActorId, tokenActor.ActorId)
 		}
-		c.Set(auth.ContextTokenActor, *tokenActor)
 		return next(c)
 	}
 }

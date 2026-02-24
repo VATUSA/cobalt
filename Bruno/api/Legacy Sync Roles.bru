@@ -6,10 +6,23 @@ meta {
 
 post {
   url: {{hostname}}/roles/legacy_sync
-  body: none
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "cid": 1505109,
+    "roles": [
+      {
+        "facility": "ZHQ",
+        "role": "US0"
+      }
+    ]
+  }
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }

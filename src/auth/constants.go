@@ -1,5 +1,7 @@
 package auth
 
-const CONTEXT_USER_CID = "UserCID"
+const ContextUserCID = "UserCID"
 
-const JWT_COOKIE_NAME = "vatusa-cobalt-token"
+const ContextActorId = "ActorId"
+
+const JWTCookieName = "vatusa-cobalt-token"

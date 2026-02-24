@@ -1,5 +1,9 @@
 package models
 
+type BulkSyncRolesRequest struct {
+	Requests []SyncRolesRequest `json:"requests"`
+}
+
 type SyncRolesRequest struct {
 	CID   int          `json:"cid"`
 	Roles []LegacyRole `json:"roles"`

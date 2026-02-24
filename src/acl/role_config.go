@@ -1,0 +1,314 @@
+package acl
+
+type Role string
+
+type ScopedRole struct {
+	Role     Role
+	Facility string
+}
+
+const ScopedRoleGlobalFacility = "*"
+
+const (
+	// System Administrator Role
+	RoleSystemAdmin Role = "system_administrator"
+
+	// Automatic Roles, based on state
+	RoleAuthenticatedUser Role = "authenticated_user"
+	RoleDivisionMember    Role = "division_member"
+
+	// Division Staff Roles
+	RoleDivisionStaff      Role = "division_staff"
+	RoleDivisionManagement Role = "division_management"
+	RoleDivisionTechTeam   Role = "division_tech_team"
+
+	// Division Teams
+	RoleDivisionCommandCenter Role = "division_command_center"
+	RoleSocialMediaTeam       Role = "social_media_team"
+	RoleACETeam               Role = "ace_team"
+
+	// Special role for email access
+	RoleEmailUser Role = "email_user"
+
+	// Facility Staff Roles
+	RoleAirTrafficManager       Role = "air_traffic_manager"
+	RoleDeputyAirTrafficManager Role = "deputy_air_traffic_manager"
+	RoleTrainingAdministrator   Role = "training_administrator"
+	RoleEventCoordinator        Role = "event_coordinator"
+	RoleFacilityEngineer        Role = "facility_engineer"
+	RoleWebMaintainer           Role = "web_maintainer"
+
+	// Training Staff Roles
+	RoleInstructor            Role = "instructor"
+	RoleMentor                Role = "mentor"
+	RoleDivisionAcademyEditor Role = "division_academy_editor"
+	RoleFacilityAcademyEditor Role = "facility_academy_editor"
+
+	// API Key Roles
+	RoleSystemInternal Role = "system_internal"
+	RoleSystemFacility Role = "system_facility"
+	RoleSystemExternal Role = "system_external"
+)
+
+// RoleToPermissionObjectMap defines which Object ActionWrite
+// permission should be checked to determine if the role
+// can be granted or removed
+var RoleToPermissionObjectMap = map[Role]Object{
+	RoleSystemAdmin:           ObjectSystemRole,
+	RoleDivisionStaff:         ObjectDivisionManagementRole,
+	RoleDivisionManagement:    ObjectDivisionManagementRole,
+	RoleDivisionTechTeam:      ObjectDivisionStaffRole,
+	RoleDivisionCommandCenter: ObjectDivisionStaffRole,
+	RoleSocialMediaTeam:       ObjectDivisionStaffRole,
+	RoleACETeam:               ObjectDivisionStaffRole,
+	RoleEmailUser:             ObjectDivisionStaffRole,
+
+	RoleAirTrafficManager:       ObjectFacilitySeniorStaffRole,
+	RoleDeputyAirTrafficManager: ObjectFacilitySeniorStaffRole,
+	RoleTrainingAdministrator:   ObjectFacilitySeniorStaffRole,
+
+	RoleEventCoordinator: ObjectFacilityJuniorStaffRole,
+	RoleFacilityEngineer: ObjectFacilityJuniorStaffRole,
+	RoleWebMaintainer:    ObjectFacilityJuniorStaffRole,
+
+	RoleInstructor:            ObjectDivisionStaffRole,
+	RoleMentor:                ObjectFacilityTrainingRole,
+	RoleDivisionAcademyEditor: ObjectDivisionStaffRole,
+	RoleFacilityAcademyEditor: ObjectFacilityTrainingRole,
+
+	RoleSystemInternal: ObjectSystemRole,
+	RoleSystemExternal: ObjectSystemRole,
+	RoleSystemFacility: ObjectSystemRole,
+}
+
+// Role Scoping
+var (
+	GlobalRoles = []Role{
+		RoleSystemAdmin,
+		RoleAuthenticatedUser,
+		RoleDivisionMember,
+		RoleDivisionStaff,
+		RoleDivisionManagement,
+		RoleSystemInternal,
+		RoleSystemExternal,
+		RoleDivisionCommandCenter,
+		RoleSocialMediaTeam,
+		RoleACETeam,
+		RoleDivisionAcademyEditor,
+		RoleEmailUser,
+	}
+	FacilityRoles = []Role{
+		RoleAirTrafficManager,
+		RoleDeputyAirTrafficManager,
+		RoleTrainingAdministrator,
+		RoleEventCoordinator,
+		RoleFacilityEngineer,
+		RoleWebMaintainer,
+		RoleInstructor,
+		RoleMentor,
+		RoleSystemFacility,
+		RoleFacilityAcademyEditor,
+		RoleEmailUser,
+	}
+
+	// SystemRoles Object = ObjectSystemRole
+	SystemRoles = []Role{
+		RoleSystemAdmin,
+		RoleSystemInternal,
+		RoleSystemFacility,
+		RoleSystemExternal,
+	}
+
+	// DivisionManagementRoles Object = ObjectDivisionManagementRole
+	DivisionManagementRoles = []Role{
+		RoleDivisionManagement,
+		RoleDivisionStaff,
+	}
+
+	// DivisionStaffRoles Object = ObjectDivisionStaffRole
+	DivisionStaffRoles = []Role{
+		RoleInstructor,
+		RoleDivisionAcademyEditor,
+		RoleDivisionCommandCenter,
+		RoleSocialMediaTeam,
+		RoleACETeam,
+		RoleDivisionTechTeam,
+	}
+
+	// FacilitySeniorStaffRoles Object = ObjectFacilitySeniorStaffRole
+	FacilitySeniorStaffRoles = []Role{
+		RoleAirTrafficManager,
+		RoleDeputyAirTrafficManager,
+		RoleTrainingAdministrator,
+	}
+
+	// FacilityJuniorStaffRoles Object = ObjectFacilityJuniorStaffRole
+	FacilityJuniorStaffRoles = []Role{
+		RoleEventCoordinator,
+		RoleFacilityEngineer,
+		RoleWebMaintainer,
+	}
+
+	// FacilityTrainingRoles Object = ObjectFacilityTrainingRole
+	FacilityTrainingRoles = []Role{
+		RoleMentor,
+		RoleFacilityAcademyEditor,
+	}
+)
+
+// Role to Permission Mapping
+var (
+	RoleGlobalPermissions = map[Role][]PermissionDefinition{
+		RoleAuthenticatedUser: {},
+		RoleDivisionMember:    {},
+		RoleSystemAdmin: {
+			{
+				Action: ActionWrite,
+				Object: ObjectSystemRole,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectDivisionManagementRole,
+			},
+			{
+				Action: ActionUsage,
+				Object: ObjectSuperAdmin,
+			},
+		},
+		RoleDivisionManagement: {
+			{
+				Action: ActionWrite,
+				Object: ObjectDivisionManagementRole,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectDivisionStaffRole,
+			},
+		},
+		RoleDivisionStaff: {
+			{
+				Action: ActionWrite,
+				Object: ObjectNewsPost,
+			},
+			{
+				Action: ActionManageUnowned,
+				Object: ObjectNewsPost,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectEvent,
+			},
+			{
+				Action: ActionManageUnowned,
+				Object: ObjectEvent,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectDivisionStaffRole,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilitySeniorStaffRole,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityJuniorStaffRole,
+			},
+		},
+		RoleAirTrafficManager: {
+			{
+				Action: ActionWrite,
+				Object: ObjectNewsPost,
+			},
+		},
+		RoleDeputyAirTrafficManager: {
+			{
+				Action: ActionWrite,
+				Object: ObjectNewsPost,
+			},
+		},
+
+		RoleSystemInternal: {
+			{
+				Action: ActionWrite,
+				Object: ObjectLegacyRoleSync,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectLegacyLoginToken,
+			},
+		},
+	}
+	RoleFacilityPermissions = map[Role][]PermissionDefinition{
+		RoleAirTrafficManager: {
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityJuniorStaffRole,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTrainingRole,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectEvent,
+			},
+			{
+				Action: ActionManageUnowned,
+				Object: ObjectEvent,
+			},
+		},
+		RoleDeputyAirTrafficManager: {
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityJuniorStaffRole,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTrainingRole,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectEvent,
+			},
+			{
+				Action: ActionManageUnowned,
+				Object: ObjectEvent,
+			},
+		},
+		RoleTrainingAdministrator: {
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTrainingRole,
+			},
+		},
+		RoleEventCoordinator: {
+			{
+				Action: ActionWrite,
+				Object: ObjectEvent,
+			},
+		},
+		RoleFacilityEngineer: {},
+		RoleWebMaintainer:    {},
+		RoleInstructor:       {},
+		RoleMentor:           {},
+
+		RoleSystemFacility: {},
+	}
+)
+
+func globalPermissionsForRole(role Role) []PermissionDefinition {
+	res, ok := RoleGlobalPermissions[role]
+	if !ok {
+		res = []PermissionDefinition{}
+	}
+	return res
+}
+
+func facilityPermissionsForRole(role Role) []PermissionDefinition {
+	res, ok := RoleFacilityPermissions[role]
+	if !ok {
+		res = []PermissionDefinition{}
+	}
+	return res
+}

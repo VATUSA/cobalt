@@ -8,6 +8,24 @@ import (
 	"database/sql"
 )
 
+type AclActorRole struct {
+	ID         int64
+	ActorID    int32
+	Facility   string
+	Role       string
+	GrantorCid int32
+	GrantedAt  int64
+}
+
+type AclUserRole struct {
+	ID         int64
+	Cid        int32
+	Facility   string
+	Role       string
+	GrantorCid int32
+	GrantedAt  int64
+}
+
 type Actor struct {
 	ID                int32
 	Name              string

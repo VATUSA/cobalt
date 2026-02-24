@@ -1,15 +1,16 @@
 meta {
-  name: Update News Post
+  name: Get News Posts (20)
   type: http
-  seq: 6
+  seq: 1
 }
 
-post {
-  url: {{hostname}}/web/news/post/1
+get {
+  url: {{hostname}}/news/20
   body: none
   auth: inherit
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }

@@ -5,15 +5,16 @@ meta {
 }
 
 get {
-  url: {{hostname}}/web/event/page/:page
+  url: {{hostname}}/event/page/:page
   body: none
   auth: inherit
 }
 
 params:path {
-  page: 
+  page: 1
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }

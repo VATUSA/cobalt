@@ -1,38 +1,49 @@
 package endpoints
 
 import (
-	"vatusa-cobalt/auth"
+	"errors"
+	"fmt"
+	"net/http"
+	"vatusa-cobalt/acl"
 	"vatusa-cobalt/db"
 
 	"github.com/labstack/echo/v5"
 )
 
 type EndpointHandler struct {
-	Queries         *db.Queries
-	PermissionCache *auth.PermissionCache
+	Queries                *db.Queries
+	PermissionHandlerCache *acl.PermissionHandlerCache
 }
 
-func (h EndpointHandler) HasGlobalPermission(c *echo.Context, permission auth.UserPermission) bool {
-	if !auth.IsLoggedIn(c) {
-		return false
-	}
-	cid := auth.GetUserCid(c)
-	upc := h.PermissionCache.Get(cid)
-	return upc.HasGlobalPermission(permission)
+func (h EndpointHandler) HasGlobal(c *echo.Context, object acl.Object, action acl.Action) bool {
+	return h.PermissionHandlerCache.HasGlobal(c, object, action)
 }
 
-func (h EndpointHandler) HasFacilityPermission(c *echo.Context, permission auth.UserPermission, facility string) bool {
-	if !auth.IsLoggedIn(c) {
-		return false
+func (h EndpointHandler) AssertGlobal(c *echo.Context, object acl.Object, action acl.Action) bool {
+	if h.HasGlobal(c, object, action) {
+		return true
 	}
-	cid := auth.GetUserCid(c)
-	upc := h.PermissionCache.Get(cid)
-	return upc.HasFacilityPermission(permission, facility)
+	_ = GenericError(c, http.StatusForbidden,
+		errors.New(fmt.Sprintf("missing acl global %s:%s", object, action)))
+	return false
+}
+
+func (h EndpointHandler) HasFacility(c *echo.Context, facility string, object acl.Object, action acl.Action) bool {
+	return h.PermissionHandlerCache.HasFacility(c, facility, object, action)
+}
+
+func (h EndpointHandler) AssertFacility(c *echo.Context, facility string, object acl.Object, action acl.Action) bool {
+	if h.HasFacility(c, facility, object, action) {
+		return true
+	}
+	_ = GenericError(c, http.StatusForbidden,
+		errors.New(fmt.Sprintf("missing acl %s %s:%s", facility, object, action)))
+	return false
 }
 
 func NewEndpointHandler(queries *db.Queries) *EndpointHandler {
 	return &EndpointHandler{
-		Queries:         queries,
-		PermissionCache: auth.NewPermissionCache(queries),
+		Queries:                queries,
+		PermissionHandlerCache: acl.NewPermissionHandlerCache(queries),
 	}
 }

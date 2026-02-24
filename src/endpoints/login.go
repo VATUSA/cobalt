@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"vatusa-cobalt/acl"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/config"
 
@@ -17,7 +18,7 @@ func (h EndpointHandler) GetLogin(c *echo.Context) error {
 
 func (h EndpointHandler) GetLogout(c *echo.Context) error {
 	c.SetCookie(&http.Cookie{
-		Name:   auth.JWT_COOKIE_NAME,
+		Name:   auth.JWTCookieName,
 		Value:  "",
 		Path:   "/",
 		MaxAge: -1,
@@ -48,7 +49,7 @@ func (h EndpointHandler) Connect(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
 	}
 	c.SetCookie(&http.Cookie{
-		Name:     auth.JWT_COOKIE_NAME,
+		Name:     auth.JWTCookieName,
 		Value:    jwt,
 		Path:     "/",
 		Domain:   config.CookieDomain(),
@@ -60,9 +61,8 @@ func (h EndpointHandler) Connect(c *echo.Context) error {
 }
 
 func (h EndpointHandler) GetGenerateUserToken(c *echo.Context) error {
-	actor := auth.GetTokenActor(c)
-	if !actor.HasGlobalGrant(auth.GrantGenerateUserAuthToken) {
-		return echo.NewHTTPError(http.StatusForbidden, "not authorized")
+	if !h.AssertGlobal(c, acl.ObjectLegacyLoginToken, acl.ActionWrite) {
+		return nil
 	}
 	cid, err := strconv.Atoi(c.Param("cid"))
 	if err != nil {
@@ -91,7 +91,7 @@ func (h EndpointHandler) LoginAs(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
 	}
 	c.SetCookie(&http.Cookie{
-		Name:  auth.JWT_COOKIE_NAME,
+		Name:  auth.JWTCookieName,
 		Value: token,
 		Path:  "/",
 	})

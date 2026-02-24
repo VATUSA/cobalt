@@ -10,14 +10,14 @@ import (
 func CookieAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c *echo.Context) error {
 		cid := -1
-		token, err := c.Cookie(auth.JWT_COOKIE_NAME)
+		token, err := c.Cookie(auth.JWTCookieName)
 		if err == nil {
 			cid, err = auth.GetCIDFromToken(token.Value)
 			if err != nil {
 				return c.String(http.StatusUnauthorized, "token error")
 			}
 		}
-		c.Set(auth.CONTEXT_USER_CID, cid)
+		c.Set(auth.ContextUserCID, cid)
 		return next(c)
 	}
 }

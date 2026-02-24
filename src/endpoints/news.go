@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"vatusa-cobalt/acl"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/models"
@@ -13,8 +14,8 @@ import (
 )
 
 func (h EndpointHandler) CreatePost(c *echo.Context) error {
-	if !h.HasGlobalPermission(c, auth.PermPostNews) {
-		return ErrorNoPermission(c)
+	if !h.AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
+		return nil
 	}
 	ctx := c.Request().Context()
 	var request models.NewsPostRequest
@@ -57,8 +58,12 @@ func (h EndpointHandler) UpdatePost(c *echo.Context) error {
 	if err != nil {
 		return GenericError(c, http.StatusNotFound, errors.New("post not found"))
 	}
-	if !h.HasGlobalPermission(c, auth.PermManageNews) && int(post.AuthorCid) != auth.GetUserCid(c) {
-		return ErrorNoPermission(c)
+
+	if !h.AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
+		return nil
+	}
+	if int(post.AuthorCid) != auth.GetUserCid(c) && h.AssertGlobal(c, acl.ObjectNewsPost, acl.ActionManageUnowned) {
+		return err
 	}
 
 	err = h.Queries.UpdatePost(ctx, db.UpdatePostParams{
@@ -84,8 +89,11 @@ func (h EndpointHandler) DeletePost(c *echo.Context) error {
 		return GenericError(c, http.StatusNotFound, errors.New("post not found"))
 	}
 
-	if !h.HasGlobalPermission(c, auth.PermManageNews) && int(post.AuthorCid) != auth.GetUserCid(c) {
-		return ErrorNoPermission(c)
+	if !h.AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
+		return nil
+	}
+	if int(post.AuthorCid) != auth.GetUserCid(c) && !h.AssertGlobal(c, acl.ObjectNewsPost, acl.ActionManageUnowned) {
+		return nil
 	}
 
 	err = h.Queries.DeleteNewsPostById(ctx, int32(postId))
