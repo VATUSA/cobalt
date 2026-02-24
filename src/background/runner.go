@@ -104,6 +104,7 @@ func launchK8sJob(name string, cmdArgs []string) error {
 							Command: cmdArgs,
 						},
 					},
+					RestartPolicy: v1.RestartPolicyNever,
 				},
 			},
 			BackoffLimit: &backoffLimit,
