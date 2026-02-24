@@ -61,15 +61,4 @@ func SetupRoutes(e *echo.Echo) {
 	login.GET("/as/:cid", handler.LoginAs)
 	login.GET("/whoami", handler.WhoAmI)
 
-	web := e.Group("/web")
-	web.GET("/news/:count", handler.GetLastPosts)
-	web.GET("/news/post/:id", handler.GetPost)
-	web.GET("/news/page/:page", handler.GetNewsPage)
-
-	webRequireLogin := web.Group("")
-	webRequireLogin.Use(_middleware.RequireLogin)
-	webRequireLogin.POST("/news/new", handler.CreatePost)
-	webRequireLogin.POST("/news/post/:id", handler.UpdatePost)
-	webRequireLogin.DELETE("/news/post/:id", handler.DeletePost)
-
 }
