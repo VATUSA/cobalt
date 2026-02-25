@@ -10,42 +10,6 @@ import (
 	"database/sql"
 )
 
-const getACLGrantsForActor = `-- name: GetACLGrantsForActor :many
-SELECT id, actor_id, acl, scope_facility, created_at, created_by_cid
-FROM actor_acl
-WHERE actor_id = ?
-`
-
-func (q *Queries) GetACLGrantsForActor(ctx context.Context, actorID int32) ([]ActorAcl, error) {
-	rows, err := q.db.QueryContext(ctx, getACLGrantsForActor, actorID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ActorAcl
-	for rows.Next() {
-		var i ActorAcl
-		if err := rows.Scan(
-			&i.ID,
-			&i.ActorID,
-			&i.Acl,
-			&i.ScopeFacility,
-			&i.CreatedAt,
-			&i.CreatedByCid,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getActiveActorTokens = `-- name: GetActiveActorTokens :many
 SELECT
     actor.id,

@@ -6,6 +6,7 @@ package db
 
 import (
 	"database/sql"
+	"time"
 )
 
 type AclActorRole struct {
@@ -37,15 +38,6 @@ type Actor struct {
 	IsActive          bool
 	CreatedAt         int64
 	CreatedByCid      int32
-}
-
-type ActorAcl struct {
-	ID            int64
-	ActorID       int32
-	Acl           string
-	ScopeFacility string
-	CreatedAt     int64
-	CreatedByCid  int32
 }
 
 type ActorToken struct {
@@ -83,19 +75,19 @@ type NewsPost struct {
 	EditTime  int64
 }
 
-type RoleFacility struct {
-	ID        int64
-	Cid       int32
-	Role      string
-	Facility  string
-	CreatedAt int64
-	CreatedBy int32
-}
-
-type RoleGlobal struct {
-	ID        int64
-	Cid       int32
-	Role      string
-	CreatedAt int64
-	CreatedBy int32
+type VatsimUser struct {
+	Cid                int64
+	NameFirst          string
+	NameLast           string
+	Email              string
+	Rating             int32
+	Pilotrating        int32
+	Militaryrating     int32
+	SuspendDate        sql.NullTime
+	RegistrationDate   sql.NullTime
+	RegionID           string
+	DivisionID         string
+	SubdivisionID      sql.NullString
+	LatestRatingChange sql.NullTime
+	LastSync           time.Time
 }

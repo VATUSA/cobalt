@@ -2,18 +2,20 @@ package endpoints
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
 	"vatusa-cobalt/acl"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/config"
+	"vatusa-cobalt/vatsim"
 
 	"github.com/labstack/echo/v5"
 )
 
 func (h EndpointHandler) GetLogin(c *echo.Context) error {
-	return c.Redirect(http.StatusFound, auth.ConnectFullURL())
+	return c.Redirect(http.StatusFound, vatsim.ConnectFullURL())
 }
 
 func (h EndpointHandler) GetLogout(c *echo.Context) error {
@@ -29,11 +31,11 @@ func (h EndpointHandler) GetLogout(c *echo.Context) error {
 
 func (h EndpointHandler) Connect(c *echo.Context) error {
 	code := c.QueryParam("code")
-	token, err := auth.FetchToken(code)
+	token, err := vatsim.FetchToken(code)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "error fetching connect access token")
 	}
-	userData, err := auth.FetchUserData(token)
+	userData, err := vatsim.FetchUserData(token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "error fetching connect user data")
 	}
@@ -42,7 +44,10 @@ func (h EndpointHandler) Connect(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "error extracting cid")
 	}
 
-	// TODO: use userData to update the user record
+	err = vatsim.SyncByCID(cid)
+	if err != nil {
+		log.Printf("error syncing user cid %d: %v", cid, err)
+	}
 
 	jwt, err := auth.CreateTokenForCID(cid)
 	if err != nil {

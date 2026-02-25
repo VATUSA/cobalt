@@ -1,10 +1,8 @@
 package routes
 
 import (
-	"database/sql"
-	"log"
 	"vatusa-cobalt/config"
-	"vatusa-cobalt/db"
+	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/endpoints"
 	_middleware "vatusa-cobalt/middleware"
 
@@ -13,11 +11,7 @@ import (
 )
 
 func SetupRoutes(e *echo.Echo) {
-	database, err := sql.Open("mysql", config.ConnectionString())
-	if err != nil {
-		log.Fatal(err)
-	}
-	queries := db.New(database)
+	queries := dbconn.Queries()
 
 	handler := endpoints.NewEndpointHandler(queries)
 	actorAuth := _middleware.NewActorAuth(queries)

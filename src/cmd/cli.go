@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"vatusa-cobalt/cli"
+
+	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {

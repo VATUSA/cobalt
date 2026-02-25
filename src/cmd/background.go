@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"vatusa-cobalt/background"
+
+	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {

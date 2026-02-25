@@ -1,4 +1,4 @@
-package auth
+package vatsim
 
 import (
 	"encoding/json"
