@@ -4,5 +4,5 @@ type JobFunc func(args []string) error
 
 var JobDefinitions = map[string]JobFunc{
 	"test":        TestJob,
-	"vatsim:sync": VatsimSync,
+	"vatsim_sync": VatsimSync,
 }
