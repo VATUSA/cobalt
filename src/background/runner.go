@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -65,7 +66,8 @@ func runBackgroundJob(jobName string, args []string) error {
 	}
 	cmdArgs = append(cmdArgs, args...)
 
-	name := fmt.Sprintf("cobalt-bg-%s", jobName)
+	safeJobName := strings.Replace(jobName, "_", "-", -1)
+	name := fmt.Sprintf("cobalt-bg-%s", safeJobName)
 
 	err := launchK8sJob(name, cmdArgs)
 	if err != nil {
