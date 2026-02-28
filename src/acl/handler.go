@@ -59,6 +59,10 @@ func (ph *PermissionHandler) addFacilityPermission(facility string, object Objec
 }
 
 func (ph *PermissionHandler) HasGlobal(object Object, action Action) bool {
+	saRes, ok := ph.globalPermissions[createGlobalPermissionKey(ObjectSuperAdmin, ActionUsage)]
+	if ok {
+		return saRes
+	}
 	res, ok := ph.globalPermissions[createGlobalPermissionKey(object, action)]
 	if !ok {
 		return false

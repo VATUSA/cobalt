@@ -2,7 +2,9 @@ version: "2"
 sql:
   - engine: "mysql"
     queries: "sql/queries"
-    schema: "sql/migrations"
+    schema:
+    - "sql/migrations"
+    - "sql/legacy_schema"
     gen:
       go:
         package: "db"

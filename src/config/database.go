@@ -12,6 +12,6 @@ func ConnectionString() string {
 	password := os.Getenv("DB_PASS")
 	database := os.Getenv("DB_NAME")
 
-	cs := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, host, port, database)
+	cs := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", user, password, host, port, database)
 	return cs
 }

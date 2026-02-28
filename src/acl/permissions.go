@@ -15,8 +15,9 @@ const (
 	// ObjectSuperAdmin with ActionUsage grants all permissions
 	ObjectSuperAdmin Object = "superadmin"
 
-	ObjectNewsPost Object = "news_post"
-	ObjectEvent    Object = "event"
+	ObjectNewsPost             Object = "news_post"
+	ObjectEvent                Object = "event"
+	ObjectUserSensitiveDetails Object = "user_sensitive_details"
 
 	// Role Objects
 	ObjectSystemRole              Object = "system_api_role"

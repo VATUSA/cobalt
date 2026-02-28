@@ -6,8 +6,274 @@ package db
 
 import (
 	"database/sql"
+	"database/sql/driver"
+	"fmt"
 	"time"
 )
+
+type ControllerTrainingType string
+
+const (
+	ControllerTrainingTypeClassroom     ControllerTrainingType = "Classroom"
+	ControllerTrainingTypeLive          ControllerTrainingType = "Live"
+	ControllerTrainingTypeSimulation    ControllerTrainingType = "Simulation"
+	ControllerTrainingTypeOTSLive       ControllerTrainingType = "OTS Live"
+	ControllerTrainingTypeOTSSimulation ControllerTrainingType = "OTS Simulation"
+)
+
+func (e *ControllerTrainingType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ControllerTrainingType(s)
+	case string:
+		*e = ControllerTrainingType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ControllerTrainingType: %T", src)
+	}
+	return nil
+}
+
+type NullControllerTrainingType struct {
+	ControllerTrainingType ControllerTrainingType
+	Valid                  bool // Valid is true if ControllerTrainingType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullControllerTrainingType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ControllerTrainingType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ControllerTrainingType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullControllerTrainingType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ControllerTrainingType), nil
+}
+
+type ExamsAnswerVisibility string
+
+const (
+	ExamsAnswerVisibilityNone      ExamsAnswerVisibility = "none"
+	ExamsAnswerVisibilityUserOnly  ExamsAnswerVisibility = "user_only"
+	ExamsAnswerVisibilityAll       ExamsAnswerVisibility = "all"
+	ExamsAnswerVisibilityAllPassed ExamsAnswerVisibility = "all_passed"
+)
+
+func (e *ExamsAnswerVisibility) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ExamsAnswerVisibility(s)
+	case string:
+		*e = ExamsAnswerVisibility(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ExamsAnswerVisibility: %T", src)
+	}
+	return nil
+}
+
+type NullExamsAnswerVisibility struct {
+	ExamsAnswerVisibility ExamsAnswerVisibility
+	Valid                 bool // Valid is true if ExamsAnswerVisibility is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullExamsAnswerVisibility) Scan(value interface{}) error {
+	if value == nil {
+		ns.ExamsAnswerVisibility, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ExamsAnswerVisibility.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullExamsAnswerVisibility) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ExamsAnswerVisibility), nil
+}
+
+type JobsStatus string
+
+const (
+	JobsStatusPending JobsStatus = "pending"
+	JobsStatusRunning JobsStatus = "running"
+	JobsStatusSuccess JobsStatus = "success"
+	JobsStatusFailed  JobsStatus = "failed"
+)
+
+func (e *JobsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = JobsStatus(s)
+	case string:
+		*e = JobsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for JobsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullJobsStatus struct {
+	JobsStatus JobsStatus
+	Valid      bool // Valid is true if JobsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullJobsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.JobsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.JobsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullJobsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.JobsStatus), nil
+}
+
+type TicketsPriority string
+
+const (
+	TicketsPriorityLow    TicketsPriority = "Low"
+	TicketsPriorityNormal TicketsPriority = "Normal"
+	TicketsPriorityHigh   TicketsPriority = "High"
+)
+
+func (e *TicketsPriority) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TicketsPriority(s)
+	case string:
+		*e = TicketsPriority(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TicketsPriority: %T", src)
+	}
+	return nil
+}
+
+type NullTicketsPriority struct {
+	TicketsPriority TicketsPriority
+	Valid           bool // Valid is true if TicketsPriority is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTicketsPriority) Scan(value interface{}) error {
+	if value == nil {
+		ns.TicketsPriority, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TicketsPriority.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTicketsPriority) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TicketsPriority), nil
+}
+
+type TicketsStatus string
+
+const (
+	TicketsStatusOpen   TicketsStatus = "Open"
+	TicketsStatusClosed TicketsStatus = "Closed"
+)
+
+func (e *TicketsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TicketsStatus(s)
+	case string:
+		*e = TicketsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TicketsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullTicketsStatus struct {
+	TicketsStatus TicketsStatus
+	Valid         bool // Valid is true if TicketsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTicketsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.TicketsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TicketsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTicketsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TicketsStatus), nil
+}
+
+type TrainingBlocksLevel string
+
+const (
+	TrainingBlocksLevelSeniorStaff TrainingBlocksLevel = "Senior Staff"
+	TrainingBlocksLevelStaff       TrainingBlocksLevel = "Staff"
+	TrainingBlocksLevelI1          TrainingBlocksLevel = "I1"
+	TrainingBlocksLevelC1          TrainingBlocksLevel = "C1"
+	TrainingBlocksLevelS1          TrainingBlocksLevel = "S1"
+	TrainingBlocksLevelALL         TrainingBlocksLevel = "ALL"
+)
+
+func (e *TrainingBlocksLevel) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TrainingBlocksLevel(s)
+	case string:
+		*e = TrainingBlocksLevel(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TrainingBlocksLevel: %T", src)
+	}
+	return nil
+}
+
+type NullTrainingBlocksLevel struct {
+	TrainingBlocksLevel TrainingBlocksLevel
+	Valid               bool // Valid is true if TrainingBlocksLevel is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTrainingBlocksLevel) Scan(value interface{}) error {
+	if value == nil {
+		ns.TrainingBlocksLevel, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TrainingBlocksLevel.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTrainingBlocksLevel) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TrainingBlocksLevel), nil
+}
 
 type AclActorRole struct {
 	ID         int64
@@ -75,6 +341,23 @@ type NewsPost struct {
 	EditTime  int64
 }
 
+type User struct {
+	Cid                int64
+	DisplayName        sql.NullString
+	ControllerRating   sql.NullInt32
+	InstructorRating   sql.NullInt32
+	Facility           string
+	DiscordID          sql.NullString
+	LastPromotionTime  sql.NullTime
+	LastTransferTime   sql.NullTime
+	LastCompetencyDate sql.NullTime
+}
+
+type UserVisit struct {
+	Cid      int64
+	Facility string
+}
+
 type VatsimUser struct {
 	Cid                int64
 	NameFirst          string
@@ -90,4 +373,800 @@ type VatsimUser struct {
 	SubdivisionID      sql.NullString
 	LatestRatingChange sql.NullTime
 	LastSync           time.Time
+}
+
+type VatusaOldAcademyBasicExamEmail struct {
+	ID        uint32
+	AttemptID int32
+	StudentID int32
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
+}
+
+type VatusaOldAcademyCompetency struct {
+	ID                  int32
+	Cid                 sql.NullInt32
+	AcademyCourseID     sql.NullInt32
+	CompletionTimestamp sql.NullTime
+	ExpirationTimestamp sql.NullTime
+	UpdatedAt           sql.NullTime
+	CreatedAt           sql.NullTime
+	Rating              int32
+}
+
+type VatusaOldAcademyCourse struct {
+	ID             int32
+	Name           string
+	ListOrder      sql.NullInt32
+	MoodleEnrolID  sql.NullInt32
+	MoodleQuizID   sql.NullInt32
+	PassingPercent int32
+	Rating         int32
+}
+
+type VatusaOldAcademyCourseEnrollment struct {
+	ID                  int32
+	Cid                 int32
+	AcademyCourseID     int32
+	AssignmentTimestamp sql.NullTime
+	PassedTimestamp     sql.NullTime
+	Status              int32
+	UpdatedAt           sql.NullTime
+	CreatedAt           sql.NullTime
+}
+
+type VatusaOldAcademyExamAssignment struct {
+	ID                uint32
+	StudentID         int32
+	InstructorID      int32
+	MoodleUid         int32
+	CourseID          int32
+	CourseName        string
+	QuizID            int32
+	RatingID          int32
+	AttemptEmailsSent sql.NullString
+	CreatedAt         sql.NullTime
+	UpdatedAt         sql.NullTime
+}
+
+type VatusaOldActionLog struct {
+	ID        int32
+	From      int32
+	To        int32
+	Log       string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type VatusaOldApiLog struct {
+	ID       uint64
+	Facility string
+	Datetime time.Time
+	Method   string
+	Url      string
+	Data     string
+}
+
+type VatusaOldChecklist struct {
+	ID        uint32
+	Name      string
+	Active    int32
+	Order     uint32
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type VatusaOldChecklistDatum struct {
+	ID          uint32
+	ChecklistID uint32
+	Item        string
+	Order       uint32
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type VatusaOldController struct {
+	Cid                    uint32
+	Fname                  string
+	Lname                  string
+	Email                  string
+	Facility               string
+	Rating                 int32
+	CreatedAt              sql.NullTime
+	UpdatedAt              time.Time
+	FlagNeedbasic          int32
+	FlagXferoverride       int32
+	FacilityJoin           time.Time
+	FlagHomecontroller     int32
+	RememberToken          sql.NullString
+	CertUpdate             int32
+	Lastactivity           time.Time
+	FlagBroadcastoptedin   bool
+	FlagPreventstaffassign bool
+	AccessToken            sql.NullString
+	RefreshToken           sql.NullString
+	TokenExpires           sql.NullInt64
+	DiscordID              sql.NullString
+	Prefname               bool
+	PrefnameDate           sql.NullTime
+	LastCertSync           sql.NullTime
+	FlagNameprivacy        bool
+	LastCompetencyDate     sql.NullTime
+}
+
+type VatusaOldControllerEligibilityCache struct {
+	Cid                   int32
+	CompetencyRating      sql.NullInt32
+	CompetencyDate        sql.NullTime
+	IsInitialSelection    sql.NullBool
+	FirstSelectionDate    sql.NullTime
+	HasConsolidationHours sql.NullBool
+	ConsolidationHours    sql.NullFloat64
+	LastPromotionDate     sql.NullTime
+	LastTransferDate      sql.NullTime
+	LastVisitDate         sql.NullTime
+	CreatedAt             sql.NullTime
+	UpdatedAt             sql.NullTime
+}
+
+type VatusaOldControllerTraining struct {
+	ID            uint32
+	StudentCid    uint32
+	InstructorCid uint32
+	Facility      string
+	Position      string
+	Type          ControllerTrainingType
+	ChecklistName string
+	ChecklistData string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type VatusaOldEmailAccount struct {
+	ID        uint32
+	Facility  string
+	Username  string
+	Cid       int32
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
+}
+
+type VatusaOldEmailConfig struct {
+	Address     string
+	Config      sql.NullString
+	Destination sql.NullString
+	ModifiedBy  sql.NullInt32
+	UpdatedAt   sql.NullString
+}
+
+type VatusaOldEmailOutbound struct {
+	ID           int32
+	FromEmail    sql.NullString
+	FromName     sql.NullString
+	ReplyToEmail sql.NullString
+	ToEmails     sql.NullString
+	BccEmails    sql.NullString
+	Subject      string
+	Body         string
+	LockKey      sql.NullString
+	Processed    sql.NullBool
+}
+
+type VatusaOldEmailTemplate struct {
+	ID         uint32
+	FacilityID string
+	Template   string
+	Body       string
+	CreatedAt  sql.NullTime
+	UpdatedAt  sql.NullTime
+}
+
+type VatusaOldExam struct {
+	ID         uint32
+	FacilityID string
+	Name       string
+	Number     int32
+	// 0 - no, 1 - yes
+	IsActive    int32
+	CbtRequired sql.NullInt64
+	// number of days
+	RetakePeriod     int32
+	PassingScore     int32
+	AnswerVisibility ExamsAnswerVisibility
+}
+
+type VatusaOldExamAssignment struct {
+	ID           uint64
+	Cid          uint32
+	ExamID       uint32
+	InstructorID uint32
+	AssignedDate time.Time
+	ExpireDate   time.Time
+}
+
+type VatusaOldExamGenerated struct {
+	ID         uint32
+	Cid        uint32
+	ExamID     uint32
+	QuestionID uint32
+}
+
+type VatusaOldExamQuestion struct {
+	ID       uint32
+	ExamID   uint32
+	Question string
+	// 0 - multiple choice, 1 - true/false
+	Type   int32
+	Answer string
+	Alt1   string
+	Alt2   string
+	Alt3   string
+	Notes  sql.NullString
+}
+
+type VatusaOldExamReassignment struct {
+	ID           uint64
+	Cid          uint32
+	ExamID       uint32
+	ReassignDate time.Time
+	InstructorID uint32
+}
+
+type VatusaOldExamResult struct {
+	ID       uint64
+	ExamID   uint64
+	ExamName string
+	Cid      int32
+	Score    int32
+	Passed   int32
+	Date     time.Time
+}
+
+type VatusaOldExamResultsDatum struct {
+	ID        uint32
+	ResultID  uint64
+	Question  string
+	Correct   string
+	Selected  sql.NullString
+	Notes     string
+	IsCorrect int32
+}
+
+// Facility (ARTCC/CF/FIR) Listing
+type VatusaOldFacility struct {
+	ID                string
+	Name              string
+	Url               string
+	HostedEmailDomain sql.NullString
+	Region            int32
+	Atm               uint32
+	Datm              uint32
+	Ta                uint32
+	Ec                uint32
+	Fe                uint32
+	Wm                uint32
+	UlsReturn         string
+	UlsDevreturn      string
+	UlsSecret         string
+	UlsJwk            sql.NullString
+	Active            int32
+	Apikey            string
+	Ip                string
+	ApiSandboxKey     string
+	ApiSandboxIp      string
+	Apiv2Jwk          sql.NullString
+	WelcomeText       string
+	Ace               int32
+	Apiv2JwkDev       sql.NullString
+	UlsJwkDev         string
+	UrlDev            string
+}
+
+type VatusaOldFacilityTrend struct {
+	ID       uint64
+	Date     time.Time
+	Facility string
+	Obs      int32
+	Obsg30   int32
+	S1       int32
+	S2       int32
+	S3       int32
+	C1       int32
+	C3       int32
+	// I1 or greater
+	I1 int32
+}
+
+type VatusaOldFailedJob struct {
+	ID         uint64
+	Uuid       string
+	Connection string
+	Queue      string
+	Payload    string
+	Exception  string
+	FailedAt   time.Time
+}
+
+type VatusaOldFlight struct {
+	Callsign string
+	Lat      string
+	Long     string
+	Hdg      int32
+	Dest     string
+	Dep      string
+	Type     string
+}
+
+type VatusaOldJob struct {
+	ID        uint32
+	Type      string
+	Data      string
+	Status    JobsStatus
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
+}
+
+type VatusaOldKnowledgebaseCategory struct {
+	ID        uint32
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type VatusaOldKnowledgebaseQuestion struct {
+	ID         uint32
+	CategoryID uint32
+	Order      uint32
+	Question   string
+	Answer     string
+	UpdatedBy  int32
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+type VatusaOldLoginToken struct {
+	Token     string
+	Cid       uint32
+	Timestamp time.Time
+	Ip        string
+}
+
+// Defines roster of facilities
+type VatusaOldMembership struct {
+	Cid        uint32
+	Rating     uint32
+	FacilityID string
+	// 1 - Home, 2- Visitor
+	Type   int32
+	Joined time.Time
+}
+
+type VatusaOldMigration struct {
+	ID        int32
+	Migration string
+	Batch     int32
+}
+
+type VatusaOldOauthClient struct {
+	ID           sql.NullInt64
+	Name         string
+	ClientID     sql.NullString
+	ClientSecret sql.NullString
+	RedirectUris sql.NullString
+	CreatedAt    sql.NullTime
+	UpdatedAt    sql.NullTime
+}
+
+type VatusaOldOauthLogin struct {
+	ID                  uint64
+	Token               sql.NullString
+	Code                sql.NullString
+	UserAgent           sql.NullString
+	RedirectUri         sql.NullString
+	ClientID            sql.NullInt64
+	State               sql.NullString
+	CodeChallenge       sql.NullString
+	CodeChallengeMethod sql.NullString
+	Scope               sql.NullString
+	CID                 sql.NullInt64
+	CreatedAt           sql.NullTime
+	UpdatedAt           sql.NullTime
+}
+
+type VatusaOldOtsEval struct {
+	ID               uint32
+	TrainingRecordID sql.NullInt32
+	StudentID        int32
+	InstructorID     int32
+	FacilityID       string
+	ExamPosition     string
+	FormID           uint32
+	Notes            sql.NullString
+	ExamDate         time.Time
+	Result           bool
+	Signature        string
+	CreatedAt        sql.NullTime
+	UpdatedAt        sql.NullTime
+}
+
+type VatusaOldOtsEvalsForm struct {
+	ID              uint32
+	Name            string
+	RatingID        int32
+	Position        string
+	InstructorNotes sql.NullString
+	IsStatement     bool
+	Description     string
+	Active          bool
+	CreatedAt       sql.NullTime
+	UpdatedAt       sql.NullTime
+}
+
+type VatusaOldOtsEvalsIndicatorResult struct {
+	ID              uint32
+	PerfIndicatorID uint32
+	EvalID          uint32
+	Result          int16
+	Comment         sql.NullString
+	CreatedAt       sql.NullTime
+	UpdatedAt       sql.NullTime
+}
+
+type VatusaOldOtsEvalsPerfCat struct {
+	ID        uint32
+	Label     string
+	FormID    uint32
+	Order     int32
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
+}
+
+type VatusaOldOtsEvalsPerfIndicator struct {
+	ID            uint32
+	PerfCatID     uint32
+	Label         string
+	HelpText      sql.NullString
+	HeaderType    int16
+	IsCommendable sql.NullBool
+	IsRequired    sql.NullBool
+	CanUnsat      sql.NullBool
+	Order         int32
+	ExtraOptions  sql.NullString
+	UpdatedAt     sql.NullTime
+	CreatedAt     sql.NullTime
+}
+
+type VatusaOldPasswordReset struct {
+	Email     string
+	Token     string
+	CreatedAt sql.NullTime
+}
+
+type VatusaOldPolicy struct {
+	ID            uint32
+	Ident         string
+	Category      uint32
+	Title         string
+	Slug          string
+	Description   string
+	Extension     string
+	EffectiveDate sql.NullTime
+	Perms         string
+	Visible       bool
+	Order         uint16
+	CreatedAt     sql.NullTime
+	UpdatedAt     sql.NullTime
+}
+
+type VatusaOldPolicyCategory struct {
+	ID        uint32
+	Name      string
+	Order     uint16
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
+}
+
+type VatusaOldPromotion struct {
+	ID        int32
+	Cid       int32
+	Grantor   uint32
+	To        int32
+	From      int32
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Exam      time.Time
+	Examiner  uint32
+	Position  string
+	EvalID    sql.NullInt32
+}
+
+type VatusaOldPromotionstest struct {
+	ID        int32
+	Cid       int32
+	Grantor   uint32
+	To        int32
+	From      int32
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Exam      time.Time
+	Examiner  uint32
+	Position  string
+}
+
+type VatusaOldPushLog struct {
+	ID          int32
+	CreatedAt   time.Time
+	UpdatedAt   sql.NullTime
+	Title       string
+	Message     string
+	SubmittedBy string
+}
+
+type VatusaOldRating struct {
+	ID    int32
+	Short string
+	Long  string
+}
+
+type VatusaOldReturnPath struct {
+	ID         uint32
+	Order      int32
+	FacilityID string
+	Url        string
+	CreatedAt  sql.NullTime
+	UpdatedAt  sql.NullTime
+}
+
+type VatusaOldRole struct {
+	ID        uint64
+	Cid       uint32
+	Facility  string
+	Role      string
+	CreatedAt time.Time
+}
+
+type VatusaOldRoleTitle struct {
+	Role  string
+	Title string
+}
+
+type VatusaOldSession struct {
+	ID           string
+	UserID       sql.NullInt32
+	IpAddress    sql.NullString
+	UserAgent    sql.NullString
+	Payload      string
+	LastActivity int32
+}
+
+type VatusaOldSoloCert struct {
+	ID        uint32
+	Cid       uint32
+	Position  string
+	Expires   time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type VatusaOldStatsArchive struct {
+	ID   int64
+	Date time.Time
+	Data string
+}
+
+type VatusaOldSurvey struct {
+	ID        uint32
+	Facility  string
+	Name      string
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
+}
+
+type VatusaOldSurveyAssignment struct {
+	ID        string
+	SurveyID  int32
+	Facility  string
+	Rating    int32
+	MiscData  string
+	Completed int32
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
+}
+
+type VatusaOldSurveyQuestion struct {
+	ID        uint32
+	SurveyID  int32
+	Question  string
+	Data      string
+	Order     int32
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
+}
+
+type VatusaOldSurveySubmission struct {
+	ID         uint32
+	SurveyID   int32
+	QuestionID int32
+	Response   string
+	Facility   string
+	Rating     int32
+	CreatedAt  sql.NullTime
+	UpdatedAt  sql.NullTime
+}
+
+type VatusaOldTicket struct {
+	ID         uint32
+	Cid        int32
+	Subject    string
+	Body       string
+	Status     TicketsStatus
+	Facility   string
+	AssignedTo string
+	Notes      string
+	Priority   TicketsPriority
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+type VatusaOldTicketsHistory struct {
+	ID        uint64
+	TicketID  uint64
+	Entry     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type VatusaOldTicketsNote struct {
+	ID        uint32
+	TicketID  int32
+	Cid       int32
+	Note      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type VatusaOldTicketsReply struct {
+	ID        uint32
+	TicketID  int32
+	Cid       int32
+	Body      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type VatusaOldTmuColor struct {
+	ID    string
+	Black sql.NullString
+	// 1
+	Brown sql.NullString
+	// 2
+	Blue sql.NullString
+	// 3
+	Gray sql.NullString
+	// 4
+	Green sql.NullString
+	// 5
+	Lime sql.NullString
+	// 6
+	Cyan sql.NullString
+	// 7
+	Orange sql.NullString
+	// 9
+	Red sql.NullString
+	// 10
+	Purple sql.NullString
+	// 11
+	White sql.NullString
+	// 12
+	Yellow sql.NullString
+	// 13
+	Violet sql.NullString
+	Guide  sql.NullString
+}
+
+type VatusaOldTmuFacility struct {
+	ID     string
+	Parent sql.NullString
+	Name   string
+	Coords string
+}
+
+type VatusaOldTmuNotice struct {
+	ID            uint32
+	TmuFacilityID string
+	Priority      int16
+	Message       string
+	StartDate     time.Time
+	ExpireDate    sql.NullTime
+	CreatedAt     sql.NullTime
+	UpdatedAt     sql.NullTime
+	IsDelay       bool
+	IsPrefRoute   bool
+}
+
+type VatusaOldTrainingBlock struct {
+	ID uint64
+	// Facility ID, ZAE = VATUSA Academy
+	Facility string
+	Order    int32
+	Name     string
+	Level    TrainingBlocksLevel
+	Visible  bool
+}
+
+type VatusaOldTrainingChapter struct {
+	ID      uint64
+	Blockid uint64
+	Order   int32
+	Name    string
+	Url     string
+	Visible bool
+}
+
+type VatusaOldTrainingProgress struct {
+	Cid       uint32
+	Chapterid uint64
+	Date      time.Time
+}
+
+type VatusaOldTrainingRecord struct {
+	ID           uint32
+	StudentID    int32
+	InstructorID int32
+	SessionDate  time.Time
+	FacilityID   string
+	Position     string
+	Duration     time.Time
+	Movements    sql.NullInt32
+	Score        sql.NullInt32
+	Notes        string
+	Location     int16
+	OtsStatus    int16
+	OtsEvalID    sql.NullInt32
+	IsCbt        bool
+	SoloGranted  bool
+	ModifiedBy   sql.NullInt32
+	CreatedAt    sql.NullTime
+	UpdatedAt    sql.NullTime
+}
+
+type VatusaOldTransfer struct {
+	ID     uint32
+	Cid    uint32
+	To     string
+	From   string
+	Reason string
+	// 0-pending,1-accepted,2-rejected
+	Status     int32
+	Actiontext string
+	Actionby   uint32
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+type VatusaOldUlsToken struct {
+	Facility string
+	Token    string
+	Date     time.Time
+	Ip       string
+	Cid      uint32
+	Expired  int32
+}
+
+type VatusaOldUser struct {
+	ID            uint32
+	Name          string
+	Email         string
+	Password      string
+	RememberToken sql.NullString
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type VatusaOldVisit struct {
+	ID        uint64
+	Cid       uint32
+	Facility  string
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
 }

@@ -42,6 +42,9 @@ func SetupRoutes(e *echo.Echo) {
 	event.POST("/:id", handler.UpdateEvent)
 	event.DELETE("/:id", handler.DeleteEvent)
 
+	user := e.Group("/user")
+	user.GET("/:cid", handler.GetUser)
+
 	login := e.Group("/login")
 	login.GET("", handler.GetLogin)
 	login.GET("/connect", handler.Connect)

@@ -1,0 +1,19 @@
+meta {
+  name: Get User by CID
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{hostname}}/user/:cid
+  body: none
+  auth: inherit
+}
+
+params:path {
+  cid: 
+}
+
+settings {
+  encodeUrl: true
+}

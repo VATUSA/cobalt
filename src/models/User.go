@@ -14,18 +14,18 @@ type NetworkUser struct {
 	Rating         int     `json:"rating"`
 	Region         string  `json:"region"`
 	Division       string  `json:"division"`
-	SubDivision    string  `json:"subdivision"`
+	SubDivision    *string `json:"subdivision"`
 	PilotRating    int     `json:"pilot_rating"`
 	MilitaryRating int     `json:"military_rating"`
 }
 
 type DivisionUser struct {
-	DisplayName            string   `json:"display_name"`
-	ControllerRating       int      `json:"controller_rating"`
+	DisplayName            *string  `json:"display_name"`
+	ControllerRating       *int     `json:"controller_rating"`
 	InstructorRating       *int     `json:"instructor_rating"`
 	Facility               string   `json:"facility"`
 	VisitingFacilities     []string `json:"visiting_facilities"`
-	DiscordId              int64    `json:"discord_id"`
-	LastPromotionTimestamp int64    `json:"last_promotion_timestamp"`
-	LastTransferTimestamp  int64    `json:"last_transfer_timestamp"`
+	DiscordId              *string  `json:"discord_id"`
+	LastPromotionTimestamp *int64   `json:"last_promotion_timestamp"`
+	LastTransferTimestamp  *int64   `json:"last_transfer_timestamp"`
 }

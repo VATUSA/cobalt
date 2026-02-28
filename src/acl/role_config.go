@@ -184,6 +184,10 @@ var (
 				Action: ActionWrite,
 				Object: ObjectDivisionStaffRole,
 			},
+			{
+				Action: ActionUsage,
+				Object: ObjectUserSensitiveDetails,
+			},
 		},
 		RoleDivisionStaff: {
 			{
@@ -214,17 +218,35 @@ var (
 				Action: ActionWrite,
 				Object: ObjectFacilityJuniorStaffRole,
 			},
+			{
+				Action: ActionUsage,
+				Object: ObjectUserSensitiveDetails,
+			},
 		},
 		RoleAirTrafficManager: {
 			{
 				Action: ActionWrite,
 				Object: ObjectNewsPost,
 			},
+			{
+				Action: ActionUsage,
+				Object: ObjectUserSensitiveDetails,
+			},
 		},
 		RoleDeputyAirTrafficManager: {
 			{
 				Action: ActionWrite,
 				Object: ObjectNewsPost,
+			},
+			{
+				Action: ActionUsage,
+				Object: ObjectUserSensitiveDetails,
+			},
+		},
+		RoleTrainingAdministrator: {
+			{
+				Action: ActionUsage,
+				Object: ObjectUserSensitiveDetails,
 			},
 		},
 
@@ -236,6 +258,10 @@ var (
 			{
 				Action: ActionWrite,
 				Object: ObjectLegacyLoginToken,
+			},
+			{
+				Action: ActionUsage,
+				Object: ObjectUserSensitiveDetails,
 			},
 		},
 	}
@@ -293,7 +319,12 @@ var (
 		RoleInstructor:       {},
 		RoleMentor:           {},
 
-		RoleSystemFacility: {},
+		RoleSystemFacility: {
+			{
+				Action: ActionUsage,
+				Object: ObjectUserSensitiveDetails,
+			},
+		},
 	}
 )
 
