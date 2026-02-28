@@ -61,7 +61,7 @@ func getCurrentNamespace() string {
 
 func runBackgroundJob(jobName string, args []string) error {
 	cmdArgs := []string{
-		"/app/cobalt-background",
+		"/app/background",
 		jobName,
 	}
 	cmdArgs = append(cmdArgs, args...)
