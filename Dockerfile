@@ -7,8 +7,8 @@ RUN go build -o bin/cli ./cmd/cli.go
 
 FROM alpine:3.23 AS app
 WORKDIR /app
-COPY --from=build /go/src/github.com/VATUSA/cobalt/bin/cobalt-server ./
-COPY --from=build /go/src/github.com/VATUSA/cobalt/bin/cobalt-background ./
-COPY --from=build /go/src/github.com/VATUSA/cobalt/bin/cobalt-cli ./
+COPY --from=build /go/src/github.com/VATUSA/cobalt/bin/server ./
+COPY --from=build /go/src/github.com/VATUSA/cobalt/bin/background ./
+COPY --from=build /go/src/github.com/VATUSA/cobalt/bin/cli ./
 COPY sql/ ./sql
 ENTRYPOINT ["/app/server"]
