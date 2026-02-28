@@ -106,6 +106,22 @@ func launchK8sJob(name string, cmdArgs []string) error {
 							Name:    name,
 							Image:   image,
 							Command: cmdArgs,
+							EnvFrom: []v1.EnvFromSource{
+								{
+									SecretRef: &v1.SecretEnvSource{
+										LocalObjectReference: v1.LocalObjectReference{
+											Name: "cobalt-secrets",
+										},
+									},
+								},
+								{
+									ConfigMapRef: &v1.ConfigMapEnvSource{
+										LocalObjectReference: v1.LocalObjectReference{
+											Name: "cobalt-config",
+										},
+									},
+								},
+							},
 						},
 					},
 					RestartPolicy: v1.RestartPolicyNever,
