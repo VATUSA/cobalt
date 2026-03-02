@@ -36,3 +36,9 @@ type PermissionDefinition struct {
 	Action Action
 	Object Object
 }
+
+type ScopedPermissionDefinition struct {
+	Action   Action
+	Object   Object
+	Facility string
+}

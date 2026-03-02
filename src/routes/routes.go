@@ -51,4 +51,7 @@ func SetupRoutes(e *echo.Echo) {
 	login.GET("/as/:cid", handler.LoginAs)
 	login.GET("/whoami", handler.WhoAmI)
 
+	my := e.Group("/my")
+	my.GET("/session", handler.GetMySession)
+
 }

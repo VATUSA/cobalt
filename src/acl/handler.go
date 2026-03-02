@@ -2,6 +2,8 @@ package acl
 
 import (
 	"fmt"
+	"log"
+	"strings"
 	"time"
 )
 
@@ -13,6 +15,22 @@ func createGlobalPermissionKey(object Object, action Action) permissionKey {
 
 func createFacilityPermissionKey(facility string, object Object, action Action) permissionKey {
 	return permissionKey(fmt.Sprintf("%s:%s:%s", facility, object, action))
+}
+
+func extractGlobalPermissionKey(key permissionKey) (Object, Action) {
+	parts := strings.Split(string(key), ":")
+	if len(parts) != 2 {
+		log.Fatalf("invalid global permission key: %s", key)
+	}
+	return Object(parts[0]), Action(parts[1])
+}
+
+func extractFacilityPermissionKey(key permissionKey) (string, Object, Action) {
+	parts := strings.Split(string(key), ":")
+	if len(parts) != 3 {
+		log.Fatalf("invalid facility permission key: %s", key)
+	}
+	return parts[0], Object(parts[1]), Action(parts[2])
 }
 
 type PermissionHandler struct {
@@ -79,4 +97,29 @@ func (ph *PermissionHandler) HasFacility(facility string, object Object, action 
 		return false
 	}
 	return res
+}
+
+func (ph *PermissionHandler) GetGlobalPermissions() []PermissionDefinition {
+	var output []PermissionDefinition
+	for key := range ph.globalPermissions {
+		object, action := extractGlobalPermissionKey(key)
+		output = append(output, PermissionDefinition{
+			Object: object,
+			Action: action,
+		})
+	}
+	return output
+}
+
+func (ph *PermissionHandler) GetFacilityPermissions() []ScopedPermissionDefinition {
+	var output []ScopedPermissionDefinition
+	for key := range ph.facilityPermissions {
+		facility, object, action := extractFacilityPermissionKey(key)
+		output = append(output, ScopedPermissionDefinition{
+			Object:   object,
+			Action:   action,
+			Facility: facility,
+		})
+	}
+	return output
 }

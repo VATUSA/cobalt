@@ -1,5 +1,10 @@
 package models
 
+import (
+	"strings"
+	"vatusa-cobalt/db"
+)
+
 type User struct {
 	CID          int           `json:"cid"`
 	NetworkUser  *NetworkUser  `json:"network_user"`
@@ -7,7 +12,6 @@ type User struct {
 }
 
 type NetworkUser struct {
-	CID            int     `json:"cid"`
 	FirstName      *string `json:"first_name"`
 	LastName       *string `json:"last_name"`
 	Email          *string `json:"email"`
@@ -28,4 +32,69 @@ type DivisionUser struct {
 	DiscordId              *string  `json:"discord_id"`
 	LastPromotionTimestamp *int64   `json:"last_promotion_timestamp"`
 	LastTransferTimestamp  *int64   `json:"last_transfer_timestamp"`
+}
+
+func UserFromDatabase(user db.GetCombinedUserByCIDRow, canSeeSensitiveFields bool) User {
+	output := User{
+		CID: int(user.Cid),
+		NetworkUser: &NetworkUser{
+			FirstName:      nil,
+			LastName:       nil,
+			Email:          nil,
+			Rating:         int(user.Rating),
+			Region:         user.RegionID,
+			Division:       user.DivisionID,
+			SubDivision:    nil,
+			PilotRating:    int(user.Pilotrating),
+			MilitaryRating: int(user.Militaryrating),
+		},
+		DivisionUser: nil,
+	}
+	if user.SubdivisionID.Valid {
+		output.NetworkUser.SubDivision = &user.SubdivisionID.String
+	}
+	if canSeeSensitiveFields {
+		output.NetworkUser.FirstName = &user.NameFirst
+		output.NetworkUser.LastName = &user.NameLast
+		output.NetworkUser.Email = &user.Email
+	}
+	if user.Facility.Valid {
+		output.DivisionUser = &DivisionUser{
+			DisplayName:            nil,
+			ControllerRating:       nil,
+			InstructorRating:       nil,
+			Facility:               user.Facility.String,
+			VisitingFacilities:     []string{},
+			DiscordId:              nil,
+			LastPromotionTimestamp: nil,
+			LastTransferTimestamp:  nil,
+		}
+	}
+	if user.DisplayName.Valid {
+		output.NetworkUser.FirstName = &user.DisplayName.String
+	}
+	if user.ControllerRating.Valid {
+		controllerRating := int(user.ControllerRating.Int32)
+		output.DivisionUser.ControllerRating = &controllerRating
+	}
+	if user.InstructorRating.Valid {
+		instructorRating := int(user.InstructorRating.Int32)
+		output.DivisionUser.InstructorRating = &instructorRating
+	}
+	if user.VisitingFacilities.Valid {
+		visitingFacilities := strings.Split(user.VisitingFacilities.String, ",")
+		output.DivisionUser.VisitingFacilities = visitingFacilities
+	}
+	if user.DiscordID.Valid {
+		output.DivisionUser.DiscordId = &user.DiscordID.String
+	}
+	if user.LastPromotionTime.Valid {
+		t := user.LastPromotionTime.Time.Unix()
+		output.DivisionUser.LastPromotionTimestamp = &t
+	}
+	if user.LastTransferTime.Valid {
+		t := user.LastTransferTime.Time.Unix()
+		output.DivisionUser.LastTransferTimestamp = &t
+	}
+	return output
 }

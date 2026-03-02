@@ -41,6 +41,10 @@ func (h EndpointHandler) AssertFacility(c *echo.Context, facility string, object
 	return false
 }
 
+func (h EndpointHandler) GetPermissionHandler(c *echo.Context) *acl.PermissionHandler {
+	return h.PermissionHandlerCache.GetHandler(c)
+}
+
 func NewEndpointHandler(queries *db.Queries) *EndpointHandler {
 	return &EndpointHandler{
 		Queries:                queries,

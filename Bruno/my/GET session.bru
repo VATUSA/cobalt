@@ -1,0 +1,15 @@
+meta {
+  name: GET session
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{hostname}}/my/session
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

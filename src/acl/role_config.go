@@ -185,7 +185,7 @@ var (
 				Object: ObjectDivisionStaffRole,
 			},
 			{
-				Action: ActionUsage,
+				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
 			},
 		},
@@ -219,7 +219,7 @@ var (
 				Object: ObjectFacilityJuniorStaffRole,
 			},
 			{
-				Action: ActionUsage,
+				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
 			},
 		},
@@ -229,7 +229,7 @@ var (
 				Object: ObjectNewsPost,
 			},
 			{
-				Action: ActionUsage,
+				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
 			},
 		},
@@ -239,13 +239,13 @@ var (
 				Object: ObjectNewsPost,
 			},
 			{
-				Action: ActionUsage,
+				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
 			},
 		},
 		RoleTrainingAdministrator: {
 			{
-				Action: ActionUsage,
+				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
 			},
 		},
@@ -260,7 +260,7 @@ var (
 				Object: ObjectLegacyLoginToken,
 			},
 			{
-				Action: ActionUsage,
+				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
 			},
 		},
@@ -321,7 +321,7 @@ var (
 
 		RoleSystemFacility: {
 			{
-				Action: ActionUsage,
+				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
 			},
 		},
