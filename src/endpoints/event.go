@@ -7,6 +7,7 @@ import (
 	"time"
 	"vatusa-cobalt/acl"
 	"vatusa-cobalt/auth"
+	"vatusa-cobalt/config"
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/models"
 
@@ -25,11 +26,11 @@ func (h EndpointHandler) CreateEvent(c *echo.Context) error {
 		return nil
 	}
 
-	startTime, err := time.Parse("2006-01-02 15:04", request.StartTimestamp)
+	startTime, err := time.Parse(config.TimestampFormat, request.StartTimestamp)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid start time"))
 	}
-	endTime, err := time.Parse("2006-01-02 15:04", request.EndTimestamp)
+	endTime, err := time.Parse(config.TimestampFormat, request.EndTimestamp)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid end time"))
 	}
@@ -78,11 +79,11 @@ func (h EndpointHandler) UpdateEvent(c *echo.Context) error {
 		return err
 	}
 
-	startTime, err := time.Parse("2006-01-02 15:04", request.StartTimestamp)
+	startTime, err := time.Parse(config.TimestampFormat, request.StartTimestamp)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid start time"))
 	}
-	endTime, err := time.Parse("2006-01-02 15:04", request.EndTimestamp)
+	endTime, err := time.Parse(config.TimestampFormat, request.EndTimestamp)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid end time"))
 	}

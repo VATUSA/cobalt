@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"time"
+	"vatusa-cobalt/config"
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/dbconn"
 )
@@ -45,7 +46,7 @@ func ProcessMemberData(member MemberData) error {
 	queries := dbconn.Queries()
 	ctx := context.Background()
 
-	regTime, err := time.Parse("2006-01-02T15:04:05", member.RegistrationDate)
+	regTime, err := time.Parse(config.ConnectTimestampFormat, member.RegistrationDate)
 	if err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func ProcessMemberData(member MemberData) error {
 		}
 	}
 	if member.SuspensionDate != nil {
-		parse, err := time.Parse("2006-01-02T15:04:05", *member.SuspensionDate)
+		parse, err := time.Parse(config.ConnectTimestampFormat, *member.SuspensionDate)
 		if err != nil {
 			return err
 		}
@@ -87,7 +88,7 @@ func ProcessMemberData(member MemberData) error {
 	}
 
 	if member.LastRatingChange != nil {
-		parse, err := time.Parse("2006-01-02T15:04:05", *member.LastRatingChange)
+		parse, err := time.Parse(config.ConnectTimestampFormat, *member.LastRatingChange)
 		if err != nil {
 			return err
 		}

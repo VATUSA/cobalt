@@ -6,10 +6,22 @@ meta {
 
 post {
   url: {{hostname}}/event/create
-  body: none
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "title": "Test Event",
+    "body": "This is a test event.",
+    "banner_image_url": "https://www.vatusa.net/img/logo-alt.png",
+    "facility": "ZHQ",
+    "start_timestamp": "2026-12-24T16:00:00-08:00",
+    "end_timestamp": "2026-12-25T20:00:00-08:00"
+  }
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }
