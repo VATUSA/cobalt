@@ -42,7 +42,7 @@ func ConnectUserURL() string {
 
 func ConnectRedirectURI() string {
 	if config.IsDevelopment() {
-		return "http://localhost:8080" + CONNECT_REDIRECT_URI
+		return "http://localhost:8000" + CONNECT_REDIRECT_URI
 	}
 	return COBALT_BASE_URL + CONNECT_REDIRECT_URI
 }
