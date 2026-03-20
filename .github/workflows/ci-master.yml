@@ -31,7 +31,9 @@ jobs:
       - name: Push to Docker Hub (main)
         if: contains(github.ref, 'main')
         run: |
+          docker tag vatusa/cobalt vatusa/cobalt:latest
           docker tag vatusa/cobalt vatusa/cobalt:${{ github.sha }}
+          docker push vatusa/cobalt:latest
           docker push vatusa/cobalt:${{ github.sha }}
           
       - name: Push to Docker Hub (dev)
