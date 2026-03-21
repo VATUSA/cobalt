@@ -50,6 +50,7 @@ func SetupRoutes(e *echo.Echo) {
 	login.GET("/connect", handler.Connect)
 	login.GET("/as/:cid", handler.LoginAs)
 	login.GET("/whoami", handler.WhoAmI)
+	login.GET("/logout", handler.GetLogout)
 
 	my := e.Group("/my")
 	my.GET("/session", handler.GetMySession)
