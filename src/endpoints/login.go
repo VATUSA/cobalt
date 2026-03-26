@@ -100,7 +100,7 @@ func (h EndpointHandler) LoginAs(c *echo.Context) error {
 		Value: token,
 		Path:  "/",
 	})
-	return c.Redirect(http.StatusFound, config.PostLoginURL())
+	return c.JSON(http.StatusOK, "success")
 }
 
 func (h EndpointHandler) WhoAmI(c *echo.Context) error {
