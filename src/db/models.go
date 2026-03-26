@@ -341,16 +341,37 @@ type NewsPost struct {
 	EditTime  int64
 }
 
+type TransferHistory struct {
+	ID           int64
+	Cid          int64
+	FromFacility string
+	ToFacility   string
+	Reason       string
+	RequestedAt  time.Time
+	CompletedAt  time.Time
+	ApproverCid  sql.NullInt64
+}
+
+type TransferRequest struct {
+	ID           int64
+	Cid          int64
+	FromFacility string
+	ToFacility   string
+	Reason       string
+	CreatedAt    time.Time
+	Status       string
+}
+
 type User struct {
 	Cid                int64
-	DisplayName        sql.NullString
-	ControllerRating   sql.NullInt32
-	InstructorRating   sql.NullInt32
 	Facility           string
-	DiscordID          sql.NullString
 	LastPromotionTime  sql.NullTime
 	LastTransferTime   sql.NullTime
 	LastCompetencyDate sql.NullTime
+	DisplayName        string
+	ControllerRating   int32
+	InstructorRating   int32
+	DiscordID          string
 }
 
 type UserVisit struct {
@@ -1169,4 +1190,24 @@ type VatusaOldVisit struct {
 	Facility  string
 	CreatedAt sql.NullTime
 	UpdatedAt sql.NullTime
+}
+
+type VisitHistory struct {
+	ID          int64
+	Cid         int64
+	Facility    string
+	Reason      string
+	RequestedAt time.Time
+	ApprovedAt  time.Time
+	ApproverCid sql.NullInt64
+	RemovedAt   sql.NullTime
+}
+
+type VisitRequest struct {
+	ID         int64
+	Cid        int64
+	Facility   string
+	Reason     string
+	CreatedAt  time.Time
+	IsRejected sql.NullBool
 }

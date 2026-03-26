@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"strings"
 	"time"
 	"vatusa-cobalt/config"
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/dbconn"
+	"vatusa-cobalt/roster"
 )
 
 func SyncDivisionMembers() error {
@@ -49,6 +51,12 @@ func ProcessMemberData(member MemberData) error {
 	regTime, err := time.Parse(config.ConnectTimestampFormat, member.RegistrationDate)
 	if err != nil {
 		return err
+	}
+
+	var user *db.GetUserByCIDRow
+	user_, err := queries.GetUserByCID(ctx, int64(member.Id))
+	if err == nil {
+		user = &user_
 	}
 
 	params := db.UpsertVatsimUserParams{
@@ -102,6 +110,65 @@ func ProcessMemberData(member MemberData) error {
 		return err
 	}
 
+	if user != nil {
+		if member.Rating == config.RatingInactive {
+			// Facility = config.FacilityInactive
+			if user.Facility != config.FacilityInactive {
+				err = setFacility(user, config.FacilityInactive)
+				if err != nil {
+					return err
+				}
+				err = removeVisits(user)
+				if err != nil {
+					return err
+				}
+			}
+		} else if member.Rating == config.RatingSuspended {
+			// Facility = config.FacilityInactive
+			if user.Facility != config.FacilityInactive {
+				err = setFacility(user, config.FacilityInactive)
+				if err != nil {
+					return err
+				}
+				err = removeVisits(user)
+				if err != nil {
+					return err
+				}
+				// TODO: Send suspended email?
+			}
+		} else if member.RegionId == "AMAS" && member.DivisionId == "USA" {
+			// In division, set facility = config.FacilityAcademy if necessary
+			if user.Facility == config.FacilityInactive || user.Facility == config.FacilityNonMember {
+				err = setFacility(user, config.FacilityAcademy)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			// Facility = config.FacilityNonMember
+			if user.Facility != config.FacilityNonMember {
+				err = setFacility(user, config.FacilityNonMember)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	// TODO: Add checks for suspended, transferred in, transferred out, etc
+	return nil
+}
+
+func setFacility(user *db.GetUserByCIDRow, facility string) error {
+	return roster.ForceTransfer(user.Cid, user.Facility, facility, "VATSIM Sync", 0)
+}
+
+func removeVisits(user *db.GetUserByCIDRow) error {
+	if user.VisitingFacilities.Valid {
+		visitingFacilities := strings.Split(user.VisitingFacilities.String, ",")
+		for _, _ = range visitingFacilities {
+			// TODO: Remove user from visiting facility
+		}
+	}
 	return nil
 }

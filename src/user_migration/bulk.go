@@ -76,10 +76,10 @@ func BulkMigrateUsers() error {
 	for _, c := range controllersToMigrate {
 		params := db.UpsertUserForMigrationParams{
 			Cid:                int64(c.Cid),
-			ControllerRating:   sql.NullInt32{},
-			InstructorRating:   sql.NullInt32{},
+			ControllerRating:   0,
+			InstructorRating:   0,
 			Facility:           c.Facility,
-			DiscordID:          c.DiscordID,
+			DiscordID:          "",
 			LastPromotionTime:  sql.NullTime{},
 			LastTransferTime:   sql.NullTime{},
 			LastCompetencyDate: sql.NullTime{},
@@ -128,24 +128,15 @@ func BulkMigrateUsers() error {
 		}
 
 		if rating >= 2 {
-			params.ControllerRating = sql.NullInt32{
-				Int32: int32(rating),
-				Valid: true,
-			}
+			params.ControllerRating = int32(rating)
 		}
 
 		if c.Rating == 8 || c.Rating == 10 {
-			params.InstructorRating = sql.NullInt32{
-				Int32: c.Rating,
-				Valid: true,
-			}
+			params.InstructorRating = c.Rating
 		} else if c.Rating > 10 {
 			instructorLookup, ok := instructorTAMap[int(c.Cid)]
 			if ok {
-				params.InstructorRating = sql.NullInt32{
-					Int32: int32(instructorLookup),
-					Valid: true,
-				}
+				params.InstructorRating = int32(instructorLookup)
 			}
 		}
 

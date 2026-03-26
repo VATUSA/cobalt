@@ -24,9 +24,9 @@ type NetworkUser struct {
 }
 
 type DivisionUser struct {
-	DisplayName            *string  `json:"display_name"`
-	ControllerRating       *int     `json:"controller_rating"`
-	InstructorRating       *int     `json:"instructor_rating"`
+	DisplayName            string   `json:"display_name"`
+	ControllerRating       int      `json:"controller_rating"`
+	InstructorRating       int      `json:"instructor_rating"`
 	Facility               string   `json:"facility"`
 	VisitingFacilities     []string `json:"visiting_facilities"`
 	DiscordId              *string  `json:"discord_id"`
@@ -58,35 +58,22 @@ func UserFromDatabase(user db.GetCombinedUserByCIDRow, canSeeSensitiveFields boo
 		output.NetworkUser.LastName = &user.NameLast
 		output.NetworkUser.Email = &user.Email
 	}
-	if user.Facility.Valid {
-		output.DivisionUser = &DivisionUser{
-			DisplayName:            nil,
-			ControllerRating:       nil,
-			InstructorRating:       nil,
-			Facility:               user.Facility.String,
-			VisitingFacilities:     []string{},
-			DiscordId:              nil,
-			LastPromotionTimestamp: nil,
-			LastTransferTimestamp:  nil,
-		}
-	}
-	if user.DisplayName.Valid {
-		output.NetworkUser.FirstName = &user.DisplayName.String
-	}
-	if user.ControllerRating.Valid {
-		controllerRating := int(user.ControllerRating.Int32)
-		output.DivisionUser.ControllerRating = &controllerRating
-	}
-	if user.InstructorRating.Valid {
-		instructorRating := int(user.InstructorRating.Int32)
-		output.DivisionUser.InstructorRating = &instructorRating
+	output.DivisionUser = &DivisionUser{
+		DisplayName:            user.DisplayName,
+		ControllerRating:       int(user.ControllerRating),
+		InstructorRating:       int(user.InstructorRating),
+		Facility:               user.Facility,
+		VisitingFacilities:     []string{},
+		DiscordId:              nil,
+		LastPromotionTimestamp: nil,
+		LastTransferTimestamp:  nil,
 	}
 	if user.VisitingFacilities.Valid {
 		visitingFacilities := strings.Split(user.VisitingFacilities.String, ",")
 		output.DivisionUser.VisitingFacilities = visitingFacilities
 	}
-	if user.DiscordID.Valid {
-		output.DivisionUser.DiscordId = &user.DiscordID.String
+	if user.DiscordID != "" {
+		output.DivisionUser.DiscordId = &user.DiscordID
 	}
 	if user.LastPromotionTime.Valid {
 		t := user.LastPromotionTime.Time.Unix()

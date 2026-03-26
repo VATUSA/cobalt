@@ -26,7 +26,7 @@ SELECT vu.cid
      , u.last_promotion_time
      , u.last_transfer_time
 from vatsim_user vu
-         left join user u on vu.cid = u.cid
+         join user u on vu.cid = u.cid
 where vu.cid = ?;
 
 -- name: UpsertUserForMigration :exec
@@ -40,3 +40,6 @@ ON DUPLICATE KEY UPDATE controller_rating    = VALUES(controller_rating),
                         last_promotion_time  = VALUES(last_promotion_time),
                         last_transfer_time   = VALUES(last_transfer_time),
                         last_competency_date = VALUES(last_competency_date);
+
+-- name: UpdateUserForTransfer :exec
+UPDATE user SET facility = ?, last_transfer_time = ? WHERE cid = ?;

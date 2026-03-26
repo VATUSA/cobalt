@@ -33,7 +33,7 @@ SELECT vu.cid
      , u.last_promotion_time
      , u.last_transfer_time
 from vatsim_user vu
-         left join user u on vu.cid = u.cid
+         join user u on vu.cid = u.cid
 where vu.cid = ?
 `
 
@@ -50,12 +50,12 @@ type GetCombinedUserByCIDRow struct {
 	SubdivisionID      sql.NullString
 	LatestRatingChange sql.NullTime
 	LastSync           time.Time
-	DisplayName        sql.NullString
-	ControllerRating   sql.NullInt32
-	InstructorRating   sql.NullInt32
-	Facility           sql.NullString
+	DisplayName        string
+	ControllerRating   int32
+	InstructorRating   int32
+	Facility           string
 	VisitingFacilities sql.NullString
-	DiscordID          sql.NullString
+	DiscordID          string
 	LastPromotionTime  sql.NullTime
 	LastTransferTime   sql.NullTime
 }
@@ -89,7 +89,7 @@ func (q *Queries) GetCombinedUserByCID(ctx context.Context, cid int64) (GetCombi
 }
 
 const getUserByCID = `-- name: GetUserByCID :one
-SELECT u.cid, u.display_name, u.controller_rating, u.instructor_rating, u.facility, u.discord_id, u.last_promotion_time, u.last_transfer_time, u.last_competency_date,
+SELECT u.cid, u.facility, u.last_promotion_time, u.last_transfer_time, u.last_competency_date, u.display_name, u.controller_rating, u.instructor_rating, u.discord_id,
        (SELECT GROUP_CONCAT(facility SEPARATOR ',') from user_visit uv where uv.cid = user.cid) as visiting_facilities
 FROM user u
 WHERE u.cid = ?
@@ -97,14 +97,14 @@ WHERE u.cid = ?
 
 type GetUserByCIDRow struct {
 	Cid                int64
-	DisplayName        sql.NullString
-	ControllerRating   sql.NullInt32
-	InstructorRating   sql.NullInt32
 	Facility           string
-	DiscordID          sql.NullString
 	LastPromotionTime  sql.NullTime
 	LastTransferTime   sql.NullTime
 	LastCompetencyDate sql.NullTime
+	DisplayName        string
+	ControllerRating   int32
+	InstructorRating   int32
+	DiscordID          string
 	VisitingFacilities sql.NullString
 }
 
@@ -113,17 +113,32 @@ func (q *Queries) GetUserByCID(ctx context.Context, cid int64) (GetUserByCIDRow,
 	var i GetUserByCIDRow
 	err := row.Scan(
 		&i.Cid,
-		&i.DisplayName,
-		&i.ControllerRating,
-		&i.InstructorRating,
 		&i.Facility,
-		&i.DiscordID,
 		&i.LastPromotionTime,
 		&i.LastTransferTime,
 		&i.LastCompetencyDate,
+		&i.DisplayName,
+		&i.ControllerRating,
+		&i.InstructorRating,
+		&i.DiscordID,
 		&i.VisitingFacilities,
 	)
 	return i, err
+}
+
+const updateUserForTransfer = `-- name: UpdateUserForTransfer :exec
+UPDATE user SET facility = ?, last_transfer_time = ? WHERE cid = ?
+`
+
+type UpdateUserForTransferParams struct {
+	Facility         string
+	LastTransferTime sql.NullTime
+	Cid              int64
+}
+
+func (q *Queries) UpdateUserForTransfer(ctx context.Context, arg UpdateUserForTransferParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserForTransfer, arg.Facility, arg.LastTransferTime, arg.Cid)
+	return err
 }
 
 const upsertUserForMigration = `-- name: UpsertUserForMigration :exec
@@ -141,10 +156,10 @@ ON DUPLICATE KEY UPDATE controller_rating    = VALUES(controller_rating),
 
 type UpsertUserForMigrationParams struct {
 	Cid                int64
-	ControllerRating   sql.NullInt32
-	InstructorRating   sql.NullInt32
+	ControllerRating   int32
+	InstructorRating   int32
 	Facility           string
-	DiscordID          sql.NullString
+	DiscordID          string
 	LastPromotionTime  sql.NullTime
 	LastTransferTime   sql.NullTime
 	LastCompetencyDate sql.NullTime
