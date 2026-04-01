@@ -55,12 +55,12 @@ jobs:
           token: ${{ secrets.G_TOKEN }}
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v2
-      - name: Update manifests
+      - name: Update manifests (prod)
         if: contains(github.ref, 'main')
         run: |
           cd $GITHUB_WORKSPACE/gitops/cobalt/overlays/prod
           kustomize edit set image vatusa/cobalt=vatusa/cobalt:${{ github.sha }}
-      - name: Update manifests
+      - name: Update manifests (dev)
         if: contains(github.ref, 'dev')
         run: |
           cd $GITHUB_WORKSPACE/gitops/cobalt/overlays/dev
