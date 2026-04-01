@@ -56,9 +56,15 @@ jobs:
       - name: Setup Kustomize
         uses: imranismail/setup-kustomize@v2
       - name: Update manifests
+        if: contains(github.ref, 'main')
         run: |
-          cd $GITHUB_WORKSPACE/gitops/cobalt
+          cd $GITHUB_WORKSPACE/gitops/cobalt/overlays/prod
           kustomize edit set image vatusa/cobalt=vatusa/cobalt:${{ github.sha }}
+      - name: Update manifests
+        if: contains(github.ref, 'dev')
+        run: |
+          cd $GITHUB_WORKSPACE/gitops/cobalt/overlays/dev
+          kustomize edit set image vatusa/cobalt=vatusa/cobalt:dev-${{ github.sha }}
       - name: Commit and push changes
         run: |
           cd $GITHUB_WORKSPACE/gitops
