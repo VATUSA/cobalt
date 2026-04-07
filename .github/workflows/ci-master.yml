@@ -9,58 +9,9 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-
-      - name: Build Docker Image
-        run: docker build . --file Dockerfile --tag vatusa/cobalt --target app
-      
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v1 
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Push to Docker Hub (main)
-        run: |
-          docker tag vatusa/cobalt vatusa/cobalt:latest
-          docker tag vatusa/cobalt vatusa/cobalt:${{ github.sha }}
-          docker push vatusa/cobalt:latest
-          docker push vatusa/cobalt:${{ github.sha }}
-      
-  deploy:
-    name: Deploy to ArgoCD
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@v4
-        with:
-          repository: 'VATUSA/gitops'
-          path: gitops
-          token: ${{ secrets.G_TOKEN }}
-      - name: Setup Kustomize
-        uses: imranismail/setup-kustomize@v2
-      - name: Update manifests (dev)
-        run: |
-          cd $GITHUB_WORKSPACE/gitops/cobalt/overlays/dev
-          kustomize edit set image vatusa/cobalt=vatusa/cobalt:dev-${{ github.sha }}
-      - name: Commit and push changes
-        run: |
-          cd $GITHUB_WORKSPACE/gitops
-          git config --global user.email "vatusa6@vatusa.net"
-          git config --global user.name "VATUSA6"
-          git add .
-          git commit -m "Update cobalt image tag to ${{ github.sha }}"
-      - name: Push to gitops repo
-        run: |
-          cd $GITHUB_WORKSPACE/gitops
-          git push origin main
+  common-ci:
+    uses: vatusa/gitops/.github/workflows/common-ci.yml@main
+    with:
+      image-name: 'cobalt'
+    secrets: inherit
 
