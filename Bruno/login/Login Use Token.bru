@@ -1,0 +1,19 @@
+meta {
+  name: Login Use Token
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{hostname}}/login/useToken/:token
+  body: none
+  auth: inherit
+}
+
+params:path {
+  token: 
+}
+
+settings {
+  encodeUrl: true
+}

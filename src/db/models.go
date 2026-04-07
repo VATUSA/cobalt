@@ -393,7 +393,7 @@ type VatsimUser struct {
 	DivisionID         string
 	SubdivisionID      sql.NullString
 	LatestRatingChange sql.NullTime
-	LastSync           time.Time
+	LastSync           sql.NullTime
 }
 
 type VatusaOldAcademyBasicExamEmail struct {

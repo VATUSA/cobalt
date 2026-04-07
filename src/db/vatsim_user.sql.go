@@ -8,7 +8,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"time"
 )
 
 const getVatsimUserByCid = `-- name: GetVatsimUserByCid :one
@@ -73,7 +72,7 @@ type UpsertVatsimUserParams struct {
 	DivisionID         string
 	SubdivisionID      sql.NullString
 	LatestRatingChange sql.NullTime
-	LastSync           time.Time
+	LastSync           sql.NullTime
 }
 
 func (q *Queries) UpsertVatsimUser(ctx context.Context, arg UpsertVatsimUserParams) error {
@@ -92,6 +91,46 @@ func (q *Queries) UpsertVatsimUser(ctx context.Context, arg UpsertVatsimUserPara
 		arg.SubdivisionID,
 		arg.LatestRatingChange,
 		arg.LastSync,
+	)
+	return err
+}
+
+const upsertVatsimUserConnect = `-- name: UpsertVatsimUserConnect :exec
+INSERT INTO vatsim_user (cid, name_first, name_last, email, rating, pilotrating, region_id, division_id, subdivision_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE name_first           = VALUES(name_first),
+                        name_last            = VALUES(name_last),
+                        email                = VALUES(email),
+                        rating               = VALUES(rating),
+                        pilotrating          = VALUES(pilotrating),
+                        region_id            = VALUES(region_id),
+                        division_id          = VALUES(division_id),
+                        subdivision_id       = VALUES(subdivision_id)
+`
+
+type UpsertVatsimUserConnectParams struct {
+	Cid           int64
+	NameFirst     string
+	NameLast      string
+	Email         string
+	Rating        int32
+	Pilotrating   int32
+	RegionID      string
+	DivisionID    string
+	SubdivisionID sql.NullString
+}
+
+func (q *Queries) UpsertVatsimUserConnect(ctx context.Context, arg UpsertVatsimUserConnectParams) error {
+	_, err := q.db.ExecContext(ctx, upsertVatsimUserConnect,
+		arg.Cid,
+		arg.NameFirst,
+		arg.NameLast,
+		arg.Email,
+		arg.Rating,
+		arg.Pilotrating,
+		arg.RegionID,
+		arg.DivisionID,
+		arg.SubdivisionID,
 	)
 	return err
 }

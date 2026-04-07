@@ -8,7 +8,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"time"
 )
 
 const getCombinedUserByCID = `-- name: GetCombinedUserByCID :one
@@ -49,7 +48,7 @@ type GetCombinedUserByCIDRow struct {
 	DivisionID         string
 	SubdivisionID      sql.NullString
 	LatestRatingChange sql.NullTime
-	LastSync           time.Time
+	LastSync           sql.NullTime
 	DisplayName        string
 	ControllerRating   int32
 	InstructorRating   int32

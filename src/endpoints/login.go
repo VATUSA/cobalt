@@ -1,13 +1,16 @@
 package endpoints
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
 	"vatusa-cobalt/acl"
 	"vatusa-cobalt/auth"
+	"vatusa-cobalt/background"
 	"vatusa-cobalt/config"
 	"vatusa-cobalt/vatsim"
 
@@ -15,6 +18,9 @@ import (
 )
 
 func (h EndpointHandler) GetLogin(c *echo.Context) error {
+	if config.IsStaging() {
+		return c.Redirect(http.StatusFound, "https://cobalt.vatusa.net/login/staging")
+	}
 	return c.Redirect(http.StatusFound, vatsim.ConnectFullURL())
 }
 
@@ -44,9 +50,17 @@ func (h EndpointHandler) Connect(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "error extracting cid")
 	}
 
-	err = vatsim.SyncByCID(cid)
+	err = vatsim.StoreVatsimUserRecordConnect(userData)
 	if err != nil {
-		log.Printf("error syncing user cid %d: %v", cid, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "error storing vatsim user record")
+	}
+
+	if config.IsProduction() || config.IsStaging() {
+		job := background.NewJob("vatsim_sync", fmt.Sprintf("%d", cid))
+		err = job.Run()
+		if err != nil {
+			log.Printf("error syncing user cid %d: %v", cid, err)
+		}
 	}
 
 	jwt, err := auth.CreateTokenForCID(cid)
@@ -107,4 +121,55 @@ func (h EndpointHandler) WhoAmI(c *echo.Context) error {
 	cid := auth.GetUserCid(c)
 
 	return c.String(http.StatusOK, fmt.Sprintf("%d", cid))
+}
+
+func (h EndpointHandler) GetLoginForStaging(c *echo.Context) error {
+	if !config.IsProduction() {
+		return echo.NewHTTPError(http.StatusNotFound, "Not found")
+	}
+	if !auth.IsLoggedIn(c) {
+		return c.Redirect(http.StatusFound, vatsim.ConnectFullURL())
+	}
+	cid := auth.GetUserCid(c)
+
+	client := &http.Client{}
+	url := fmt.Sprintf("%s/token/%d", config.StagingInternalURL(), cid)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(auth.ActorTokenHeader, config.StagingActorToken())
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
+	}
+
+	data := make(map[string]string)
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
+	}
+	redirectUrl := fmt.Sprintf("%s/login/useToken/%d", config.StagingInternalURL(), data["token"])
+	return c.Redirect(http.StatusFound, redirectUrl)
+}
+
+func (h EndpointHandler) LoginUseToken(c *echo.Context) error {
+	if !config.IsStaging() {
+		return echo.NewHTTPError(http.StatusNotFound, "Not found")
+	}
+	token := c.Param("token")
+
+	c.SetCookie(&http.Cookie{
+		Name:  auth.JWTCookieName,
+		Value: token,
+		Path:  "/",
+	})
+	return c.JSON(http.StatusOK, "success")
 }

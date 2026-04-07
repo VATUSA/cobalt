@@ -1,13 +1,19 @@
 package vatsim
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"vatusa-cobalt/config"
+	"vatusa-cobalt/db"
+	"vatusa-cobalt/dbconn"
 )
 
 const (
@@ -167,4 +173,34 @@ func FetchUserData(token *ConnectAccessToken) (*ConnectUserDataData, error) {
 		return nil, err
 	}
 	return &data.Data, nil
+}
+
+func StoreVatsimUserRecordConnect(data *ConnectUserDataData) error {
+	cid, err := strconv.Atoi(data.CID)
+	if err != nil {
+		return errors.New("error extracting cid")
+	}
+	params := db.UpsertVatsimUserConnectParams{
+		Cid:         int64(cid),
+		NameFirst:   data.Personal.NameFirst,
+		NameLast:    data.Personal.NameLast,
+		Email:       data.Personal.Email,
+		Rating:      int32(data.Vatsim.Rating.Id),
+		Pilotrating: int32(data.Vatsim.PilotRating.Id),
+		RegionID:    data.Vatsim.Region.Id,
+		DivisionID:  data.Vatsim.Division.Id,
+		SubdivisionID: sql.NullString{
+			String: data.Vatsim.SubDivision.Id,
+			Valid:  true,
+		},
+	}
+	err = dbconn.Queries().UpsertVatsimUserConnect(context.Background(), params)
+	if err != nil {
+		return err
+	}
+	err = VatsimUserUpdated(int64(cid))
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -1,0 +1,1 @@
+ALTER TABLE vatsim_user MODIFY COLUMN last_sync datetime null;
