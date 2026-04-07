@@ -23,8 +23,8 @@ ON DUPLICATE KEY UPDATE name_first           = VALUES(name_first),
                         last_sync            = VALUES(last_sync);
 
 -- name: UpsertVatsimUserConnect :exec
-INSERT INTO vatsim_user (cid, name_first, name_last, email, rating, pilotrating, region_id, division_id, subdivision_id)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO vatsim_user (cid, name_first, name_last, email, rating, pilotrating, militaryrating, region_id, division_id, subdivision_id)
+VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
 ON DUPLICATE KEY UPDATE name_first           = VALUES(name_first),
                         name_last            = VALUES(name_last),
                         email                = VALUES(email),

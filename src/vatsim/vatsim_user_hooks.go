@@ -2,6 +2,8 @@ package vatsim
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"strings"
 	"vatusa-cobalt/config"
 	"vatusa-cobalt/db"
@@ -15,9 +17,29 @@ func VatsimUserUpdated(cid int64) error {
 		return err
 	}
 	user, err := dbconn.Queries().GetUserByCID(context.Background(), vatsimUser.Cid)
-	if err != nil {
-		// TODO: Create user?
-		return nil
+	if errors.Is(err, sql.ErrNoRows) {
+		params := db.InsertUserFromVatsimSyncParams{
+			Cid:         cid,
+			DisplayName: vatsimUser.NameFirst + " " + vatsimUser.NameLast,
+			Facility:    "",
+		}
+		if vatsimUser.Rating == config.RatingInactive || vatsimUser.Rating == config.RatingSuspended {
+			params.Facility = config.FacilityInactive
+		} else if vatsimUser.RegionID == "AMAS" && vatsimUser.DivisionID == "USA" {
+			params.Facility = config.FacilityAcademy
+		} else {
+			params.Facility = config.FacilityNonMember
+		}
+		err = dbconn.Queries().InsertUserFromVatsimSync(context.Background(), params)
+		if err != nil {
+			return err
+		}
+		user, err = dbconn.Queries().GetUserByCID(context.Background(), vatsimUser.Cid)
+		if err != nil {
+			return err
+		}
+	} else {
+		return err
 	}
 	return onVatsimUserUpdate(vatsimUser, user)
 }

@@ -89,7 +89,7 @@ func (q *Queries) GetCombinedUserByCID(ctx context.Context, cid int64) (GetCombi
 
 const getUserByCID = `-- name: GetUserByCID :one
 SELECT u.cid, u.facility, u.last_promotion_time, u.last_transfer_time, u.last_competency_date, u.display_name, u.controller_rating, u.instructor_rating, u.discord_id,
-       (SELECT GROUP_CONCAT(facility SEPARATOR ',') from user_visit uv where uv.cid = user.cid) as visiting_facilities
+       (SELECT GROUP_CONCAT(facility SEPARATOR ',') from user_visit uv where uv.cid = u.cid) as visiting_facilities
 FROM user u
 WHERE u.cid = ?
 `
@@ -123,6 +123,22 @@ func (q *Queries) GetUserByCID(ctx context.Context, cid int64) (GetUserByCIDRow,
 		&i.VisitingFacilities,
 	)
 	return i, err
+}
+
+const insertUserFromVatsimSync = `-- name: InsertUserFromVatsimSync :exec
+INSERT IGNORE INTO user (cid, display_name, controller_rating, instructor_rating, facility)
+VALUES (?, ?, 0, 0, ?)
+`
+
+type InsertUserFromVatsimSyncParams struct {
+	Cid         int64
+	DisplayName string
+	Facility    string
+}
+
+func (q *Queries) InsertUserFromVatsimSync(ctx context.Context, arg InsertUserFromVatsimSyncParams) error {
+	_, err := q.db.ExecContext(ctx, insertUserFromVatsimSync, arg.Cid, arg.DisplayName, arg.Facility)
+	return err
 }
 
 const updateUserForTransfer = `-- name: UpdateUserForTransfer :exec

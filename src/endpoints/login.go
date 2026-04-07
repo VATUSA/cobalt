@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -52,7 +53,7 @@ func (h EndpointHandler) Connect(c *echo.Context) error {
 
 	err = vatsim.StoreVatsimUserRecordConnect(userData)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "error storing vatsim user record")
+		return GenericError(c, http.StatusInternalServerError, errors.New("error storing vatsim user record"), err)
 	}
 
 	if config.IsProduction() || config.IsStaging() {

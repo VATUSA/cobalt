@@ -1,6 +1,6 @@
 -- name: GetUserByCID :one
 SELECT u.*,
-       (SELECT GROUP_CONCAT(facility SEPARATOR ',') from user_visit uv where uv.cid = user.cid) as visiting_facilities
+       (SELECT GROUP_CONCAT(facility SEPARATOR ',') from user_visit uv where uv.cid = u.cid) as visiting_facilities
 FROM user u
 WHERE u.cid = ?;
 
@@ -40,6 +40,11 @@ ON DUPLICATE KEY UPDATE controller_rating    = VALUES(controller_rating),
                         last_promotion_time  = VALUES(last_promotion_time),
                         last_transfer_time   = VALUES(last_transfer_time),
                         last_competency_date = VALUES(last_competency_date);
+
+-- name: InsertUserFromVatsimSync :exec
+INSERT IGNORE INTO user (cid, display_name, controller_rating, instructor_rating, facility)
+VALUES (?, ?, 0, 0, ?);
+
 
 -- name: UpdateUserForTransfer :exec
 UPDATE user SET facility = ?, last_transfer_time = ? WHERE cid = ?;
