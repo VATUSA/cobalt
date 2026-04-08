@@ -12,7 +12,7 @@ import (
 func (h EndpointHandler) GetMySession(c *echo.Context) error {
 	cid := auth.GetUserCid(c)
 	if cid == -1 {
-		return c.JSON(http.StatusOK, models.Session{
+		return c.JSON(http.StatusUnauthorized, models.Session{
 			User:                nil,
 			GlobalPermissions:   []models.GlobalPermission{},
 			FacilityPermissions: []models.FacilityPermission{},
