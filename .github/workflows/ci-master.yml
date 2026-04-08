@@ -7,5 +7,6 @@ jobs:
     uses: vatusa/gitops/.github/workflows/common-ci.yml@main
     with:
       image-name: 'cobalt'
+      kustomization-folder: 'cobalt'
     secrets: inherit
 
