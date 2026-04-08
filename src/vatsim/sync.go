@@ -51,12 +51,6 @@ func ProcessMemberData(member MemberData) error {
 		return err
 	}
 
-	var user *db.GetUserByCIDRow
-	user_, err := queries.GetUserByCID(ctx, int64(member.Id))
-	if err == nil {
-		user = &user_
-	}
-
 	params := db.UpsertVatsimUserParams{
 		Cid:            int64(member.Id),
 		NameFirst:      member.NameFirst,
