@@ -32,7 +32,7 @@ func PostLoginURL() string {
 func StagingInternalURL() string {
 	val, ok := os.LookupEnv("STAGING_INTERNAL_URL")
 	if !ok {
-		return "https://cobalt-service.cobalt-dev.svc.cluster.local:8080"
+		return "https://vatusa.dev/cobalt"
 	}
 	return val
 }

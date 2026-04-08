@@ -157,7 +157,7 @@ func (h EndpointHandler) GetLoginForStaging(c *echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
 	}
-	redirectUrl := fmt.Sprintf("%s/login/useToken/%d", config.StagingInternalURL(), data["token"])
+	redirectUrl := fmt.Sprintf("%s/login/useToken/%s", config.StagingInternalURL(), data["token"])
 	return c.Redirect(http.StatusFound, redirectUrl)
 }
 
