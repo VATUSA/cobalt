@@ -172,5 +172,5 @@ func (h EndpointHandler) LoginUseToken(c *echo.Context) error {
 		Value: token,
 		Path:  "/",
 	})
-	return c.JSON(http.StatusOK, "success")
+	return c.Redirect(http.StatusFound, config.PostLoginURL())
 }
