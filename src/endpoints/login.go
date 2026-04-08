@@ -56,6 +56,10 @@ func (h EndpointHandler) Connect(c *echo.Context) error {
 		return GenericError(c, http.StatusInternalServerError, errors.New("error storing vatsim user record"), err)
 	}
 
+	if userData.Vatsim.Rating.Id == config.RatingInactive || userData.Vatsim.Rating.Id == config.RatingSuspended {
+		return GenericError(c, http.StatusForbidden, errors.New("account is inactive or suspended"))
+	}
+
 	if config.IsProduction() || config.IsStaging() {
 		job := background.NewJob("vatsim_sync", fmt.Sprintf("%d", cid))
 		err = job.Run()

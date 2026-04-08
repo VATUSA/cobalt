@@ -24,7 +24,7 @@ func VatsimUserUpdated(cid int64) error {
 			Facility:    "",
 		}
 		if vatsimUser.Rating == config.RatingInactive || vatsimUser.Rating == config.RatingSuspended {
-			params.Facility = config.FacilityInactive
+			return nil
 		} else if vatsimUser.RegionID == "AMAS" && vatsimUser.DivisionID == "USA" {
 			params.Facility = config.FacilityAcademy
 		} else {

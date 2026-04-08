@@ -111,11 +111,9 @@ func ProcessMemberData(member MemberData) error {
 		return err
 	}
 
-	if user != nil {
-		err = VatsimUserUpdated(int64(member.Id))
-		if err != nil {
-			return err
-		}
+	err = VatsimUserUpdated(int64(member.Id))
+	if err != nil {
+		return err
 	}
 	return nil
 }
