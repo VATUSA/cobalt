@@ -1,7 +1,17 @@
 package background
 
-import "vatusa-cobalt/user_migration"
+import (
+	"vatusa-cobalt/legacy_migration"
+)
 
 func MigrateUsers(args []string) error {
-	return user_migration.BulkMigrateUsers()
+	err := legacy_migration.BulkMigrateUsers()
+	if err != nil {
+		return err
+	}
+	err = legacy_migration.BulkMigrateRoles()
+	if err != nil {
+		return err
+	}
+	return nil
 }

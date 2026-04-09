@@ -1,4 +1,4 @@
-package user_migration
+package legacy_migration
 
 import (
 	"context"

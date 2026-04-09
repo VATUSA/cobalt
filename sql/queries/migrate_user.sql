@@ -65,3 +65,7 @@ FROM `vatusa-old`.roles r
 JOIN `vatusa-old`.controllers c on r.cid = c.cid
 where r.role = 'TA' or r.role = 'INS'
 group by r.cid, r.role;
+
+-- name: GetLegacyRoles :many
+SELECT r.cid, r.role, r.facility
+FROM `vatusa-old`.roles r;
