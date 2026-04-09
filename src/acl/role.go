@@ -2,12 +2,12 @@ package acl
 
 import (
 	"context"
-	"vatusa-cobalt/db"
+	"vatusa-cobalt/dbconn"
 )
 
-func GetUserScopedRoles(db *db.Queries, cid int) ([]ScopedRole, error) {
+func GetUserScopedRoles(cid int) ([]ScopedRole, error) {
 	ctx := context.Background()
-	roles, err := db.GetRolesForUser(ctx, int32(cid))
+	roles, err := dbconn.Queries().GetRolesForUser(ctx, int32(cid))
 	if err != nil {
 		return nil, err
 	}
@@ -27,10 +27,10 @@ func GetUserScopedRoles(db *db.Queries, cid int) ([]ScopedRole, error) {
 	return output, nil
 }
 
-func GetActorScopedRoles(db *db.Queries, actorId int) ([]ScopedRole, error) {
+func GetActorScopedRoles(actorId int) ([]ScopedRole, error) {
 
 	ctx := context.Background()
-	roles, err := db.GetRolesForActor(ctx, int32(actorId))
+	roles, err := dbconn.Queries().GetRolesForActor(ctx, int32(actorId))
 	if err != nil {
 		return nil, err
 	}

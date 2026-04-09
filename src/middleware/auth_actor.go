@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 	"vatusa-cobalt/auth"
-	"vatusa-cobalt/db"
 
 	"github.com/labstack/echo/v5"
 )
@@ -26,13 +25,13 @@ func (a *ActorAuth) Middleware(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func NewActorAuth(queries *db.Queries) *ActorAuth {
+func NewActorAuth() *ActorAuth {
 	a := ActorAuth{}
 
 	go func() {
 		ctx := context.Background()
 		for {
-			err := a.Cache.Load(ctx, queries)
+			err := a.Cache.Load(ctx)
 			if err != nil {
 				log.Printf("Error loading token cache: %v\n", err)
 			}

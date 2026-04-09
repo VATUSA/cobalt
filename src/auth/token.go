@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 	"time"
-	"vatusa-cobalt/db"
+	"vatusa-cobalt/dbconn"
 )
 
 type ActorType = string
@@ -33,8 +33,8 @@ func (c *TokenActorCache) Get(token string) (*TokenActor, bool) {
 	return tokenActor, ok
 }
 
-func (c *TokenActorCache) Load(ctx context.Context, queries *db.Queries) error {
-	tokens, err := queries.GetActiveActorTokens(ctx)
+func (c *TokenActorCache) Load(ctx context.Context) error {
+	tokens, err := dbconn.Queries().GetActiveActorTokens(ctx)
 	if err != nil {
 		return err
 	}

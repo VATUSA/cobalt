@@ -9,8 +9,8 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-func (h *EndpointHandler) GetFacilityRoster(c *echo.Context) error {
-	canSeeSensitiveFields := h.HasGlobal(c, acl.ObjectUserSensitiveDetails, acl.ActionRead)
+func GetFacilityRoster(c *echo.Context) error {
+	canSeeSensitiveFields := HasGlobal(c, acl.ObjectUserSensitiveDetails, acl.ActionRead)
 	facility := c.Param("facility")
 
 	homeUsers, err := dbconn.GetCombinedUsersByHomeFacility(facility)

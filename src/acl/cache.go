@@ -3,7 +3,6 @@ package acl
 import (
 	"sync"
 	"vatusa-cobalt/auth"
-	"vatusa-cobalt/db"
 
 	"github.com/labstack/echo/v5"
 )
@@ -12,15 +11,19 @@ type PermissionHandlerCache struct {
 	sync.RWMutex
 	userCache map[int]*PermissionHandler
 	apiCache  map[int]*PermissionHandler
-	Queries   *db.Queries
 }
 
-func NewPermissionHandlerCache(queries *db.Queries) *PermissionHandlerCache {
+func newPermissionHandlerCache() *PermissionHandlerCache {
 	return &PermissionHandlerCache{
 		userCache: make(map[int]*PermissionHandler),
 		apiCache:  make(map[int]*PermissionHandler),
-		Queries:   queries,
 	}
+}
+
+var permissionHandlerCache *PermissionHandlerCache = newPermissionHandlerCache()
+
+func GetPermissionHandlerCache() *PermissionHandlerCache {
+	return permissionHandlerCache
 }
 
 func (phc *PermissionHandlerCache) getPermissionHandlerFromContext(c *echo.Context) *PermissionHandler {
@@ -32,7 +35,7 @@ func (phc *PermissionHandlerCache) getPermissionHandlerFromContext(c *echo.Conte
 		if ok && !res.IsStale() {
 			return res
 		}
-		roles, _ := GetActorScopedRoles(phc.Queries, actorId)
+		roles, _ := GetActorScopedRoles(actorId)
 		ph := NewPermissionHandler(roles)
 		phc.Lock()
 		phc.apiCache[actorId] = ph
@@ -47,7 +50,7 @@ func (phc *PermissionHandlerCache) getPermissionHandlerFromContext(c *echo.Conte
 		if ok && !res.IsStale() {
 			return res
 		}
-		roles, _ := GetUserScopedRoles(phc.Queries, cid)
+		roles, _ := GetUserScopedRoles(cid)
 		ph := NewPermissionHandler(roles)
 		phc.Lock()
 		phc.userCache[cid] = ph
@@ -69,5 +72,20 @@ func (phc *PermissionHandlerCache) HasFacility(c *echo.Context, facility string,
 
 func (phc *PermissionHandlerCache) GetHandler(c *echo.Context) *PermissionHandler {
 	ph := phc.getPermissionHandlerFromContext(c)
+	return ph
+}
+
+func (phc *PermissionHandlerCache) GetHandlerForCid(cid int) *PermissionHandler {
+	phc.RLock()
+	res, ok := phc.userCache[cid]
+	phc.RUnlock()
+	if ok && !res.IsStale() {
+		return res
+	}
+	roles, _ := GetUserScopedRoles(cid)
+	ph := NewPermissionHandler(roles)
+	phc.Lock()
+	phc.userCache[cid] = ph
+	phc.Unlock()
 	return ph
 }

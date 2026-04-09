@@ -7,11 +7,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func CreateTokenForCID(cid int) (string, error) {
+func CreateToken(cid int, displayName string, globalPermissions string, facilityPermissions string) (string, error) {
 	key := config.JWTKey()
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iss": "cobalt",
-		"cid": cid,
+		"iss":                  "cobalt",
+		"cid":                  cid,
+		"display_name":         displayName,
+		"global_permissions":   globalPermissions,
+		"facility_permissions": facilityPermissions,
 	})
 	s, err := t.SignedString(key)
 	return s, err

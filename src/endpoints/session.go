@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-func (h EndpointHandler) GetMySession(c *echo.Context) error {
+func GetMySession(c *echo.Context) error {
 	cid := auth.GetUserCid(c)
 	if cid == -1 {
 		return c.JSON(http.StatusUnauthorized, models.Session{
@@ -28,7 +28,7 @@ func (h EndpointHandler) GetMySession(c *echo.Context) error {
 
 	userModel := models.UserFromDatabase(*user, true)
 
-	permissionHandler := h.GetPermissionHandler(c)
+	permissionHandler := GetPermissionHandler(c)
 
 	globalPermissions := permissionHandler.GetGlobalPermissions()
 	facilityPermissions := permissionHandler.GetFacilityPermissions()

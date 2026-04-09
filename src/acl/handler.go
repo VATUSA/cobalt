@@ -123,3 +123,19 @@ func (ph *PermissionHandler) GetFacilityPermissions() []ScopedPermissionDefiniti
 	}
 	return output
 }
+
+func (ph *PermissionHandler) GetGlobalPermissionsString() string {
+	var segments []string
+	for key := range ph.globalPermissions {
+		segments = append(segments, string(key))
+	}
+	return strings.Join(segments, ",")
+}
+
+func (ph *PermissionHandler) GetFacilityPermissionsString() string {
+	var segments []string
+	for key := range ph.facilityPermissions {
+		segments = append(segments, string(key))
+	}
+	return strings.Join(segments, ",")
+}

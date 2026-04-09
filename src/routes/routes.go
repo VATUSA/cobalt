@@ -2,7 +2,6 @@ package routes
 
 import (
 	"vatusa-cobalt/config"
-	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/endpoints"
 	_middleware "vatusa-cobalt/middleware"
 
@@ -11,53 +10,50 @@ import (
 )
 
 func SetupRoutes(e *echo.Echo) {
-	queries := dbconn.Queries()
-
-	handler := endpoints.NewEndpointHandler(queries)
-	actorAuth := _middleware.NewActorAuth(queries)
+	actorAuth := _middleware.NewActorAuth()
 
 	e.Use(middleware.CORSWithConfig(config.CORSConfig()))
 	e.Use(actorAuth.Middleware)
 	e.Use(_middleware.CookieAuth)
 
-	e.GET("/token/:cid", handler.GetGenerateUserToken)
+	e.GET("/token/:cid", endpoints.GetGenerateUserToken)
 
 	news := e.Group("/news")
-	news.GET("/latest/:count", handler.GetLastPosts)
-	news.GET("/page/:page", handler.GetNewsPage)
-	news.POST("/new", handler.CreatePost)
-	news.GET("/post/:id", handler.GetPost)
-	news.POST("/post/:id", handler.UpdatePost)
-	news.DELETE("/post/:id", handler.DeletePost)
+	news.GET("/latest/:count", endpoints.GetLastPosts)
+	news.GET("/page/:page", endpoints.GetNewsPage)
+	news.POST("/new", endpoints.CreatePost)
+	news.GET("/post/:id", endpoints.GetPost)
+	news.POST("/post/:id", endpoints.UpdatePost)
+	news.DELETE("/post/:id", endpoints.DeletePost)
 
 	roles := e.Group("/roles")
-	roles.POST("/legacy_sync", handler.LegacySyncRoles)
-	roles.POST("/legacy_sync/bulk", handler.LegacySyncRolesBulk)
+	roles.POST("/legacy_sync", endpoints.LegacySyncRoles)
+	roles.POST("/legacy_sync/bulk", endpoints.LegacySyncRolesBulk)
 
 	event := e.Group("/event")
-	event.GET("/upcoming/:count", handler.GetUpcomingEvents)
-	event.GET("/page/:page", handler.GetEventsPage)
-	event.GET("/:id", handler.GetEventById)
-	event.POST("/create", handler.CreateEvent)
-	event.POST("/:id", handler.UpdateEvent)
-	event.DELETE("/:id", handler.DeleteEvent)
+	event.GET("/upcoming/:count", endpoints.GetUpcomingEvents)
+	event.GET("/page/:page", endpoints.GetEventsPage)
+	event.GET("/:id", endpoints.GetEventById)
+	event.POST("/create", endpoints.CreateEvent)
+	event.POST("/:id", endpoints.UpdateEvent)
+	event.DELETE("/:id", endpoints.DeleteEvent)
 
 	user := e.Group("/user")
-	user.GET("/:cid", handler.GetUser)
+	user.GET("/:cid", endpoints.GetUser)
 
 	login := e.Group("/login")
-	login.GET("", handler.GetLogin)
-	login.GET("/connect", handler.Connect)
-	login.GET("/as/:cid", handler.LoginAs)
-	login.GET("/whoami", handler.WhoAmI)
-	login.GET("/logout", handler.GetLogout)
-	login.GET("/staging", handler.GetLoginForStaging)
-	login.GET("/useToken/:token", handler.LoginUseToken)
+	login.GET("", endpoints.GetLogin)
+	login.GET("/connect", endpoints.Connect)
+	login.GET("/as/:cid", endpoints.LoginAs)
+	login.GET("/whoami", endpoints.WhoAmI)
+	login.GET("/logout", endpoints.GetLogout)
+	login.GET("/staging", endpoints.GetLoginForStaging)
+	login.GET("/useToken/:token", endpoints.LoginUseToken)
 
 	my := e.Group("/my")
-	my.GET("/session", handler.GetMySession)
+	my.GET("/session", endpoints.GetMySession)
 
 	roster := e.Group("/roster")
-	roster.GET("/:facility", handler.GetFacilityRoster)
+	roster.GET("/:facility", endpoints.GetFacilityRoster)
 
 }

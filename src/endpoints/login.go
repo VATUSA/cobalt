@@ -13,19 +13,21 @@ import (
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/background"
 	"vatusa-cobalt/config"
+	"vatusa-cobalt/dbconn"
+	"vatusa-cobalt/login"
 	"vatusa-cobalt/vatsim"
 
 	"github.com/labstack/echo/v5"
 )
 
-func (h EndpointHandler) GetLogin(c *echo.Context) error {
+func GetLogin(c *echo.Context) error {
 	if config.IsStaging() {
 		return c.Redirect(http.StatusFound, "https://cobalt.vatusa.net/login/staging")
 	}
 	return c.Redirect(http.StatusFound, vatsim.ConnectFullURL())
 }
 
-func (h EndpointHandler) GetLogout(c *echo.Context) error {
+func GetLogout(c *echo.Context) error {
 	c.SetCookie(&http.Cookie{
 		Name:   auth.JWTCookieName,
 		Value:  "",
@@ -36,7 +38,7 @@ func (h EndpointHandler) GetLogout(c *echo.Context) error {
 	return c.Redirect(http.StatusFound, config.PostLoginURL())
 }
 
-func (h EndpointHandler) Connect(c *echo.Context) error {
+func Connect(c *echo.Context) error {
 	code := c.QueryParam("code")
 	token, err := vatsim.FetchToken(code)
 	if err != nil {
@@ -68,7 +70,15 @@ func (h EndpointHandler) Connect(c *echo.Context) error {
 		}
 	}
 
-	jwt, err := auth.CreateTokenForCID(cid)
+	user, err := dbconn.GetCombinedUserByCID(cid)
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if user == nil {
+		return GenericError(c, http.StatusInternalServerError, errors.New("user record does not exist"))
+	}
+
+	jwt, err := login.CreateTokenForUser(*user)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
 	}
@@ -84,15 +94,22 @@ func (h EndpointHandler) Connect(c *echo.Context) error {
 	return c.Redirect(http.StatusFound, config.PostLoginURL())
 }
 
-func (h EndpointHandler) GetGenerateUserToken(c *echo.Context) error {
-	if !h.AssertGlobal(c, acl.ObjectLegacyLoginToken, acl.ActionWrite) {
+func GetGenerateUserToken(c *echo.Context) error {
+	if !AssertGlobal(c, acl.ObjectLegacyLoginToken, acl.ActionWrite) {
 		return nil
 	}
 	cid, err := strconv.Atoi(c.Param("cid"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid cid")
 	}
-	token, err := auth.CreateTokenForCID(cid)
+	user, err := dbconn.GetCombinedUserByCID(cid)
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if user == nil {
+		return GenericError(c, http.StatusInternalServerError, errors.New("user record does not exist"))
+	}
+	token, err := login.CreateTokenForUser(*user)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
 	}
@@ -101,7 +118,7 @@ func (h EndpointHandler) GetGenerateUserToken(c *echo.Context) error {
 	return c.JSON(http.StatusOK, data)
 }
 
-func (h EndpointHandler) LoginAs(c *echo.Context) error {
+func LoginAs(c *echo.Context) error {
 	if !config.IsDevelopment() {
 		return echo.NewHTTPError(http.StatusNotFound, "Not found")
 	}
@@ -109,8 +126,15 @@ func (h EndpointHandler) LoginAs(c *echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Bad Request")
 	}
+	user, err := dbconn.GetCombinedUserByCID(cid)
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if user == nil {
+		return GenericError(c, http.StatusInternalServerError, errors.New("user record does not exist"))
+	}
 
-	token, err := auth.CreateTokenForCID(cid)
+	token, err := login.CreateTokenForUser(*user)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
 	}
@@ -122,13 +146,13 @@ func (h EndpointHandler) LoginAs(c *echo.Context) error {
 	return c.JSON(http.StatusOK, "success")
 }
 
-func (h EndpointHandler) WhoAmI(c *echo.Context) error {
+func WhoAmI(c *echo.Context) error {
 	cid := auth.GetUserCid(c)
 
 	return c.String(http.StatusOK, fmt.Sprintf("%d", cid))
 }
 
-func (h EndpointHandler) GetLoginForStaging(c *echo.Context) error {
+func GetLoginForStaging(c *echo.Context) error {
 	if !config.IsProduction() {
 		return echo.NewHTTPError(http.StatusNotFound, "Not found")
 	}
@@ -165,7 +189,7 @@ func (h EndpointHandler) GetLoginForStaging(c *echo.Context) error {
 	return c.Redirect(http.StatusFound, redirectUrl)
 }
 
-func (h EndpointHandler) LoginUseToken(c *echo.Context) error {
+func LoginUseToken(c *echo.Context) error {
 	if !config.IsStaging() {
 		return echo.NewHTTPError(http.StatusNotFound, "Not found")
 	}

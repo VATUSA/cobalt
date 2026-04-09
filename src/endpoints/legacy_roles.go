@@ -7,6 +7,7 @@ import (
 	"strings"
 	"vatusa-cobalt/acl"
 	"vatusa-cobalt/db"
+	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/models"
 
 	"github.com/labstack/echo/v5"
@@ -143,8 +144,8 @@ func SyncRolesForUser(ctx context.Context, queries *db.Queries, request models.S
 	return nil
 }
 
-func (h EndpointHandler) LegacySyncRoles(c *echo.Context) error {
-	if !h.AssertGlobal(c, acl.ObjectLegacyRoleSync, acl.ActionWrite) {
+func LegacySyncRoles(c *echo.Context) error {
+	if !AssertGlobal(c, acl.ObjectLegacyRoleSync, acl.ActionWrite) {
 		return nil
 	}
 	var request models.SyncRolesRequest
@@ -153,7 +154,7 @@ func (h EndpointHandler) LegacySyncRoles(c *echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
-	err = SyncRolesForUser(ctx, h.Queries, request)
+	err = SyncRolesForUser(ctx, dbconn.Queries(), request)
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
@@ -161,9 +162,9 @@ func (h EndpointHandler) LegacySyncRoles(c *echo.Context) error {
 	return c.JSON(http.StatusOK, "sync roles successful")
 }
 
-func (h EndpointHandler) LegacySyncRolesBulk(c *echo.Context) error {
+func LegacySyncRolesBulk(c *echo.Context) error {
 
-	if !h.AssertGlobal(c, acl.ObjectLegacyRoleSync, acl.ActionWrite) {
+	if !AssertGlobal(c, acl.ObjectLegacyRoleSync, acl.ActionWrite) {
 		return nil
 	}
 	var request models.BulkSyncRolesRequest
@@ -173,7 +174,7 @@ func (h EndpointHandler) LegacySyncRolesBulk(c *echo.Context) error {
 	}
 	ctx := c.Request().Context()
 	for _, req := range request.Requests {
-		err = SyncRolesForUser(ctx, h.Queries, req)
+		err = SyncRolesForUser(ctx, dbconn.Queries(), req)
 		if err != nil {
 			return GenericError(c, http.StatusInternalServerError, err)
 		}

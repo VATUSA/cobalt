@@ -8,13 +8,14 @@ import (
 	"vatusa-cobalt/acl"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/db"
+	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/models"
 
 	"github.com/labstack/echo/v5"
 )
 
-func (h EndpointHandler) CreatePost(c *echo.Context) error {
-	if !h.AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
+func CreatePost(c *echo.Context) error {
+	if !AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
 		return nil
 	}
 	ctx := c.Request().Context()
@@ -24,7 +25,7 @@ func (h EndpointHandler) CreatePost(c *echo.Context) error {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
 
-	result, err := h.Queries.CreatePost(
+	result, err := dbconn.Queries().CreatePost(
 		ctx,
 		db.CreatePostParams{
 			Title:     request.Title,
@@ -43,7 +44,7 @@ func (h EndpointHandler) CreatePost(c *echo.Context) error {
 	return GenericSuccess(c, int(lastInsertId))
 }
 
-func (h EndpointHandler) UpdatePost(c *echo.Context) error {
+func UpdatePost(c *echo.Context) error {
 	postId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid post id"))
@@ -54,19 +55,19 @@ func (h EndpointHandler) UpdatePost(c *echo.Context) error {
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
-	post, err := h.Queries.GetPostById(ctx, int32(postId))
+	post, err := dbconn.Queries().GetPostById(ctx, int32(postId))
 	if err != nil {
 		return GenericError(c, http.StatusNotFound, errors.New("post not found"))
 	}
 
-	if !h.AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
+	if !AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
 		return nil
 	}
-	if int(post.AuthorCid) != auth.GetUserCid(c) && h.AssertGlobal(c, acl.ObjectNewsPost, acl.ActionManageUnowned) {
+	if int(post.AuthorCid) != auth.GetUserCid(c) && AssertGlobal(c, acl.ObjectNewsPost, acl.ActionManageUnowned) {
 		return err
 	}
 
-	err = h.Queries.UpdatePost(ctx, db.UpdatePostParams{
+	err = dbconn.Queries().UpdatePost(ctx, db.UpdatePostParams{
 		Title:    request.Title,
 		Body:     request.Body,
 		EditTime: time.Now().Unix(),
@@ -78,32 +79,32 @@ func (h EndpointHandler) UpdatePost(c *echo.Context) error {
 	return GenericSuccess(c, postId)
 }
 
-func (h EndpointHandler) DeletePost(c *echo.Context) error {
+func DeletePost(c *echo.Context) error {
 	postId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid post id"))
 	}
 	ctx := c.Request().Context()
-	post, err := h.Queries.GetPostById(ctx, int32(postId))
+	post, err := dbconn.Queries().GetPostById(ctx, int32(postId))
 	if err != nil {
 		return GenericError(c, http.StatusNotFound, errors.New("post not found"))
 	}
 
-	if !h.AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
+	if !AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
 		return nil
 	}
-	if int(post.AuthorCid) != auth.GetUserCid(c) && !h.AssertGlobal(c, acl.ObjectNewsPost, acl.ActionManageUnowned) {
+	if int(post.AuthorCid) != auth.GetUserCid(c) && !AssertGlobal(c, acl.ObjectNewsPost, acl.ActionManageUnowned) {
 		return nil
 	}
 
-	err = h.Queries.DeleteNewsPostById(ctx, int32(postId))
+	err = dbconn.Queries().DeleteNewsPostById(ctx, int32(postId))
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to delete post"))
 	}
 	return GenericSuccess(c, postId)
 }
 
-func (h EndpointHandler) GetLastPosts(c *echo.Context) error {
+func GetLastPosts(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	count := c.Param("count")
@@ -116,7 +117,7 @@ func (h EndpointHandler) GetLastPosts(c *echo.Context) error {
 		countInt = 100
 	}
 
-	posts, err := h.Queries.GetRecentNewsPosts(ctx, int32(countInt))
+	posts, err := dbconn.Queries().GetRecentNewsPosts(ctx, int32(countInt))
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
@@ -126,14 +127,14 @@ func (h EndpointHandler) GetLastPosts(c *echo.Context) error {
 	return c.JSON(http.StatusOK, output)
 }
 
-func (h EndpointHandler) GetPost(c *echo.Context) error {
+func GetPost(c *echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid post id"))
 	}
-	post, err := h.Queries.GetPostById(ctx, int32(idInt))
+	post, err := dbconn.Queries().GetPostById(ctx, int32(idInt))
 	if err != nil {
 		return GenericError(c, http.StatusNotFound, errors.New("post not found"))
 	}
@@ -141,7 +142,7 @@ func (h EndpointHandler) GetPost(c *echo.Context) error {
 	return c.JSON(http.StatusOK, output)
 }
 
-func (h EndpointHandler) GetNewsPage(c *echo.Context) error {
+func GetNewsPage(c *echo.Context) error {
 	ctx := c.Request().Context()
 	page := c.Param("page")
 	pageInt, err := strconv.Atoi(page)
@@ -151,7 +152,7 @@ func (h EndpointHandler) GetNewsPage(c *echo.Context) error {
 	recordsPerPage := 25
 	offset := (pageInt - 1) * recordsPerPage
 
-	news, err := h.Queries.GetNewsPostsPage(ctx, db.GetNewsPostsPageParams{
+	news, err := dbconn.Queries().GetNewsPostsPage(ctx, db.GetNewsPostsPageParams{
 		Offset: int32(offset),
 		Limit:  int32(recordsPerPage),
 	})

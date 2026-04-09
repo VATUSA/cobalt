@@ -11,8 +11,8 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-func (h EndpointHandler) GetUser(c *echo.Context) error {
-	canSeeSensitiveFields := h.HasGlobal(c, acl.ObjectUserSensitiveDetails, acl.ActionRead)
+func GetUser(c *echo.Context) error {
+	canSeeSensitiveFields := HasGlobal(c, acl.ObjectUserSensitiveDetails, acl.ActionRead)
 	cid := c.Param("cid")
 	cidInt, err := strconv.Atoi(cid)
 	if err != nil {
