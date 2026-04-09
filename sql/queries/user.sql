@@ -4,7 +4,8 @@ SELECT u.*,
 FROM user u
 WHERE u.cid = ?;
 
--- name: GetCombinedUserByCID :one
+
+-- name: GetCombinedUser :many
 SELECT vu.cid
      , vu.name_first
      , vu.name_last
@@ -27,7 +28,9 @@ SELECT vu.cid
      , u.last_transfer_time
 from vatsim_user vu
          join user u on vu.cid = u.cid
-where vu.cid = ?;
+where (sqlc.narg(cid) is null OR vu.cid = sqlc.narg(cid))
+AND (sqlc.narg(home_facility) is null or u.facility = sqlc.narg(home_facility))
+AND (sqlc.narg(visit_facility) is null or u.cid IN (select cid from user_visit uv where uv.facility = sqlc.narg(visit_facility)));
 
 -- name: UpsertUserForMigration :exec
 INSERT INTO user (cid, controller_rating, instructor_rating, facility, discord_id, last_promotion_time,

@@ -34,7 +34,15 @@ type DivisionUser struct {
 	LastTransferTimestamp  *int64   `json:"last_transfer_timestamp"`
 }
 
-func UserFromDatabase(user db.GetCombinedUserByCIDRow, canSeeSensitiveFields bool) User {
+func UsersFromDatabase(users []db.GetCombinedUserRow, canSeeSensitiveFields bool) []User {
+	var out []User
+	for _, user := range users {
+		out = append(out, UserFromDatabase(user, canSeeSensitiveFields))
+	}
+	return out
+}
+
+func UserFromDatabase(user db.GetCombinedUserRow, canSeeSensitiveFields bool) User {
 	output := User{
 		CID: int(user.Cid),
 		NetworkUser: &NetworkUser{

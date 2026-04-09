@@ -10,7 +10,7 @@ import (
 	"database/sql"
 )
 
-const getCombinedUserByCID = `-- name: GetCombinedUserByCID :one
+const getCombinedUser = `-- name: GetCombinedUser :many
 SELECT vu.cid
      , vu.name_first
      , vu.name_last
@@ -33,10 +33,18 @@ SELECT vu.cid
      , u.last_transfer_time
 from vatsim_user vu
          join user u on vu.cid = u.cid
-where vu.cid = ?
+where (? is null OR vu.cid = ?)
+AND (? is null or u.facility = ?)
+AND (? is null or u.cid IN (select cid from user_visit uv where uv.facility = ?))
 `
 
-type GetCombinedUserByCIDRow struct {
+type GetCombinedUserParams struct {
+	Cid           sql.NullInt64
+	HomeFacility  sql.NullString
+	VisitFacility sql.NullString
+}
+
+type GetCombinedUserRow struct {
 	Cid                int64
 	NameFirst          string
 	NameLast           string
@@ -59,32 +67,55 @@ type GetCombinedUserByCIDRow struct {
 	LastTransferTime   sql.NullTime
 }
 
-func (q *Queries) GetCombinedUserByCID(ctx context.Context, cid int64) (GetCombinedUserByCIDRow, error) {
-	row := q.db.QueryRowContext(ctx, getCombinedUserByCID, cid)
-	var i GetCombinedUserByCIDRow
-	err := row.Scan(
-		&i.Cid,
-		&i.NameFirst,
-		&i.NameLast,
-		&i.Email,
-		&i.Rating,
-		&i.Pilotrating,
-		&i.Militaryrating,
-		&i.RegionID,
-		&i.DivisionID,
-		&i.SubdivisionID,
-		&i.LatestRatingChange,
-		&i.LastSync,
-		&i.DisplayName,
-		&i.ControllerRating,
-		&i.InstructorRating,
-		&i.Facility,
-		&i.VisitingFacilities,
-		&i.DiscordID,
-		&i.LastPromotionTime,
-		&i.LastTransferTime,
+func (q *Queries) GetCombinedUser(ctx context.Context, arg GetCombinedUserParams) ([]GetCombinedUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCombinedUser,
+		arg.Cid,
+		arg.Cid,
+		arg.HomeFacility,
+		arg.HomeFacility,
+		arg.VisitFacility,
+		arg.VisitFacility,
 	)
-	return i, err
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCombinedUserRow
+	for rows.Next() {
+		var i GetCombinedUserRow
+		if err := rows.Scan(
+			&i.Cid,
+			&i.NameFirst,
+			&i.NameLast,
+			&i.Email,
+			&i.Rating,
+			&i.Pilotrating,
+			&i.Militaryrating,
+			&i.RegionID,
+			&i.DivisionID,
+			&i.SubdivisionID,
+			&i.LatestRatingChange,
+			&i.LastSync,
+			&i.DisplayName,
+			&i.ControllerRating,
+			&i.InstructorRating,
+			&i.Facility,
+			&i.VisitingFacilities,
+			&i.DiscordID,
+			&i.LastPromotionTime,
+			&i.LastTransferTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUserByCID = `-- name: GetUserByCID :one

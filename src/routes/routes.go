@@ -57,4 +57,7 @@ func SetupRoutes(e *echo.Echo) {
 	my := e.Group("/my")
 	my.GET("/session", handler.GetMySession)
 
+	roster := e.Group("/roster")
+	roster.GET("/:facility", handler.GetFacilityRoster)
+
 }

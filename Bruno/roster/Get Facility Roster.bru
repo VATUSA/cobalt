@@ -1,0 +1,19 @@
+meta {
+  name: Get Facility Roster
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{hostname}}/roster/:facility
+  body: none
+  auth: inherit
+}
+
+params:path {
+  facility: 
+}
+
+settings {
+  encodeUrl: true
+}

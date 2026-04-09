@@ -1,11 +1,11 @@
 package endpoints
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strconv"
 	"vatusa-cobalt/acl"
+	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/models"
 
 	"github.com/labstack/echo/v5"
@@ -13,19 +13,21 @@ import (
 
 func (h EndpointHandler) GetUser(c *echo.Context) error {
 	canSeeSensitiveFields := h.HasGlobal(c, acl.ObjectUserSensitiveDetails, acl.ActionRead)
-	ctx := context.Background()
 	cid := c.Param("cid")
 	cidInt, err := strconv.Atoi(cid)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid cid"))
 	}
 
-	user, err := h.Queries.GetCombinedUserByCID(ctx, int64(cidInt))
+	user, err := dbconn.GetCombinedUserByCID(cidInt)
 	if err != nil {
-		return GenericError(c, http.StatusNotFound, err)
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if user == nil {
+		return GenericError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 
-	output := models.UserFromDatabase(user, canSeeSensitiveFields)
+	output := models.UserFromDatabase(*user, canSeeSensitiveFields)
 
 	return c.JSON(http.StatusOK, output)
 }

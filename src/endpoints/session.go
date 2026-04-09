@@ -1,9 +1,9 @@
 package endpoints
 
 import (
-	"context"
 	"net/http"
 	"vatusa-cobalt/auth"
+	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/models"
 
 	"github.com/labstack/echo/v5"
@@ -18,13 +18,15 @@ func (h EndpointHandler) GetMySession(c *echo.Context) error {
 			FacilityPermissions: []models.FacilityPermission{},
 		})
 	}
-	ctx := context.Background()
-	user, err := h.Queries.GetCombinedUserByCID(ctx, int64(cid))
+	user, err := dbconn.GetCombinedUserByCID(cid)
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
+	if user == nil {
+		return c.JSON(http.StatusNotFound, models.Session{})
+	}
 
-	userModel := models.UserFromDatabase(user, true)
+	userModel := models.UserFromDatabase(*user, true)
 
 	permissionHandler := h.GetPermissionHandler(c)
 
