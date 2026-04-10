@@ -3,8 +3,14 @@ on:
   push:
     branches: [main]
 jobs:
-  common-ci:
-    uses: vatusa/gitops/.github/workflows/common-ci.yml@main
+  common-build:
+    uses: vatusa/gitops/.github/workflows/common-build.yml@main
+    with:
+      image-name: 'cobalt'
+    secrets: inherit
+  common-dev-ci:
+    uses: vatusa/gitops/.github/workflows/common-dev-ci.yml@main
+    needs: common-build
     with:
       image-name: 'cobalt'
       kustomization-folder: 'cobalt'
