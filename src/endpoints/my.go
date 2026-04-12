@@ -56,3 +56,12 @@ func GetMySession(c *echo.Context) error {
 
 	return c.JSON(http.StatusOK, session)
 }
+
+func MySubmitTransferRequest(c *echo.Context) error {
+	var request models.MyTransferRequestRequest
+	err := c.Bind(&request)
+	if err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
+	return nil
+}

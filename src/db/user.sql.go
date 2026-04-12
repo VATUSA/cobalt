@@ -31,6 +31,7 @@ SELECT vu.cid
      , u.discord_id
      , u.last_promotion_time
      , u.last_transfer_time
+     , u.last_competency_date
 from vatsim_user vu
          join user u on vu.cid = u.cid
 where (? is null OR vu.cid = ?)
@@ -65,6 +66,7 @@ type GetCombinedUserRow struct {
 	DiscordID          string
 	LastPromotionTime  sql.NullTime
 	LastTransferTime   sql.NullTime
+	LastCompetencyDate sql.NullTime
 }
 
 func (q *Queries) GetCombinedUser(ctx context.Context, arg GetCombinedUserParams) ([]GetCombinedUserRow, error) {
@@ -104,6 +106,7 @@ func (q *Queries) GetCombinedUser(ctx context.Context, arg GetCombinedUserParams
 			&i.DiscordID,
 			&i.LastPromotionTime,
 			&i.LastTransferTime,
+			&i.LastCompetencyDate,
 		); err != nil {
 			return nil, err
 		}

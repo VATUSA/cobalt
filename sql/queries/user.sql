@@ -26,6 +26,7 @@ SELECT vu.cid
      , u.discord_id
      , u.last_promotion_time
      , u.last_transfer_time
+     , u.last_competency_date
 from vatsim_user vu
          join user u on vu.cid = u.cid
 where (sqlc.narg(cid) is null OR vu.cid = sqlc.narg(cid))

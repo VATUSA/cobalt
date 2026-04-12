@@ -6,6 +6,11 @@ import (
 	"vatusa-cobalt/dbconn"
 )
 
+type MyTransferRequestRequest struct {
+	ToFacility string `json:"to_facility"`
+	Reason     string `json:"reason"`
+}
+
 type TransferRequest struct {
 	Id           int64     `json:"id"`
 	Cid          int64     `json:"cid"`

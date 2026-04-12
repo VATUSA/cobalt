@@ -1,0 +1,19 @@
+meta {
+  name: Get User Blockers
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{hostname}}/user/:cid/blockers
+  body: none
+  auth: inherit
+}
+
+params:path {
+  cid: 
+}
+
+settings {
+  encodeUrl: true
+}
