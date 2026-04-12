@@ -104,10 +104,12 @@ func (ph *PermissionHandler) GetGlobalPermissions() []PermissionDefinition {
 	var output []PermissionDefinition
 	for key := range ph.globalPermissions {
 		object, action := extractGlobalPermissionKey(key)
-		output = append(output, PermissionDefinition{
-			Object: object,
-			Action: action,
-		})
+		if !slices.Contains(MaskedObjects, object) {
+			output = append(output, PermissionDefinition{
+				Object: object,
+				Action: action,
+			})
+		}
 	}
 	return output
 }
@@ -116,11 +118,13 @@ func (ph *PermissionHandler) GetFacilityPermissions() []ScopedPermissionDefiniti
 	var output []ScopedPermissionDefinition
 	for key := range ph.facilityPermissions {
 		facility, object, action := extractFacilityPermissionKey(key)
-		output = append(output, ScopedPermissionDefinition{
-			Object:   object,
-			Action:   action,
-			Facility: facility,
-		})
+		if !slices.Contains(MaskedObjects, object) {
+			output = append(output, ScopedPermissionDefinition{
+				Object:   object,
+				Action:   action,
+				Facility: facility,
+			})
+		}
 	}
 	return output
 }
