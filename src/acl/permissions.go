@@ -32,6 +32,18 @@ const (
 	ObjectLegacyLoginToken Object = "legacy_login_token"
 )
 
+var MaskedObjects = []Object{
+	ObjectSystemRole,
+	ObjectDivisionManagementRole,
+	ObjectDivisionStaffRole,
+	ObjectFacilitySeniorStaffRole,
+	ObjectFacilityJuniorStaffRole,
+	ObjectFacilityTrainingRole,
+
+	ObjectLegacyRoleSync,
+	ObjectLegacyLoginToken,
+}
+
 type PermissionDefinition struct {
 	Action Action
 	Object Object

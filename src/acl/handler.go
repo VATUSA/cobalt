@@ -3,6 +3,7 @@ package acl
 import (
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 	"time"
 )
@@ -127,7 +128,10 @@ func (ph *PermissionHandler) GetFacilityPermissions() []ScopedPermissionDefiniti
 func (ph *PermissionHandler) GetGlobalPermissionsString() string {
 	var segments []string
 	for key := range ph.globalPermissions {
-		segments = append(segments, string(key))
+		object, _ := extractGlobalPermissionKey(key)
+		if !slices.Contains(MaskedObjects, object) {
+			segments = append(segments, string(key))
+		}
 	}
 	return strings.Join(segments, ",")
 }
@@ -135,7 +139,10 @@ func (ph *PermissionHandler) GetGlobalPermissionsString() string {
 func (ph *PermissionHandler) GetFacilityPermissionsString() string {
 	var segments []string
 	for key := range ph.facilityPermissions {
-		segments = append(segments, string(key))
+		_, object, _ := extractFacilityPermissionKey(key)
+		if !slices.Contains(MaskedObjects, object) {
+			segments = append(segments, string(key))
+		}
 	}
 	return strings.Join(segments, ",")
 }
