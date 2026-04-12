@@ -188,6 +188,10 @@ var (
 				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
 			},
+			{
+				Action: ActionWrite,
+				Object: ObjectRoster,
+			},
 		},
 		RoleDivisionStaff: {
 			{
@@ -221,6 +225,10 @@ var (
 			{
 				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectRoster,
 			},
 		},
 		RoleAirTrafficManager: {
@@ -263,6 +271,10 @@ var (
 				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
 			},
+			{
+				Action: ActionWrite,
+				Object: ObjectRoster,
+			},
 		},
 	}
 	RoleFacilityPermissions = map[Role][]PermissionDefinition{
@@ -283,6 +295,10 @@ var (
 				Action: ActionManageUnowned,
 				Object: ObjectEvent,
 			},
+			{
+				Action: ActionWrite,
+				Object: ObjectRoster,
+			},
 		},
 		RoleDeputyAirTrafficManager: {
 			{
@@ -300,6 +316,10 @@ var (
 			{
 				Action: ActionManageUnowned,
 				Object: ObjectEvent,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectRoster,
 			},
 		},
 		RoleTrainingAdministrator: {
@@ -323,6 +343,10 @@ var (
 			{
 				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectRoster,
 			},
 		},
 	}
