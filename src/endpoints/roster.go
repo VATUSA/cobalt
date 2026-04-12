@@ -25,3 +25,15 @@ func GetFacilityRoster(c *echo.Context) error {
 	model := models.RosterFromDatabase(homeUsers, visitUsers, canSeeSensitiveFields)
 	return c.JSON(http.StatusOK, model)
 }
+
+func GetFacilityPendingTransfers(c *echo.Context) error {
+	canSeeSensitiveFields := HasGlobal(c, acl.ObjectUserSensitiveDetails, acl.ActionRead)
+	facility := c.Param("facility")
+
+	transferRequests, err := dbconn.GetFacilityPendingTransferRequests(facility)
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	model := models.TransferRequestsCombinedFromDatabase(transferRequests, canSeeSensitiveFields)
+	return c.JSON(http.StatusOK, model)
+}

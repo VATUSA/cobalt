@@ -53,7 +53,8 @@ func SetupRoutes(e *echo.Echo) {
 	my := e.Group("/my")
 	my.GET("/session", endpoints.GetMySession)
 
-	roster := e.Group("/roster")
-	roster.GET("/:facility", endpoints.GetFacilityRoster)
+	roster := e.Group("/roster/:facility")
+	roster.GET("", endpoints.GetFacilityRoster)
+	roster.GET("/transfer", endpoints.GetFacilityPendingTransfers)
 
 }
