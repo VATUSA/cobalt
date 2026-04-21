@@ -36,3 +36,12 @@ func GetFacilityPendingTransferRequests(facility string) ([]TransferRequestCombi
 
 	return out, nil
 }
+
+func GetUserPendingTransferRequestsCount(cid int) (int, error) {
+	ctx := context.Background()
+	result, err := Queries().GetCountPendingTransferRequestsForCID(ctx, int64(cid))
+	if err != nil {
+		return 0, err
+	}
+	return int(result), nil
+}

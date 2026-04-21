@@ -66,10 +66,23 @@ func (q *Queries) DeleteTransferRequest(ctx context.Context, id int64) error {
 	return err
 }
 
+const getCountPendingTransferRequestsForCID = `-- name: GetCountPendingTransferRequestsForCID :one
+SELECT count(*)
+FROM transfer_request
+WHERE cid = ? AND status = 'pending'
+`
+
+func (q *Queries) GetCountPendingTransferRequestsForCID(ctx context.Context, cid int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getCountPendingTransferRequestsForCID, cid)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getPendingTransferRequestsForFacility = `-- name: GetPendingTransferRequestsForFacility :many
 SELECT id, cid, from_facility, to_facility, reason, created_at, status
 FROM transfer_request
-WHERE to_facility = ?
+WHERE to_facility = ? AND status = 'pending'
 `
 
 func (q *Queries) GetPendingTransferRequestsForFacility(ctx context.Context, toFacility string) ([]TransferRequest, error) {

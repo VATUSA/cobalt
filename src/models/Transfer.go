@@ -11,6 +11,13 @@ type MyTransferRequestRequest struct {
 	Reason     string `json:"reason"`
 }
 
+type TransferAction struct {
+	Id       int64  `json:"id"`
+	Action   string `json:"action"`
+	Reason   string `json:"reason,omitempty"`
+	ActorCid int64  `json:"actor_cid,omitempty"`
+}
+
 type TransferRequest struct {
 	Id           int64     `json:"id"`
 	Cid          int64     `json:"cid"`

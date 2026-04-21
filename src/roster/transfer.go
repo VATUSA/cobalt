@@ -11,13 +11,22 @@ import (
 	"vatusa-cobalt/dbconn"
 )
 
-func CreateTransferRequest(cid int64, fromFacility string, toFacility string, reason string, actorCid int64) (*db.TransferRequest, error) {
-	if fromFacility == toFacility {
+const (
+	TransferAccept string = "accept"
+	TransferReject string = "reject"
+)
+
+func CreateTransferRequest(user db.GetCombinedUserRow, toFacility string, reason string, actor db.GetCombinedUserRow) (*db.TransferRequest, error) {
+	if user.Facility == toFacility {
 		return nil, errors.New("fromFacility and toFacility must not be equal")
 	}
+	blockers := GetUserBlockers(user)
+	if blockers.IsTransferBlocked {
+		return nil, errors.New("user is transfer blocked")
+	}
 	params := db.CreateTransferRequestParams{
-		Cid:          cid,
-		FromFacility: fromFacility,
+		Cid:          user.Cid,
+		FromFacility: user.Facility,
 		ToFacility:   toFacility,
 		Reason:       reason,
 	}
@@ -37,8 +46,8 @@ func CreateTransferRequest(cid int64, fromFacility string, toFacility string, re
 	if err != nil {
 		return nil, err
 	}
-	err = action.Log(cid, action.TransferRequest,
-		fmt.Sprintf("%s -> %s (%s)", fromFacility, toFacility, reason), actorCid)
+	err = action.Log(user, action.TransferRequest,
+		fmt.Sprintf("%s -> %s (%s)", user.Facility, toFacility, reason), actor.Cid)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +55,14 @@ func CreateTransferRequest(cid int64, fromFacility string, toFacility string, re
 }
 
 func AcceptTransferRequest(request db.TransferRequest, actorCid int64) error {
-	err := doTransfer(request.Cid, request.FromFacility, request.ToFacility, request.Reason, request.CreatedAt, actorCid)
+	user, err := dbconn.GetCombinedUserByCID(int(request.Cid))
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("user not found")
+	}
+	err = doTransfer(*user, request.FromFacility, request.ToFacility, request.Reason, request.CreatedAt, actorCid)
 	if err != nil {
 		return err
 	}
@@ -56,7 +72,7 @@ func AcceptTransferRequest(request db.TransferRequest, actorCid int64) error {
 	if err != nil {
 		return err
 	}
-	err = action.Log(request.Cid, action.TransferApproved,
+	err = action.Log(*user, action.TransferApproved,
 		fmt.Sprintf("%s -> %s", request.FromFacility, request.ToFacility), actorCid)
 	if err != nil {
 		return err
@@ -64,15 +80,15 @@ func AcceptTransferRequest(request db.TransferRequest, actorCid int64) error {
 	return nil
 }
 
-func ForceTransfer(cid int64, fromFacility string, toFacility string, reason string, actorCid int64) error {
+func ForceTransfer(user db.GetCombinedUserRow, fromFacility string, toFacility string, reason string, actorCid int64) error {
 	if fromFacility == toFacility {
 		return errors.New("fromFacility and toFacility must not be equal")
 	}
-	err := doTransfer(cid, fromFacility, toFacility, reason, time.Now(), actorCid)
+	err := doTransfer(user, fromFacility, toFacility, reason, time.Now(), actorCid)
 	if err != nil {
 		return err
 	}
-	err = action.Log(cid, action.ForceTransfer,
+	err = action.Log(user, action.ForceTransfer,
 		fmt.Sprintf("%s -> %s (%s)", fromFacility, toFacility, reason), actorCid)
 	if err != nil {
 		return err
@@ -80,7 +96,7 @@ func ForceTransfer(cid int64, fromFacility string, toFacility string, reason str
 	return nil
 }
 
-func doTransfer(cid int64, fromFacility string, toFacility string, reason string, requestedAt time.Time, actorCid int64) error {
+func doTransfer(user db.GetCombinedUserRow, fromFacility string, toFacility string, reason string, requestedAt time.Time, actorCid int64) error {
 	if fromFacility == toFacility {
 		return errors.New("fromFacility and toFacility must not be equal")
 	}
@@ -94,14 +110,14 @@ func doTransfer(cid int64, fromFacility string, toFacility string, reason string
 			Time:  transferTime,
 			Valid: true,
 		},
-		Cid: cid,
+		Cid: user.Cid,
 	})
 	if err != nil {
 		return err
 	}
 
 	_, err = queries.CreateTransferHistoryRecord(ctx, db.CreateTransferHistoryRecordParams{
-		Cid:          cid,
+		Cid:          user.Cid,
 		FromFacility: fromFacility,
 		ToFacility:   toFacility,
 		Reason:       reason,

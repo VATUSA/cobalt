@@ -1,5 +1,7 @@
 package action
 
-func Log(subjectCid int64, action Action, message string, actorCid int64) error {
+import "vatusa-cobalt/db"
+
+func Log(subject db.GetCombinedUserRow, action Action, message string, actorCid int64) error {
 	return nil
 }

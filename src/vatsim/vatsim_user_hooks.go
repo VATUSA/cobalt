@@ -97,7 +97,14 @@ func handleSuspendedAndInactive(vatsimUser db.VatsimUser, user db.GetUserByCIDRo
 }
 
 func setFacility(user db.GetUserByCIDRow, facility string) error {
-	return roster.ForceTransfer(user.Cid, user.Facility, facility, "VATSIM Sync", 0)
+	combinedUser, err := dbconn.GetCombinedUserByCID(int(user.Cid))
+	if err != nil {
+		return err
+	}
+	if combinedUser == nil {
+		return errors.New("user not found")
+	}
+	return roster.ForceTransfer(*combinedUser, user.Facility, facility, "VATSIM Sync", 0)
 }
 
 func removeVisits(user db.GetUserByCIDRow) error {

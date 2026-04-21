@@ -1,0 +1,1 @@
+ALTER TABLE user ADD last_visit_time timestamp null;

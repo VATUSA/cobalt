@@ -372,6 +372,14 @@ type User struct {
 	ControllerRating   int32
 	InstructorRating   int32
 	DiscordID          string
+	LastVisitTime      sql.NullTime
+}
+
+type UserRatingHour struct {
+	Cid           int64
+	Rating        int32
+	Hours         int32
+	LastCheckTime time.Time
 }
 
 type UserVisit struct {

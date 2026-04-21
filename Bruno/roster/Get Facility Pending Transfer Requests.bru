@@ -5,15 +5,16 @@ meta {
 }
 
 get {
-  url: {{hostname}}/roster/:facility/transfers
+  url: {{hostname}}/roster/:facility/transfer
   body: none
   auth: inherit
 }
 
 params:path {
-  facility: 
+  facility: ZTL
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }

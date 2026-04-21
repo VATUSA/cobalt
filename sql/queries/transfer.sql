@@ -15,12 +15,17 @@ VALUES (?, ?, ?, ?, ?, NOW(), ?);
 -- name: GetPendingTransferRequestsForFacility :many
 SELECT id, cid, from_facility, to_facility, reason, created_at, status
 FROM transfer_request
-WHERE to_facility = ?;
+WHERE to_facility = ? AND status = 'pending';
 
 -- name: GetTransferRequestsForCID :many
 SELECT id, cid, from_facility, to_facility, reason, created_at, status
 FROM transfer_request
 WHERE cid = ?;
+
+-- name: GetCountPendingTransferRequestsForCID :one
+SELECT count(*)
+FROM transfer_request
+WHERE cid = ? AND status = 'pending';
 
 -- name: GetTransferHistoryForCID :many
 SELECT id, cid, from_facility, to_facility, reason, requested_at, completed_at, approver_cid

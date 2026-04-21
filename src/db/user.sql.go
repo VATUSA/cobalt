@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
+	"time"
 )
 
 const getCombinedUser = `-- name: GetCombinedUser :many
@@ -31,16 +33,20 @@ SELECT vu.cid
      , u.discord_id
      , u.last_promotion_time
      , u.last_transfer_time
+     , u.last_visit_time
      , u.last_competency_date
 from vatsim_user vu
          join user u on vu.cid = u.cid
 where (? is null OR vu.cid = ?)
+AND (? IS NULL OR vu.cid IN (/*SLICE:cids*/?))
 AND (? is null or u.facility = ?)
 AND (? is null or u.cid IN (select cid from user_visit uv where uv.facility = ?))
 `
 
 type GetCombinedUserParams struct {
 	Cid           sql.NullInt64
+	HasCidsSlice  interface{}
+	Cids          []int64
 	HomeFacility  sql.NullString
 	VisitFacility sql.NullString
 }
@@ -66,18 +72,29 @@ type GetCombinedUserRow struct {
 	DiscordID          string
 	LastPromotionTime  sql.NullTime
 	LastTransferTime   sql.NullTime
+	LastVisitTime      sql.NullTime
 	LastCompetencyDate sql.NullTime
 }
 
 func (q *Queries) GetCombinedUser(ctx context.Context, arg GetCombinedUserParams) ([]GetCombinedUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCombinedUser,
-		arg.Cid,
-		arg.Cid,
-		arg.HomeFacility,
-		arg.HomeFacility,
-		arg.VisitFacility,
-		arg.VisitFacility,
-	)
+	query := getCombinedUser
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.Cid)
+	queryParams = append(queryParams, arg.Cid)
+	queryParams = append(queryParams, arg.HasCidsSlice)
+	if len(arg.Cids) > 0 {
+		for _, v := range arg.Cids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:cids*/?", strings.Repeat(",?", len(arg.Cids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:cids*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.HomeFacility)
+	queryParams = append(queryParams, arg.HomeFacility)
+	queryParams = append(queryParams, arg.VisitFacility)
+	queryParams = append(queryParams, arg.VisitFacility)
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +123,7 @@ func (q *Queries) GetCombinedUser(ctx context.Context, arg GetCombinedUserParams
 			&i.DiscordID,
 			&i.LastPromotionTime,
 			&i.LastTransferTime,
+			&i.LastVisitTime,
 			&i.LastCompetencyDate,
 		); err != nil {
 			return nil, err
@@ -122,7 +140,7 @@ func (q *Queries) GetCombinedUser(ctx context.Context, arg GetCombinedUserParams
 }
 
 const getUserByCID = `-- name: GetUserByCID :one
-SELECT u.cid, u.facility, u.last_promotion_time, u.last_transfer_time, u.last_competency_date, u.display_name, u.controller_rating, u.instructor_rating, u.discord_id,
+SELECT u.cid, u.facility, u.last_promotion_time, u.last_transfer_time, u.last_competency_date, u.display_name, u.controller_rating, u.instructor_rating, u.discord_id, u.last_visit_time,
        (SELECT GROUP_CONCAT(facility SEPARATOR ',') from user_visit uv where uv.cid = u.cid) as visiting_facilities
 FROM user u
 WHERE u.cid = ?
@@ -138,6 +156,7 @@ type GetUserByCIDRow struct {
 	ControllerRating   int32
 	InstructorRating   int32
 	DiscordID          string
+	LastVisitTime      sql.NullTime
 	VisitingFacilities sql.NullString
 }
 
@@ -154,7 +173,61 @@ func (q *Queries) GetUserByCID(ctx context.Context, cid int64) (GetUserByCIDRow,
 		&i.ControllerRating,
 		&i.InstructorRating,
 		&i.DiscordID,
+		&i.LastVisitTime,
 		&i.VisitingFacilities,
+	)
+	return i, err
+}
+
+const getUserRatingHourCheckCids = `-- name: GetUserRatingHourCheckCids :many
+SELECT u.cid
+FROM user u
+LEFT JOIN user_rating_hours h ON u.cid = h.cid AND h.rating = least(u.controller_rating, 5)
+WHERE h.hours IS NULL or h.hours < ?
+`
+
+func (q *Queries) GetUserRatingHourCheckCids(ctx context.Context, hours int32) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, getUserRatingHourCheckCids, hours)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var cid int64
+		if err := rows.Scan(&cid); err != nil {
+			return nil, err
+		}
+		items = append(items, cid)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserRatingHours = `-- name: GetUserRatingHours :one
+SELECT cid, rating, hours, last_check_time
+FROM user_rating_hours
+WHERE cid = ? AND rating = ?
+`
+
+type GetUserRatingHoursParams struct {
+	Cid    int64
+	Rating int32
+}
+
+func (q *Queries) GetUserRatingHours(ctx context.Context, arg GetUserRatingHoursParams) (UserRatingHour, error) {
+	row := q.db.QueryRowContext(ctx, getUserRatingHours, arg.Cid, arg.Rating)
+	var i UserRatingHour
+	err := row.Scan(
+		&i.Cid,
+		&i.Rating,
+		&i.Hours,
+		&i.LastCheckTime,
 	)
 	return i, err
 }
@@ -172,6 +245,28 @@ type InsertUserFromVatsimSyncParams struct {
 
 func (q *Queries) InsertUserFromVatsimSync(ctx context.Context, arg InsertUserFromVatsimSyncParams) error {
 	_, err := q.db.ExecContext(ctx, insertUserFromVatsimSync, arg.Cid, arg.DisplayName, arg.Facility)
+	return err
+}
+
+const storeUserRatingHours = `-- name: StoreUserRatingHours :exec
+INSERT INTO user_rating_hours (cid, rating, hours, last_check_time) VALUES (?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE hours = VALUES(hours), last_check_time = VALUES(last_check_time)
+`
+
+type StoreUserRatingHoursParams struct {
+	Cid           int64
+	Rating        int32
+	Hours         int32
+	LastCheckTime time.Time
+}
+
+func (q *Queries) StoreUserRatingHours(ctx context.Context, arg StoreUserRatingHoursParams) error {
+	_, err := q.db.ExecContext(ctx, storeUserRatingHours,
+		arg.Cid,
+		arg.Rating,
+		arg.Hours,
+		arg.LastCheckTime,
+	)
 	return err
 }
 

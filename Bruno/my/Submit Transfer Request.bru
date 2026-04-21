@@ -1,0 +1,23 @@
+meta {
+  name: Submit Transfer Request
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{hostname}}/my/transfer
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "to_facility": "ZTL",
+    "reason": "Test"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -5,6 +5,7 @@ import (
 	"time"
 	"vatusa-cobalt/config"
 	"vatusa-cobalt/db"
+	"vatusa-cobalt/dbconn"
 )
 
 type Block string
@@ -68,6 +69,10 @@ var Blockers = []Blocker{
 			if !user.LastTransferTime.Valid {
 				return false
 			}
+			if user.Facility == config.FacilityAcademy {
+				// Users in academy should bypass this check
+				return false
+			}
 			return time.Since(user.LastTransferTime.Time) < 90*24*time.Hour
 		},
 	},
@@ -93,8 +98,15 @@ var Blockers = []Blocker{
 			BlocksVisit,
 		},
 		Check: func(user db.GetCombinedUserRow) bool {
-			// TODO
-			return false
+			rating := user.ControllerRating
+			if rating == config.RatingController3 {
+				rating = config.RatingController1
+			}
+			rec, err := dbconn.GetUserRatingHours(int(user.Cid), int(rating))
+			if err != nil {
+				return true
+			}
+			return rec == nil || rec.Hours < 50
 		},
 	},
 	{
@@ -125,8 +137,8 @@ var Blockers = []Blocker{
 			BlocksTransfer,
 		},
 		Check: func(user db.GetCombinedUserRow) bool {
-			// TODO
-			return false
+			count, _ := dbconn.GetUserPendingTransferRequestsCount(int(user.Cid))
+			return count > 0
 		},
 	},
 	{
@@ -169,12 +181,10 @@ var Blockers = []Blocker{
 			BlocksVisit,
 		},
 		Check: func(user db.GetCombinedUserRow) bool {
-			//if !user.LastVisitTime.Valid {
-			//	return false
-			//}
-			//return time.Since(user.LastVisitTime.Time) < 60*24*time.Hour
-			// TODO: Add LastVisitTime field and use that
-			return false
+			if !user.LastVisitTime.Valid {
+				return false
+			}
+			return time.Since(user.LastVisitTime.Time) < 60*24*time.Hour
 		},
 	},
 }

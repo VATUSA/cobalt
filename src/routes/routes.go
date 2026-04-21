@@ -53,6 +53,7 @@ func SetupRoutes(e *echo.Echo) {
 
 	my := e.Group("/my")
 	my.GET("/session", endpoints.GetMySession)
+	my.POST("/transfer", endpoints.MySubmitTransferRequest)
 
 	roster := e.Group("/roster/:facility")
 	roster.GET("", endpoints.GetFacilityRoster)
