@@ -1,9 +1,11 @@
 package endpoints
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"vatusa-cobalt/acl"
+	"vatusa-cobalt/auth"
 	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/models"
 	"vatusa-cobalt/roster"
@@ -53,6 +55,34 @@ func ActionFacilityPendingTransfer(c *echo.Context) error {
 	if request.Action == roster.TransferReject && request.Reason == "" {
 		return GenericError(c, http.StatusBadRequest, errors.New("reason is required when rejecting requests"))
 	}
-	// TODO: Finish this
-	return nil
+	cid := auth.GetUserCid(c)
+	if cid == -1 {
+		// If this is an API request, check permissions for the provided CID to make sure they are authorized
+		cid = int(request.ActorCid)
+		ph := acl.GetPermissionHandlerCache().GetHandlerForCid(cid)
+		if !ph.HasFacility(facility, acl.ObjectUserSensitiveDetails, acl.ActionWrite) {
+			return ErrorNoPermission(c)
+		}
+	}
+	ctx := context.Background()
+	transferRequest, err := dbconn.Queries().GetTransferRequestById(ctx, request.Id)
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+
+	if request.Action == roster.TransferAccept {
+		err = roster.AcceptTransferRequest(transferRequest, int64(cid))
+		if err != nil {
+			return GenericError(c, http.StatusInternalServerError, err)
+		}
+		return GenericSuccess(c, int(transferRequest.ID))
+	} else if request.Action == roster.TransferReject {
+		err = roster.RejectTransferRequest(transferRequest, int64(cid))
+		if err != nil {
+			return GenericError(c, http.StatusInternalServerError, err)
+		}
+		return GenericSuccess(c, int(transferRequest.ID))
+	}
+
+	return GenericError(c, http.StatusBadRequest, errors.New("invalid action"))
 }

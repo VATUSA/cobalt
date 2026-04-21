@@ -80,6 +80,30 @@ func AcceptTransferRequest(request db.TransferRequest, actorCid int64) error {
 	return nil
 }
 
+func RejectTransferRequest(request db.TransferRequest, actorCid int64) error {
+	user, err := dbconn.GetCombinedUserByCID(int(request.Cid))
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("user not found")
+	}
+	ctx := context.Background()
+	params := db.UpdateTransferRequestStatusParams{
+		Status: "rejected",
+		ID:     request.ID,
+	}
+	err = dbconn.Queries().UpdateTransferRequestStatus(ctx, params)
+	if err != nil {
+		return err
+	}
+	err = action.Log(*user, action.TransferDenied, request.Reason, actorCid)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func ForceTransfer(user db.GetCombinedUserRow, fromFacility string, toFacility string, reason string, actorCid int64) error {
 	if fromFacility == toFacility {
 		return errors.New("fromFacility and toFacility must not be equal")
