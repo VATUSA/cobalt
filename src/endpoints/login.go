@@ -33,7 +33,6 @@ func GetLogout(c *echo.Context) error {
 		Value:  "",
 		Path:   "/",
 		MaxAge: -1,
-		Domain: config.CookieDomain(),
 	})
 	return c.Redirect(http.StatusFound, config.PostLoginURL())
 }
@@ -86,7 +85,6 @@ func Connect(c *echo.Context) error {
 		Name:     auth.JWTCookieName,
 		Value:    jwt,
 		Path:     "/",
-		Domain:   config.CookieDomain(),
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(time.Hour * 24 * 7),
 	})
