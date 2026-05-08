@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 	"strconv"
@@ -71,13 +72,16 @@ func UpdateEvent(c *echo.Context) error {
 	}
 
 	event, err := dbconn.Queries().GetEventById(ctx, int64(id))
+	if err != nil {
+		return GenericError(c, http.StatusNotFound, errors.New("event not found"))
+	}
 
-	// Need to check both event.Facility and request.Facility as they might be different and the user must have write access to both
+	// Check both facilities: user must have write access to both current and new facility
 	if !AssertFacility(c, event.Facility, acl.ObjectEvent, acl.ActionWrite) {
-		return err
+		return nil
 	}
 	if !AssertFacility(c, request.Facility, acl.ObjectEvent, acl.ActionWrite) {
-		return err
+		return nil
 	}
 
 	startTime, err := time.Parse(config.TimestampFormat, request.StartTimestamp)
@@ -98,6 +102,43 @@ func UpdateEvent(c *echo.Context) error {
 		EndTime:        endTime.Unix(),
 		UpdatedAt:      time.Now().Unix(),
 		UpdatedBy:      int32(auth.GetUserCid(c)),
+		ReviewStatus:   event.ReviewStatus,
+		ReviewedBy:     event.ReviewedBy,
+		ReviewedOn:     event.ReviewedOn,
+		ID:             int64(id),
+	})
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	return GenericSuccess(c, id)
+}
+
+func ReviewEvent(c *echo.Context) error {
+	if !AssertGlobal(c, acl.ObjectEventApproval, acl.ActionWrite) {
+		return nil
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid event id"))
+	}
+	var request models.EventReviewRequest
+	if err = c.Bind(&request); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
+	if request.Status != "approved" && request.Status != "rejected" {
+		return GenericError(c, http.StatusBadRequest, errors.New("status must be 'approved' or 'rejected'"))
+	}
+	ctx := c.Request().Context()
+	_, err = dbconn.Queries().GetEventById(ctx, int64(id))
+	if err != nil {
+		return GenericError(c, http.StatusNotFound, errors.New("event not found"))
+	}
+	reviewerCid := int32(auth.GetUserCid(c))
+	err = dbconn.Queries().SetEventReviewStatus(ctx, db.SetEventReviewStatusParams{
+		ReviewStatus: sql.NullString{String: request.Status, Valid: true},
+		ReviewedBy:   sql.NullInt32{Int32: reviewerCid, Valid: true},
+		ReviewedOn:   sql.NullInt64{Int64: time.Now().Unix(), Valid: true},
+		ID:           int64(id),
 	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
@@ -133,12 +174,16 @@ func GetEventById(c *echo.Context) error {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid event id"))
 	}
 	ctx := c.Request().Context()
-	event, err := dbconn.Queries().GetEventById(ctx, int64(id))
-	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+	var event db.Event
+	if HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead) {
+		event, err = dbconn.Queries().GetEventById(ctx, int64(id))
+	} else {
+		event, err = dbconn.Queries().GetEventByIdApproved(ctx, int64(id))
 	}
-	output := models.EventFromDatabase(event)
-	return c.JSON(http.StatusOK, output)
+	if err != nil {
+		return GenericError(c, http.StatusNotFound, errors.New("event not found"))
+	}
+	return c.JSON(http.StatusOK, models.EventFromDatabase(event))
 }
 
 func GetUpcomingEvents(c *echo.Context) error {
@@ -152,17 +197,24 @@ func GetUpcomingEvents(c *echo.Context) error {
 		countInt = 100
 	}
 	ctx := c.Request().Context()
-	events, err := dbconn.Queries().GetUpcomingEvents(ctx, db.GetUpcomingEventsParams{
-		StartTime: time.Now().Unix(),
-		Limit:     int32(countInt),
-		Offset:    int32(0),
-	})
+	var events []db.Event
+	if HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead) {
+		events, err = dbconn.Queries().GetUpcomingEventsAll(ctx, db.GetUpcomingEventsAllParams{
+			StartTime: time.Now().Unix(),
+			Limit:     int32(countInt),
+			Offset:    0,
+		})
+	} else {
+		events, err = dbconn.Queries().GetUpcomingEventsApproved(ctx, db.GetUpcomingEventsApprovedParams{
+			StartTime: time.Now().Unix(),
+			Limit:     int32(countInt),
+			Offset:    0,
+		})
+	}
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
-
-	output := models.EventsFromDatabase(events)
-	return c.JSON(http.StatusOK, output)
+	return c.JSON(http.StatusOK, models.EventsFromDatabase(events))
 }
 
 func GetEventsPage(c *echo.Context) error {
@@ -173,16 +225,22 @@ func GetEventsPage(c *echo.Context) error {
 	recordsPerPage := 25
 	offset := (page - 1) * recordsPerPage
 	ctx := c.Request().Context()
-
-	events, err := dbconn.Queries().GetUpcomingEvents(ctx, db.GetUpcomingEventsParams{
-		StartTime: time.Now().Unix(),
-		Limit:     int32(recordsPerPage),
-		Offset:    int32(offset),
-	})
+	var events []db.Event
+	if HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead) {
+		events, err = dbconn.Queries().GetUpcomingEventsAll(ctx, db.GetUpcomingEventsAllParams{
+			StartTime: time.Now().Unix(),
+			Limit:     int32(recordsPerPage),
+			Offset:    int32(offset),
+		})
+	} else {
+		events, err = dbconn.Queries().GetUpcomingEventsApproved(ctx, db.GetUpcomingEventsApprovedParams{
+			StartTime: time.Now().Unix(),
+			Limit:     int32(recordsPerPage),
+			Offset:    int32(offset),
+		})
+	}
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
-
-	output := models.EventsFromDatabase(events)
-	return c.JSON(http.StatusOK, output)
+	return c.JSON(http.StatusOK, models.EventsFromDatabase(events))
 }

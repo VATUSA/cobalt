@@ -211,6 +211,14 @@ var (
 				Object: ObjectEvent,
 			},
 			{
+				Action: ActionRead,
+				Object: ObjectEventApproval,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectEventApproval,
+			},
+			{
 				Action: ActionWrite,
 				Object: ObjectDivisionStaffRole,
 			},

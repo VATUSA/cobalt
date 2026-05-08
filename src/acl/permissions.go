@@ -17,6 +17,7 @@ const (
 
 	ObjectNewsPost             Object = "news_post"
 	ObjectEvent                Object = "event"
+	ObjectEventApproval        Object = "event_approval"
 	ObjectUserSensitiveDetails Object = "user_sensitive_details"
 	ObjectRoster               Object = "roster"
 
