@@ -251,10 +251,7 @@ SET title            = ?,
     start_time       = ?,
     end_time         = ?,
     updated_at       = ?,
-    updated_by       = ?,
-    review_status    = ?,
-    reviewed_by      = ?,
-    reviewed_on      = ?
+    updated_by       = ?
 WHERE id = ?
 `
 
@@ -267,9 +264,6 @@ type UpdateEventParams struct {
 	EndTime        int64
 	UpdatedAt      int64
 	UpdatedBy      int32
-	ReviewStatus   sql.NullString
-	ReviewedBy     sql.NullInt32
-	ReviewedOn     sql.NullInt64
 	ID             int64
 }
 
@@ -283,9 +277,6 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) error 
 		arg.EndTime,
 		arg.UpdatedAt,
 		arg.UpdatedBy,
-		arg.ReviewStatus,
-		arg.ReviewedBy,
-		arg.ReviewedOn,
 		arg.ID,
 	)
 	return err

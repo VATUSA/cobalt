@@ -102,9 +102,6 @@ func UpdateEvent(c *echo.Context) error {
 		EndTime:        endTime.Unix(),
 		UpdatedAt:      time.Now().Unix(),
 		UpdatedBy:      int32(auth.GetUserCid(c)),
-		ReviewStatus:   event.ReviewStatus,
-		ReviewedBy:     event.ReviewedBy,
-		ReviewedOn:     event.ReviewedOn,
 		ID:             int64(id),
 	})
 	if err != nil {
@@ -197,20 +194,11 @@ func GetUpcomingEvents(c *echo.Context) error {
 		countInt = 100
 	}
 	ctx := c.Request().Context()
-	var events []db.Event
-	if HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead) {
-		events, err = dbconn.Queries().GetUpcomingEventsAll(ctx, db.GetUpcomingEventsAllParams{
-			StartTime: time.Now().Unix(),
-			Limit:     int32(countInt),
-			Offset:    0,
-		})
-	} else {
-		events, err = dbconn.Queries().GetUpcomingEventsApproved(ctx, db.GetUpcomingEventsApprovedParams{
-			StartTime: time.Now().Unix(),
-			Limit:     int32(countInt),
-			Offset:    0,
-		})
-	}
+	events, err := dbconn.Queries().GetUpcomingEventsApproved(ctx, db.GetUpcomingEventsApprovedParams{
+		StartTime: time.Now().Unix(),
+		Limit:     int32(countInt),
+		Offset:    0,
+	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
@@ -225,20 +213,11 @@ func GetEventsPage(c *echo.Context) error {
 	recordsPerPage := 25
 	offset := (page - 1) * recordsPerPage
 	ctx := c.Request().Context()
-	var events []db.Event
-	if HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead) {
-		events, err = dbconn.Queries().GetUpcomingEventsAll(ctx, db.GetUpcomingEventsAllParams{
-			StartTime: time.Now().Unix(),
-			Limit:     int32(recordsPerPage),
-			Offset:    int32(offset),
-		})
-	} else {
-		events, err = dbconn.Queries().GetUpcomingEventsApproved(ctx, db.GetUpcomingEventsApprovedParams{
-			StartTime: time.Now().Unix(),
-			Limit:     int32(recordsPerPage),
-			Offset:    int32(offset),
-		})
-	}
+	events, err := dbconn.Queries().GetUpcomingEventsAll(ctx, db.GetUpcomingEventsAllParams{
+		StartTime: time.Now().Unix(),
+		Limit:     int32(recordsPerPage),
+		Offset:    int32(offset),
+	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}

@@ -45,10 +45,7 @@ SET title            = ?,
     start_time       = ?,
     end_time         = ?,
     updated_at       = ?,
-    updated_by       = ?,
-    review_status    = ?,
-    reviewed_by      = ?,
-    reviewed_on      = ?
+    updated_by       = ?
 WHERE id = ?;
 
 -- name: DeleteEvent :exec
