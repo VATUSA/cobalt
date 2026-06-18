@@ -17,7 +17,7 @@ func SetupRoutes(e *echo.Echo) {
 	e.Use(_middleware.CookieAuth)
 
 	e.GET("/token/:cid", endpoints.GetGenerateUserToken)
-	e.GET("/tokenSession/:token", endpoints.GetUserDetailsFromToken)
+	e.POST("/tokenSession", endpoints.PostUserDetailsFromToken)
 
 	news := e.Group("/news")
 	news.GET("/latest/:count", endpoints.GetLastPosts)

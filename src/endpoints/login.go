@@ -117,12 +117,16 @@ func GetGenerateUserToken(c *echo.Context) error {
 	return c.JSON(http.StatusOK, data)
 }
 
-func GetUserDetailsFromToken(c *echo.Context) error {
+func PostUserDetailsFromToken(c *echo.Context) error {
 	if !AssertGlobal(c, acl.ObjectLegacyLoginToken, acl.ActionRead) {
 		return nil
 	}
-	tokenString := c.Param("token")
-	cid, err := auth.GetCIDFromToken(tokenString)
+	var request models.TokenSessionRequest
+	err := c.Bind(&request)
+	if err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
+	cid, err := auth.GetCIDFromToken(request.Token)
 	if err != nil {
 		return GenericError(c, http.StatusUnauthorized, errors.New("invalid token"))
 	}

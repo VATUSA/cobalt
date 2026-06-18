@@ -16,3 +16,7 @@ type FacilityPermission struct {
 	Object   string `json:"object"`
 	Facility string `json:"facility"`
 }
+
+type TokenSessionRequest struct {
+	Token string `json:"token"`
+}
