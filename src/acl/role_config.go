@@ -277,6 +277,10 @@ var (
 			},
 			{
 				Action: ActionRead,
+				Object: ObjectLegacyLoginToken,
+			},
+			{
+				Action: ActionRead,
 				Object: ObjectUserSensitiveDetails,
 			},
 			{

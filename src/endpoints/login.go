@@ -15,6 +15,7 @@ import (
 	"vatusa-cobalt/config"
 	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/login"
+	"vatusa-cobalt/models"
 	"vatusa-cobalt/vatsim"
 
 	"github.com/labstack/echo/v5"
@@ -114,6 +115,54 @@ func GetGenerateUserToken(c *echo.Context) error {
 	data := make(map[string]string)
 	data["token"] = token
 	return c.JSON(http.StatusOK, data)
+}
+
+func GetUserDetailsFromToken(c *echo.Context) error {
+	if !AssertGlobal(c, acl.ObjectLegacyLoginToken, acl.ActionRead) {
+		return nil
+	}
+	tokenString := c.Param("token")
+	cid, err := auth.GetCIDFromToken(tokenString)
+	if err != nil {
+		return GenericError(c, http.StatusUnauthorized, errors.New("invalid token"))
+	}
+	user, err := dbconn.GetCombinedUserByCID(cid)
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if user == nil {
+		return c.JSON(http.StatusNotFound, models.Session{})
+	}
+
+	userModel := models.UserFromDatabase(*user, true)
+
+	permissionHandler := GetPermissionHandler(c)
+
+	globalPermissions := permissionHandler.GetGlobalPermissions()
+	facilityPermissions := permissionHandler.GetFacilityPermissions()
+
+	session := models.Session{
+		User:                &userModel,
+		GlobalPermissions:   []models.GlobalPermission{},
+		FacilityPermissions: []models.FacilityPermission{},
+	}
+
+	for _, permission := range globalPermissions {
+		session.GlobalPermissions = append(session.GlobalPermissions, models.GlobalPermission{
+			Action: string(permission.Action),
+			Object: string(permission.Object),
+		})
+	}
+
+	for _, permission := range facilityPermissions {
+		session.FacilityPermissions = append(session.FacilityPermissions, models.FacilityPermission{
+			Action:   string(permission.Action),
+			Object:   string(permission.Object),
+			Facility: permission.Facility,
+		})
+	}
+
+	return c.JSON(http.StatusOK, session)
 }
 
 func LoginAs(c *echo.Context) error {
