@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 	"vatusa-cobalt/acl"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/background"
@@ -29,12 +28,7 @@ func GetLogin(c *echo.Context) error {
 }
 
 func GetLogout(c *echo.Context) error {
-	c.SetCookie(&http.Cookie{
-		Name:   auth.JWTCookieName,
-		Value:  "",
-		Path:   "/",
-		MaxAge: -1,
-	})
+	c.SetCookie(auth.ClearSessionCookie())
 	return c.Redirect(http.StatusFound, config.PostLoginURL())
 }
 
@@ -82,13 +76,7 @@ func Connect(c *echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
 	}
-	c.SetCookie(&http.Cookie{
-		Name:     auth.JWTCookieName,
-		Value:    jwt,
-		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(time.Hour * 24 * 7),
-	})
+	c.SetCookie(auth.NewSessionCookie(jwt))
 
 	return c.Redirect(http.StatusFound, config.PostLoginURL())
 }
@@ -189,11 +177,7 @@ func LoginAs(c *echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
 	}
-	c.SetCookie(&http.Cookie{
-		Name:  auth.JWTCookieName,
-		Value: token,
-		Path:  "/",
-	})
+	c.SetCookie(auth.NewSessionCookie(token))
 	return c.JSON(http.StatusOK, "success")
 }
 
@@ -246,10 +230,6 @@ func LoginUseToken(c *echo.Context) error {
 	}
 	token := c.Param("token")
 
-	c.SetCookie(&http.Cookie{
-		Name:  auth.JWTCookieName,
-		Value: token,
-		Path:  "/",
-	})
+	c.SetCookie(auth.NewSessionCookie(token))
 	return c.Redirect(http.StatusFound, config.PostLoginURL())
 }
