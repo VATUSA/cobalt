@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"vatusa-cobalt/acl"
 	"vatusa-cobalt/auth"
@@ -20,11 +21,26 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-func GetLogin(c *echo.Context) error {
-	if config.IsStaging() {
-		return c.Redirect(http.StatusFound, "https://cobalt.vatusa.net/login/staging")
+// validatedRedirect returns the redirect query param if present and it
+// passes config.IsAllowedRedirect, else "".
+func validatedRedirect(c *echo.Context) string {
+	redirect := c.QueryParam("redirect")
+	if redirect != "" && config.IsAllowedRedirect(redirect) {
+		return redirect
 	}
-	return c.Redirect(http.StatusFound, vatsim.ConnectFullURL())
+	return ""
+}
+
+func GetLogin(c *echo.Context) error {
+	redirect := validatedRedirect(c)
+	if config.IsStaging() {
+		target := "https://cobalt.vatusa.net/login/staging"
+		if redirect != "" {
+			target += "?redirect=" + url.QueryEscape(redirect)
+		}
+		return c.Redirect(http.StatusFound, target)
+	}
+	return c.Redirect(http.StatusFound, vatsim.ConnectFullURL(redirect))
 }
 
 func GetLogout(c *echo.Context) error {
@@ -77,6 +93,23 @@ func Connect(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
 	}
 	c.SetCookie(auth.NewSessionCookie(jwt))
+
+	// state carries a caller-supplied post-login redirect target across the
+	// VATSIM Connect round trip (see validatedRedirect / GetLogin). Because
+	// VATSIM's redirect_uri is only registered for cobalt.vatusa.net, this
+	// handler runs on prod even for dev/staging logins, proxied via
+	// GetLoginForStaging's relay. If state is present and we're on prod,
+	// this is a relay in progress: loop back into /login/staging (now
+	// logged in) to complete the handoff to the dev/staging instance rather
+	// than stopping at prod's own PostLoginURL. If state is present and
+	// we're not on prod, this must be a true local-dev instance talking to
+	// VATSIM directly (no relay to continue), so redirect straight there.
+	if state := c.QueryParam("state"); state != "" && config.IsAllowedRedirect(state) {
+		if config.IsProduction() {
+			return c.Redirect(http.StatusFound, "/login/staging?redirect="+url.QueryEscape(state))
+		}
+		return c.Redirect(http.StatusFound, state)
+	}
 
 	return c.Redirect(http.StatusFound, config.PostLoginURL())
 }
@@ -191,14 +224,15 @@ func GetLoginForStaging(c *echo.Context) error {
 	if !config.IsProduction() {
 		return echo.NewHTTPError(http.StatusNotFound, "Not found")
 	}
+	redirect := validatedRedirect(c)
 	if !auth.IsLoggedIn(c) {
-		return c.Redirect(http.StatusFound, vatsim.ConnectFullURL())
+		return c.Redirect(http.StatusFound, vatsim.ConnectFullURL(redirect))
 	}
 	cid := auth.GetUserCid(c)
 
 	client := &http.Client{}
-	url := fmt.Sprintf("%s/token/%d", config.StagingInternalURL(), cid)
-	req, err := http.NewRequest("GET", url, nil)
+	tokenURL := fmt.Sprintf("%s/token/%d", config.StagingInternalURL(), cid)
+	req, err := http.NewRequest("GET", tokenURL, nil)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
 	}
@@ -221,6 +255,9 @@ func GetLoginForStaging(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
 	}
 	redirectUrl := fmt.Sprintf("%s/login/useToken/%s", config.StagingInternalURL(), data["token"])
+	if redirect != "" {
+		redirectUrl += "?redirect=" + url.QueryEscape(redirect)
+	}
 	return c.Redirect(http.StatusFound, redirectUrl)
 }
 
@@ -231,5 +268,9 @@ func LoginUseToken(c *echo.Context) error {
 	token := c.Param("token")
 
 	c.SetCookie(auth.NewSessionCookie(token))
+
+	if redirect := validatedRedirect(c); redirect != "" {
+		return c.Redirect(http.StatusFound, redirect)
+	}
 	return c.Redirect(http.StatusFound, config.PostLoginURL())
 }

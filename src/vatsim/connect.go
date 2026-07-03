@@ -53,17 +53,25 @@ func ConnectRedirectURI() string {
 	return COBALT_BASE_URL + CONNECT_REDIRECT_URI
 }
 
-func ConnectAuthorizeParams() string {
-	return fmt.Sprintf(
+func ConnectAuthorizeParams(state string) string {
+	params := fmt.Sprintf(
 		"?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&prompt=login,consent",
 		config.ConnectClientId(),
 		ConnectRedirectURI(),
 		CONNECT_SCOPES,
 	)
+	if state != "" {
+		params += "&state=" + url.QueryEscape(state)
+	}
+	return params
 }
 
-func ConnectFullURL() string {
-	return ConnectAuthorizeURL() + ConnectAuthorizeParams()
+// ConnectFullURL builds the VATSIM Connect authorize URL. state, when
+// non-empty, is echoed back verbatim by VATSIM on the OAuth callback and is
+// used to carry a caller-supplied post-login redirect target across the
+// round trip.
+func ConnectFullURL(state string) string {
+	return ConnectAuthorizeURL() + ConnectAuthorizeParams(state)
 }
 
 type ConnectAccessToken struct {
