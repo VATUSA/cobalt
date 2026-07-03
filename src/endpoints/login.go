@@ -274,7 +274,7 @@ func GetLoginForStaging(c *echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
 	}
-	redirectUrl := fmt.Sprintf("%s/login/useToken/%s", config.StagingInternalURL(), data["token"])
+	redirectUrl := fmt.Sprintf("%s/login/useToken/%s", config.StagingPublicURL(), data["token"])
 	if redirect != "" {
 		redirectUrl += "?redirect=" + url.QueryEscape(redirect)
 	}

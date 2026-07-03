@@ -41,6 +41,18 @@ func StagingInternalURL() string {
 	return val
 }
 
+// StagingPublicURL is the browser-reachable base URL of the staging/dev
+// cobalt instance. Distinct from StagingInternalURL, which may point at an
+// in-cluster service address for the prod->dev server-to-server /token/:cid
+// call and is never reachable from the user's browser.
+func StagingPublicURL() string {
+	val, ok := os.LookupEnv("STAGING_PUBLIC_URL")
+	if !ok {
+		return "https://vatusa.dev/cobalt"
+	}
+	return val
+}
+
 func StagingActorToken() string {
 	val, ok := os.LookupEnv("STAGING_ACTOR_TOKEN")
 	if !ok {
