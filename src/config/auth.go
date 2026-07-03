@@ -7,6 +7,9 @@ func JWTKey() []byte {
 }
 
 func CookieDomain() string {
+	if val, ok := os.LookupEnv("COOKIE_DOMAIN"); ok {
+		return val
+	}
 	if IsDevelopment() {
 		return "localhost"
 	}
