@@ -31,6 +31,15 @@ func validatedRedirect(c *echo.Context) string {
 	return ""
 }
 
+// stagingRelayState is the OAuth `state` value GetLoginForStaging uses to
+// mark "this login is being relayed to a staging instance" when the caller
+// didn't supply their own redirect target. Without it, Connect() only knows
+// to loop back into /login/staging when state happens to carry a redirect
+// URL — which is never true for the default (no-redirect) login flow used
+// by webapps, silently stranding those logins at prod's own PostLoginURL
+// instead of completing the relay back to staging.
+const stagingRelayState = "_staging_relay"
+
 func GetLogin(c *echo.Context) error {
 	redirect := validatedRedirect(c)
 	if config.IsStaging() {
@@ -98,17 +107,24 @@ func Connect(c *echo.Context) error {
 	// VATSIM Connect round trip (see validatedRedirect / GetLogin). Because
 	// VATSIM's redirect_uri is only registered for cobalt.vatusa.net, this
 	// handler runs on prod even for dev/staging logins, proxied via
-	// GetLoginForStaging's relay. If state is present and we're on prod,
-	// this is a relay in progress: loop back into /login/staging (now
-	// logged in) to complete the handoff to the dev/staging instance rather
-	// than stopping at prod's own PostLoginURL. If state is present and
-	// we're not on prod, this must be a true local-dev instance talking to
-	// VATSIM directly (no relay to continue), so redirect straight there.
-	if state := c.QueryParam("state"); state != "" && config.IsAllowedRedirect(state) {
+	// GetLoginForStaging's relay. If state is stagingRelayState or a caller
+	// redirect and we're on prod, this is a relay in progress: loop back
+	// into /login/staging (now logged in) to complete the handoff to the
+	// dev/staging instance rather than stopping at prod's own PostLoginURL.
+	// If state carries a caller redirect and we're not on prod, this must
+	// be a true local-dev instance talking to VATSIM directly (no relay to
+	// continue), so redirect straight there.
+	if state := c.QueryParam("state"); state != "" {
 		if config.IsProduction() {
-			return c.Redirect(http.StatusFound, "/login/staging?redirect="+url.QueryEscape(state))
+			target := "/login/staging"
+			if state != stagingRelayState && config.IsAllowedRedirect(state) {
+				target += "?redirect=" + url.QueryEscape(state)
+			}
+			return c.Redirect(http.StatusFound, target)
 		}
-		return c.Redirect(http.StatusFound, state)
+		if state != stagingRelayState && config.IsAllowedRedirect(state) {
+			return c.Redirect(http.StatusFound, state)
+		}
 	}
 
 	return c.Redirect(http.StatusFound, config.PostLoginURL())
@@ -226,7 +242,11 @@ func GetLoginForStaging(c *echo.Context) error {
 	}
 	redirect := validatedRedirect(c)
 	if !auth.IsLoggedIn(c) {
-		return c.Redirect(http.StatusFound, vatsim.ConnectFullURL(redirect))
+		state := redirect
+		if state == "" {
+			state = stagingRelayState
+		}
+		return c.Redirect(http.StatusFound, vatsim.ConnectFullURL(state))
 	}
 	cid := auth.GetUserCid(c)
 
