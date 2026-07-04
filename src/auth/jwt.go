@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"time"
 	"vatusa-cobalt/config"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,6 +16,7 @@ func CreateToken(cid int, displayName string, globalPermissions string, facility
 		"display_name":         displayName,
 		"global_permissions":   globalPermissions,
 		"facility_permissions": facilityPermissions,
+		"exp":                  jwt.NewNumericDate(time.Now().Add(SessionDuration)),
 	})
 	s, err := t.SignedString(key)
 	return s, err
