@@ -14,7 +14,9 @@ func NewSessionCookie(value string) *http.Cookie {
 		Path:     "/",
 		Domain:   config.CookieDomain(),
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(time.Hour * 24 * 7),
+		Secure:   !config.IsDevelopment(),
+		HttpOnly: true,
+		Expires:  time.Now().Add(SessionDuration),
 	}
 }
 
@@ -26,6 +28,8 @@ func ClearSessionCookie() *http.Cookie {
 		Path:     "/",
 		Domain:   config.CookieDomain(),
 		SameSite: http.SameSiteLaxMode,
+		Secure:   !config.IsDevelopment(),
+		HttpOnly: true,
 		MaxAge:   -1,
 	}
 }
