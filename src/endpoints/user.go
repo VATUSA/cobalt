@@ -34,6 +34,9 @@ func GetUser(c *echo.Context) error {
 }
 
 func GetUserBlockers(c *echo.Context) error {
+	if !AssertGlobal(c, acl.ObjectUserSensitiveDetails, acl.ActionRead) {
+		return nil
+	}
 	cid := c.Param("cid")
 	cidInt, err := strconv.Atoi(cid)
 	if err != nil {

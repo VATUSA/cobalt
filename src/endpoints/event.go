@@ -213,11 +213,20 @@ func GetEventsPage(c *echo.Context) error {
 	recordsPerPage := 25
 	offset := (page - 1) * recordsPerPage
 	ctx := c.Request().Context()
-	events, err := dbconn.Queries().GetUpcomingEventsAll(ctx, db.GetUpcomingEventsAllParams{
-		StartTime: time.Now().Unix(),
-		Limit:     int32(recordsPerPage),
-		Offset:    int32(offset),
-	})
+	var events []db.Event
+	if HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead) {
+		events, err = dbconn.Queries().GetUpcomingEventsAll(ctx, db.GetUpcomingEventsAllParams{
+			StartTime: time.Now().Unix(),
+			Limit:     int32(recordsPerPage),
+			Offset:    int32(offset),
+		})
+	} else {
+		events, err = dbconn.Queries().GetUpcomingEventsApproved(ctx, db.GetUpcomingEventsApprovedParams{
+			StartTime: time.Now().Unix(),
+			Limit:     int32(recordsPerPage),
+			Offset:    int32(offset),
+		})
+	}
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
