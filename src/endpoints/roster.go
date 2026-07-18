@@ -31,8 +31,11 @@ func GetFacilityRoster(c *echo.Context) error {
 }
 
 func GetFacilityPendingTransfers(c *echo.Context) error {
-	canSeeSensitiveFields := HasGlobal(c, acl.ObjectUserSensitiveDetails, acl.ActionRead)
 	facility := c.Param("facility")
+	if !AssertFacility(c, facility, acl.ObjectUserSensitiveDetails, acl.ActionRead) {
+		return nil
+	}
+	canSeeSensitiveFields := HasGlobal(c, acl.ObjectUserSensitiveDetails, acl.ActionRead)
 
 	transferRequests, err := dbconn.GetFacilityPendingTransferRequests(facility)
 	if err != nil {
