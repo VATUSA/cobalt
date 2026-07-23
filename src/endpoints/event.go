@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 	"vatusa-cobalt/acl"
 	"vatusa-cobalt/auth"
@@ -171,14 +172,16 @@ func GetEventById(c *echo.Context) error {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid event id"))
 	}
 	ctx := c.Request().Context()
-	var event db.Event
-	if HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead) {
-		event, err = dbconn.Queries().GetEventById(ctx, int64(id))
-	} else {
-		event, err = dbconn.Queries().GetEventByIdApproved(ctx, int64(id))
-	}
+	event, err := dbconn.Queries().GetEventById(ctx, int64(id))
 	if err != nil {
 		return GenericError(c, http.StatusNotFound, errors.New("event not found"))
+	}
+	if event.ReviewStatus.String != "approved" {
+		authorized := HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead) ||
+			HasFacility(c, event.Facility, acl.ObjectEvent, acl.ActionWrite)
+		if !authorized {
+			return GenericError(c, http.StatusNotFound, errors.New("event not found"))
+		}
 	}
 	return c.JSON(http.StatusOK, models.EventFromDatabase(event))
 }
@@ -210,17 +213,33 @@ func GetEventsPage(c *echo.Context) error {
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid page"))
 	}
+	facility := strings.ToUpper(strings.TrimSpace(c.QueryParamOr("facility", "")))
 	recordsPerPage := 25
 	offset := (page - 1) * recordsPerPage
 	ctx := c.Request().Context()
 	var events []db.Event
-	if HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead) {
+	switch {
+	case facility != "" && HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead):
+		events, err = dbconn.Queries().GetUpcomingEventsForFacilityOrPending(ctx, db.GetUpcomingEventsForFacilityOrPendingParams{
+			StartTime: time.Now().Unix(),
+			Facility:  facility,
+			Limit:     int32(recordsPerPage),
+			Offset:    int32(offset),
+		})
+	case facility != "" && HasFacility(c, facility, acl.ObjectEvent, acl.ActionWrite):
+		events, err = dbconn.Queries().GetUpcomingEventsForFacility(ctx, db.GetUpcomingEventsForFacilityParams{
+			StartTime: time.Now().Unix(),
+			Facility:  facility,
+			Limit:     int32(recordsPerPage),
+			Offset:    int32(offset),
+		})
+	case facility == "" && HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead):
 		events, err = dbconn.Queries().GetUpcomingEventsAll(ctx, db.GetUpcomingEventsAllParams{
 			StartTime: time.Now().Unix(),
 			Limit:     int32(recordsPerPage),
 			Offset:    int32(offset),
 		})
-	} else {
+	default:
 		events, err = dbconn.Queries().GetUpcomingEventsApproved(ctx, db.GetUpcomingEventsApprovedParams{
 			StartTime: time.Now().Unix(),
 			Limit:     int32(recordsPerPage),

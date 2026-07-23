@@ -24,6 +24,22 @@ WHERE start_time > ?
 ORDER BY start_time ASC
 LIMIT ?, ?;
 
+-- name: GetUpcomingEventsForFacility :many
+SELECT *
+FROM event
+WHERE start_time > ?
+  AND facility = ?
+ORDER BY start_time ASC
+LIMIT ?, ?;
+
+-- name: GetUpcomingEventsForFacilityOrPending :many
+SELECT *
+FROM event
+WHERE start_time > ?
+  AND (facility = ? OR review_status = 'pending')
+ORDER BY start_time ASC
+LIMIT ?, ?;
+
 -- name: SetEventReviewStatus :exec
 UPDATE event
 SET review_status = ?,

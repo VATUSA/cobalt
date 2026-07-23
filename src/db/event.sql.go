@@ -217,6 +217,124 @@ func (q *Queries) GetUpcomingEventsApproved(ctx context.Context, arg GetUpcoming
 	return items, nil
 }
 
+const getUpcomingEventsForFacility = `-- name: GetUpcomingEventsForFacility :many
+SELECT id, title, body, banner_image_url, facility, start_time, end_time, created_at, created_by, updated_at, updated_by, review_status, reviewed_by, reviewed_on
+FROM event
+WHERE start_time > ?
+  AND facility = ?
+ORDER BY start_time ASC
+LIMIT ?, ?
+`
+
+type GetUpcomingEventsForFacilityParams struct {
+	StartTime int64
+	Facility  string
+	Offset    int32
+	Limit     int32
+}
+
+func (q *Queries) GetUpcomingEventsForFacility(ctx context.Context, arg GetUpcomingEventsForFacilityParams) ([]Event, error) {
+	rows, err := q.db.QueryContext(ctx, getUpcomingEventsForFacility,
+		arg.StartTime,
+		arg.Facility,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Event
+	for rows.Next() {
+		var i Event
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Body,
+			&i.BannerImageUrl,
+			&i.Facility,
+			&i.StartTime,
+			&i.EndTime,
+			&i.CreatedAt,
+			&i.CreatedBy,
+			&i.UpdatedAt,
+			&i.UpdatedBy,
+			&i.ReviewStatus,
+			&i.ReviewedBy,
+			&i.ReviewedOn,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUpcomingEventsForFacilityOrPending = `-- name: GetUpcomingEventsForFacilityOrPending :many
+SELECT id, title, body, banner_image_url, facility, start_time, end_time, created_at, created_by, updated_at, updated_by, review_status, reviewed_by, reviewed_on
+FROM event
+WHERE start_time > ?
+  AND (facility = ? OR review_status = 'pending')
+ORDER BY start_time ASC
+LIMIT ?, ?
+`
+
+type GetUpcomingEventsForFacilityOrPendingParams struct {
+	StartTime int64
+	Facility  string
+	Offset    int32
+	Limit     int32
+}
+
+func (q *Queries) GetUpcomingEventsForFacilityOrPending(ctx context.Context, arg GetUpcomingEventsForFacilityOrPendingParams) ([]Event, error) {
+	rows, err := q.db.QueryContext(ctx, getUpcomingEventsForFacilityOrPending,
+		arg.StartTime,
+		arg.Facility,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Event
+	for rows.Next() {
+		var i Event
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Body,
+			&i.BannerImageUrl,
+			&i.Facility,
+			&i.StartTime,
+			&i.EndTime,
+			&i.CreatedAt,
+			&i.CreatedBy,
+			&i.UpdatedAt,
+			&i.UpdatedBy,
+			&i.ReviewStatus,
+			&i.ReviewedBy,
+			&i.ReviewedOn,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setEventReviewStatus = `-- name: SetEventReviewStatus :exec
 UPDATE event
 SET review_status = ?,
