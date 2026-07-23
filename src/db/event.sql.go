@@ -116,7 +116,7 @@ const getUpcomingEventsAll = `-- name: GetUpcomingEventsAll :many
 SELECT id, title, body, banner_image_url, facility, start_time, end_time, created_at, created_by, updated_at, updated_by, review_status, reviewed_by, reviewed_on
 FROM event
 WHERE start_time > ?
-ORDER BY start_time DESC
+ORDER BY start_time ASC
 LIMIT ?, ?
 `
 
@@ -169,7 +169,7 @@ SELECT id, title, body, banner_image_url, facility, start_time, end_time, create
 FROM event
 WHERE start_time > ?
   AND review_status = 'approved'
-ORDER BY start_time DESC
+ORDER BY start_time ASC
 LIMIT ?, ?
 `
 

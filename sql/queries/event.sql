@@ -14,14 +14,14 @@ SELECT *
 FROM event
 WHERE start_time > ?
   AND review_status = 'approved'
-ORDER BY start_time DESC
+ORDER BY start_time ASC
 LIMIT ?, ?;
 
 -- name: GetUpcomingEventsAll :many
 SELECT *
 FROM event
 WHERE start_time > ?
-ORDER BY start_time DESC
+ORDER BY start_time ASC
 LIMIT ?, ?;
 
 -- name: SetEventReviewStatus :exec
