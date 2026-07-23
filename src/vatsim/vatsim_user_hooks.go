@@ -16,16 +16,18 @@ func VatsimUserUpdated(cid int64) error {
 	if err != nil {
 		return err
 	}
+	displayName := vatsimDisplayName(vatsimUser)
 	user, err := dbconn.Queries().GetUserByCID(context.Background(), vatsimUser.Cid)
 	if errors.Is(err, sql.ErrNoRows) {
-		params := db.InsertUserFromVatsimSyncParams{
-			Cid:         cid,
-			DisplayName: vatsimUser.NameFirst + " " + vatsimUser.NameLast,
-			Facility:    "",
-		}
 		if vatsimUser.Rating == config.RatingInactive || vatsimUser.Rating == config.RatingSuspended {
 			return nil
-		} else if vatsimUser.RegionID == "AMAS" && vatsimUser.DivisionID == "USA" {
+		}
+		params := db.InsertUserFromVatsimSyncParams{
+			Cid:         cid,
+			DisplayName: displayName,
+			Facility:    "",
+		}
+		if vatsimUser.RegionID == "AMAS" && vatsimUser.DivisionID == "USA" {
 			params.Facility = config.FacilityAcademy
 		} else {
 			params.Facility = config.FacilityNonMember
@@ -38,10 +40,26 @@ func VatsimUserUpdated(cid int64) error {
 		if err != nil {
 			return err
 		}
-	} else {
+	} else if err != nil {
 		return err
+	} else if user.DisplayName != displayName {
+		// Existing user: keep display_name current with the VATSIM record. Prior to
+		// this the existing-user branch returned early, so a migrated user's name was
+		// never populated and facility/suspension was never re-evaluated on sync.
+		err = dbconn.Queries().UpdateUserFromVatsimSync(context.Background(), db.UpdateUserFromVatsimSyncParams{
+			Cid:         vatsimUser.Cid,
+			DisplayName: displayName,
+		})
+		if err != nil {
+			return err
+		}
+		user.DisplayName = displayName
 	}
 	return onVatsimUserUpdate(vatsimUser, user)
+}
+
+func vatsimDisplayName(vatsimUser db.VatsimUser) string {
+	return strings.TrimSpace(vatsimUser.NameFirst + " " + vatsimUser.NameLast)
 }
 
 func onVatsimUserUpdate(vatsimUser db.VatsimUser, user db.GetUserByCIDRow) error {

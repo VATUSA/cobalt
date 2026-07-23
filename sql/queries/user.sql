@@ -36,10 +36,11 @@ AND (sqlc.narg(home_facility) is null or u.facility = sqlc.narg(home_facility))
 AND (sqlc.narg(visit_facility) is null or u.cid IN (select cid from user_visit uv where uv.facility = sqlc.narg(visit_facility)));
 
 -- name: UpsertUserForMigration :exec
-INSERT INTO user (cid, controller_rating, instructor_rating, facility, discord_id, last_promotion_time,
-                  last_transfer_time, last_competency_date)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-ON DUPLICATE KEY UPDATE controller_rating    = VALUES(controller_rating),
+INSERT INTO user (cid, display_name, controller_rating, instructor_rating, facility, discord_id,
+                  last_promotion_time, last_transfer_time, last_competency_date)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE display_name         = IF(user.display_name = '', VALUES(display_name), user.display_name),
+                        controller_rating    = VALUES(controller_rating),
                         instructor_rating    = VALUES(instructor_rating),
                         facility             = VALUES(facility),
                         discord_id           = VALUES(discord_id),
@@ -50,6 +51,9 @@ ON DUPLICATE KEY UPDATE controller_rating    = VALUES(controller_rating),
 -- name: InsertUserFromVatsimSync :exec
 INSERT IGNORE INTO user (cid, display_name, controller_rating, instructor_rating, facility)
 VALUES (?, ?, 0, 0, ?);
+
+-- name: UpdateUserFromVatsimSync :exec
+UPDATE user SET display_name = ? WHERE cid = ?;
 
 
 -- name: UpdateUserForTransfer :exec

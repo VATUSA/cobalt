@@ -74,7 +74,7 @@ func (q *Queries) GetLegacyControllerRatingFromPromotionsToMigrate(ctx context.C
 }
 
 const getLegacyControllersToMigrate = `-- name: GetLegacyControllersToMigrate :many
-SELECT c.cid, c.facility, c.rating, c.discord_id
+SELECT c.cid, c.facility, c.rating, c.discord_id, TRIM(CONCAT_WS(' ', c.fname, c.lname)) as display_name
 from ` + "`" + `vatusa-old` + "`" + `.controllers c
 where c.rating > 0
   AND (
@@ -83,10 +83,11 @@ where c.rating > 0
 `
 
 type GetLegacyControllersToMigrateRow struct {
-	Cid       uint32
-	Facility  string
-	Rating    int32
-	DiscordID sql.NullString
+	Cid         uint32
+	Facility    string
+	Rating      int32
+	DiscordID   sql.NullString
+	DisplayName string
 }
 
 func (q *Queries) GetLegacyControllersToMigrate(ctx context.Context) ([]GetLegacyControllersToMigrateRow, error) {
@@ -103,6 +104,7 @@ func (q *Queries) GetLegacyControllersToMigrate(ctx context.Context) ([]GetLegac
 			&i.Facility,
 			&i.Rating,
 			&i.DiscordID,
+			&i.DisplayName,
 		); err != nil {
 			return nil, err
 		}

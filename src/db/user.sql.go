@@ -288,11 +288,26 @@ func (q *Queries) UpdateUserForTransfer(ctx context.Context, arg UpdateUserForTr
 	return err
 }
 
+const updateUserFromVatsimSync = `-- name: UpdateUserFromVatsimSync :exec
+UPDATE user SET display_name = ? WHERE cid = ?
+`
+
+type UpdateUserFromVatsimSyncParams struct {
+	DisplayName string
+	Cid         int64
+}
+
+func (q *Queries) UpdateUserFromVatsimSync(ctx context.Context, arg UpdateUserFromVatsimSyncParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserFromVatsimSync, arg.DisplayName, arg.Cid)
+	return err
+}
+
 const upsertUserForMigration = `-- name: UpsertUserForMigration :exec
-INSERT INTO user (cid, controller_rating, instructor_rating, facility, discord_id, last_promotion_time,
-                  last_transfer_time, last_competency_date)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-ON DUPLICATE KEY UPDATE controller_rating    = VALUES(controller_rating),
+INSERT INTO user (cid, display_name, controller_rating, instructor_rating, facility, discord_id,
+                  last_promotion_time, last_transfer_time, last_competency_date)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE display_name         = IF(user.display_name = '', VALUES(display_name), user.display_name),
+                        controller_rating    = VALUES(controller_rating),
                         instructor_rating    = VALUES(instructor_rating),
                         facility             = VALUES(facility),
                         discord_id           = VALUES(discord_id),
@@ -303,6 +318,7 @@ ON DUPLICATE KEY UPDATE controller_rating    = VALUES(controller_rating),
 
 type UpsertUserForMigrationParams struct {
 	Cid                int64
+	DisplayName        string
 	ControllerRating   int32
 	InstructorRating   int32
 	Facility           string
@@ -315,6 +331,7 @@ type UpsertUserForMigrationParams struct {
 func (q *Queries) UpsertUserForMigration(ctx context.Context, arg UpsertUserForMigrationParams) error {
 	_, err := q.db.ExecContext(ctx, upsertUserForMigration,
 		arg.Cid,
+		arg.DisplayName,
 		arg.ControllerRating,
 		arg.InstructorRating,
 		arg.Facility,

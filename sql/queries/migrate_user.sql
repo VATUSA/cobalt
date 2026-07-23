@@ -25,7 +25,7 @@ where competency_date is not null and cid = ?
 group by cid;
 
 -- name: GetLegacyControllersToMigrate :many
-SELECT c.cid, c.facility, c.rating, c.discord_id
+SELECT c.cid, c.facility, c.rating, c.discord_id, TRIM(CONCAT_WS(' ', c.fname, c.lname)) as display_name
 from `vatusa-old`.controllers c
 where c.rating > 0
   AND (
