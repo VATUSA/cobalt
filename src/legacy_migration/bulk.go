@@ -76,6 +76,7 @@ func BulkMigrateUsers() error {
 	for _, c := range controllersToMigrate {
 		params := db.UpsertUserForMigrationParams{
 			Cid:                int64(c.Cid),
+			DisplayName:        c.DisplayName,
 			ControllerRating:   0,
 			InstructorRating:   0,
 			Facility:           c.Facility,
