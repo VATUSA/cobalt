@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"vatusa-cobalt/acl"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/background"
@@ -31,14 +32,38 @@ func validatedRedirect(c *echo.Context) string {
 	return ""
 }
 
-// stagingRelayState is the OAuth `state` value GetLoginForStaging uses to
-// mark "this login is being relayed to a staging instance" when the caller
-// didn't supply their own redirect target. Without it, Connect() only knows
-// to loop back into /login/staging when state happens to carry a redirect
-// URL — which is never true for the default (no-redirect) login flow used
-// by webapps, silently stranding those logins at prod's own PostLoginURL
-// instead of completing the relay back to staging.
-const stagingRelayState = "_staging_relay"
+// stagingRelayPrefix marks an OAuth `state` value as belonging to a
+// staging-relay login (one that GetLoginForStaging started on behalf of a
+// dev/staging instance) rather than a plain login on this instance.
+//
+// The marker has to be a prefix rather than a standalone sentinel because
+// both kinds of login can carry a caller-supplied redirect, and Connect()
+// otherwise cannot tell them apart: a prod login from the legacy site sends
+// state=https://www.vatusa.net/legacy/auth/callback, which is
+// indistinguishable from a relay carrying the same redirect. Treating every
+// non-empty state on prod as a relay sent prod logins on a detour through
+// the dev instance's /token/:cid, which 500s for any user without a row in
+// the dev database.
+//
+// A caller redirect always passes config.IsAllowedRedirect and so is always
+// an absolute https URL, which can never begin with this prefix — so the
+// two cases stay unambiguous.
+const stagingRelayPrefix = "_staging_relay|"
+
+// stagingRelayState builds the OAuth state for a relayed login. redirect may
+// be empty, which is the default (no-redirect) relay used by webapps.
+func stagingRelayState(redirect string) string {
+	return stagingRelayPrefix + redirect
+}
+
+// parseStagingRelayState reports whether state marks a relay in progress and,
+// if so, returns the caller redirect it carries (empty when none was given).
+func parseStagingRelayState(state string) (redirect string, isRelay bool) {
+	if !strings.HasPrefix(state, stagingRelayPrefix) {
+		return "", false
+	}
+	return strings.TrimPrefix(state, stagingRelayPrefix), true
+}
 
 func GetLogin(c *echo.Context) error {
 	redirect := validatedRedirect(c)
@@ -104,25 +129,26 @@ func Connect(c *echo.Context) error {
 	c.SetCookie(auth.NewSessionCookie(jwt))
 
 	// state carries a caller-supplied post-login redirect target across the
-	// VATSIM Connect round trip (see validatedRedirect / GetLogin). Because
-	// VATSIM's redirect_uri is only registered for cobalt.vatusa.net, this
-	// handler runs on prod even for dev/staging logins, proxied via
-	// GetLoginForStaging's relay. If state is stagingRelayState or a caller
-	// redirect and we're on prod, this is a relay in progress: loop back
-	// into /login/staging (now logged in) to complete the handoff to the
-	// dev/staging instance rather than stopping at prod's own PostLoginURL.
-	// If state carries a caller redirect and we're not on prod, this must
-	// be a true local-dev instance talking to VATSIM directly (no relay to
-	// continue), so redirect straight there.
+	// VATSIM Connect round trip (see validatedRedirect / GetLogin), and may
+	// additionally be tagged as a staging relay (see stagingRelayPrefix).
+	// Because VATSIM's redirect_uri is only registered for cobalt.vatusa.net,
+	// this handler runs on prod both for prod's own logins and for dev/staging
+	// logins proxied via GetLoginForStaging's relay.
+	//
+	// Only a relay-tagged state means a handoff is in progress: loop back into
+	// /login/staging (now logged in) to finish it. An untagged state is an
+	// ordinary login on this instance that asked for its own redirect target,
+	// so honor it directly — sending those into /login/staging would relay a
+	// prod login through the dev instance.
 	if state := c.QueryParam("state"); state != "" {
-		if config.IsProduction() {
+		if relayRedirect, isRelay := parseStagingRelayState(state); isRelay && config.IsProduction() {
 			target := "/login/staging"
-			if state != stagingRelayState && config.IsAllowedRedirect(state) {
-				target += "?redirect=" + url.QueryEscape(state)
+			if relayRedirect != "" && config.IsAllowedRedirect(relayRedirect) {
+				target += "?redirect=" + url.QueryEscape(relayRedirect)
 			}
 			return c.Redirect(http.StatusFound, target)
 		}
-		if state != stagingRelayState && config.IsAllowedRedirect(state) {
+		if config.IsAllowedRedirect(state) {
 			return c.Redirect(http.StatusFound, state)
 		}
 	}
@@ -236,17 +262,21 @@ func WhoAmI(c *echo.Context) error {
 	return c.String(http.StatusOK, fmt.Sprintf("%d", cid))
 }
 
+// stagingTokenError logs why the prod->staging /token/:cid relay failed and
+// returns the generic 500 shown to the browser. The cause is logged rather
+// than returned because it can carry internal service detail.
+func stagingTokenError(cid int, cause error) error {
+	log.Printf("staging relay: failed to mint token for cid %d via %s: %v", cid, config.StagingInternalURL(), cause)
+	return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
+}
+
 func GetLoginForStaging(c *echo.Context) error {
 	if !config.IsProduction() {
 		return echo.NewHTTPError(http.StatusNotFound, "Not found")
 	}
 	redirect := validatedRedirect(c)
 	if !auth.IsLoggedIn(c) {
-		state := redirect
-		if state == "" {
-			state = stagingRelayState
-		}
-		return c.Redirect(http.StatusFound, vatsim.ConnectFullURL(state))
+		return c.Redirect(http.StatusFound, vatsim.ConnectFullURL(stagingRelayState(redirect)))
 	}
 	cid := auth.GetUserCid(c)
 
@@ -254,27 +284,36 @@ func GetLoginForStaging(c *echo.Context) error {
 	tokenURL := fmt.Sprintf("%s/token/%d", config.StagingInternalURL(), cid)
 	req, err := http.NewRequest("GET", tokenURL, nil)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
+		return stagingTokenError(cid, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(auth.ActorTokenHeader, config.StagingActorToken())
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
+		return stagingTokenError(cid, err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
+		return stagingTokenError(cid, err)
 	}
 
-	data := make(map[string]string)
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
+	// The staging instance answers with {"token": "..."} on success and a
+	// models.GenericResponse on failure, whose `errors` is an array — so this
+	// deliberately does not decode into map[string]string, which fails to
+	// unmarshal the error shape at all and hides why the relay broke.
+	var data struct {
+		Token  string   `json:"token"`
+		Errors []string `json:"errors"`
 	}
-	redirectUrl := fmt.Sprintf("%s/login/useToken/%s", config.StagingPublicURL(), data["token"])
+	if err := json.Unmarshal(body, &data); err != nil {
+		return stagingTokenError(cid, fmt.Errorf("status %d, unparseable body %q", resp.StatusCode, string(body)))
+	}
+	if resp.StatusCode != http.StatusOK || data.Token == "" {
+		return stagingTokenError(cid, fmt.Errorf("status %d: %s", resp.StatusCode, strings.Join(data.Errors, "; ")))
+	}
+	redirectUrl := fmt.Sprintf("%s/login/useToken/%s", config.StagingPublicURL(), data.Token)
 	if redirect != "" {
 		redirectUrl += "?redirect=" + url.QueryEscape(redirect)
 	}
