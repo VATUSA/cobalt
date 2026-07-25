@@ -63,8 +63,8 @@ func UpdatePost(c *echo.Context) error {
 	if !AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
 		return nil
 	}
-	if int(post.AuthorCid) != auth.GetUserCid(c) && AssertGlobal(c, acl.ObjectNewsPost, acl.ActionManageUnowned) {
-		return err
+	if int(post.AuthorCid) != auth.GetUserCid(c) && !AssertGlobal(c, acl.ObjectNewsPost, acl.ActionManageUnowned) {
+		return nil
 	}
 
 	err = dbconn.Queries().UpdatePost(ctx, db.UpdatePostParams{
