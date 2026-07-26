@@ -5,6 +5,7 @@ sql:
     schema:
     - "sql/migrations"
     - "sql/legacy_schema"
+    - "sql/external_schema"
     gen:
       go:
         package: "db"

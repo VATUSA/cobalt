@@ -20,6 +20,7 @@ const (
 	ObjectEventApproval        Object = "event_approval"
 	ObjectUserSensitiveDetails Object = "user_sensitive_details"
 	ObjectRoster               Object = "roster"
+	ObjectFacilityTechConfig   Object = "facility_tech_config"
 
 	// Role Objects
 	ObjectSystemRole              Object = "system_api_role"

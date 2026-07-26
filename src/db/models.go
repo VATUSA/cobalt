@@ -390,6 +390,17 @@ type UserVisit struct {
 	Facility string
 }
 
+type V3ApiKey struct {
+	ID        int64
+	Code      string
+	Testing   bool
+	Facility  sql.NullString
+	Notes     sql.NullString
+	CreatedAt int64
+	UpdatedAt sql.NullInt64
+	DeletedAt sql.NullInt64
+}
+
 type VatsimUser struct {
 	Cid                int64
 	NameFirst          string
