@@ -62,4 +62,7 @@ func SetupRoutes(e *echo.Echo) {
 	roster.GET("/transfer", endpoints.GetFacilityPendingTransfers)
 	roster.POST("/transfer", endpoints.ActionFacilityPendingTransfer)
 
+	facility := e.Group("/facility/:facility")
+	facility.GET("/v3/apikeys", endpoints.GetFacilityApiKeys)
+
 }
