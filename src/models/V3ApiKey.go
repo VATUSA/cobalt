@@ -7,7 +7,6 @@ type V3ApiKey struct {
 	Code      string  `json:"code"`
 	Testing   bool    `json:"testing"`
 	Facility  *string `json:"facility"`
-	Notes     *string `json:"notes"`
 	CreatedAt int64   `json:"created_at"`
 	UpdatedAt *int64  `json:"updated_at"`
 }
@@ -23,9 +22,6 @@ func V3ApiKeysFromDatabase(rows []db.V3ApiKey) []V3ApiKey {
 		}
 		if row.Facility.Valid {
 			key.Facility = &row.Facility.String
-		}
-		if row.Notes.Valid {
-			key.Notes = &row.Notes.String
 		}
 		if row.UpdatedAt.Valid {
 			key.UpdatedAt = &row.UpdatedAt.Int64
