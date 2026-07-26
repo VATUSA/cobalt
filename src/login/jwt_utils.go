@@ -16,5 +16,5 @@ func CreateTokenForUser(user db.GetCombinedUserRow) (string, error) {
 		facilityPermissions = permissionHandler.GetFacilityPermissionsString()
 		isStaff = permissionHandler.IsStaff()
 	}
-	return auth.CreateToken(int(user.Cid), user.DisplayName, globalPermissions, facilityPermissions, isStaff)
+	return auth.CreateToken(int(user.Cid), user.DisplayName, globalPermissions, facilityPermissions, isStaff, user.Facility)
 }
