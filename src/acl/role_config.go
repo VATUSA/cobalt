@@ -1,5 +1,7 @@
 package acl
 
+import "slices"
+
 type Role string
 
 type ScopedRole struct {
@@ -16,7 +18,20 @@ const (
 	// Automatic Roles, based on state
 	RoleAuthenticatedUser Role = "authenticated_user"
 	RoleDivisionMember    Role = "division_member"
+)
 
+// AutomaticRoles are granted to every logged-in user based on state, not an
+// explicit staff role assignment. Anything outside this set counts as staff.
+var AutomaticRoles = []Role{
+	RoleAuthenticatedUser,
+	RoleDivisionMember,
+}
+
+func IsStaffRole(role Role) bool {
+	return !slices.Contains(AutomaticRoles, role)
+}
+
+const (
 	// Division Staff Roles
 	RoleDivisionStaff      Role = "division_staff"
 	RoleDivisionManagement Role = "division_management"

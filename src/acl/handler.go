@@ -37,6 +37,7 @@ func extractFacilityPermissionKey(key permissionKey) (string, Object, Action) {
 type PermissionHandler struct {
 	globalPermissions   map[permissionKey]bool
 	facilityPermissions map[permissionKey]bool
+	isStaff             bool
 	loadTime            time.Time
 }
 
@@ -47,6 +48,9 @@ func NewPermissionHandler(roles []ScopedRole) *PermissionHandler {
 		loadTime:            time.Now(),
 	}
 	for _, role := range roles {
+		if IsStaffRole(role.Role) {
+			ph.isStaff = true
+		}
 		globalPermissions := globalPermissionsForRole(role.Role)
 		for _, f := range globalPermissions {
 			ph.addGlobalPermission(f.Object, f.Action)
@@ -65,6 +69,10 @@ func NewPermissionHandler(roles []ScopedRole) *PermissionHandler {
 
 func (ph *PermissionHandler) IsStale() bool {
 	return ph.loadTime.Before(time.Now().Add(-time.Minute))
+}
+
+func (ph *PermissionHandler) IsStaff() bool {
+	return ph.isStaff
 }
 
 func (ph *PermissionHandler) addGlobalPermission(object Object, action Action) {

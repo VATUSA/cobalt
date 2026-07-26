@@ -8,7 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func CreateToken(cid int, displayName string, globalPermissions string, facilityPermissions string) (string, error) {
+func CreateToken(cid int, displayName string, globalPermissions string, facilityPermissions string, isStaff bool) (string, error) {
 	key := config.JWTKey()
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iss":                  "cobalt",
@@ -16,6 +16,7 @@ func CreateToken(cid int, displayName string, globalPermissions string, facility
 		"display_name":         displayName,
 		"global_permissions":   globalPermissions,
 		"facility_permissions": facilityPermissions,
+		"is_staff":             isStaff,
 		"exp":                  jwt.NewNumericDate(time.Now().Add(SessionDuration)),
 	})
 	s, err := t.SignedString(key)
