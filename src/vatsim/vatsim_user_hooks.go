@@ -72,6 +72,8 @@ func onVatsimUserUpdate(vatsimUser db.VatsimUser, user db.GetUserByCIDRow) error
 		return err
 	}
 
+	syncMoodleCohort(vatsimUser)
+
 	return nil
 }
 
