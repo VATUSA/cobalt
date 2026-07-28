@@ -18,7 +18,7 @@ const (
 func RatingShort(rating int) string {
 	switch rating {
 	case RatingInactive:
-		return "INAC"
+		return "INA"
 	case RatingSuspended:
 		return "SUS"
 	case RatingObserver:
