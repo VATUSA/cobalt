@@ -198,9 +198,9 @@ func GetUpcomingEvents(c *echo.Context) error {
 	}
 	ctx := c.Request().Context()
 	events, err := dbconn.Queries().GetUpcomingEventsApproved(ctx, db.GetUpcomingEventsApprovedParams{
-		StartTime: time.Now().Unix(),
-		Limit:     int32(countInt),
-		Offset:    0,
+		EndTime: time.Now().Unix(),
+		Limit:   int32(countInt),
+		Offset:  0,
 	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
@@ -241,9 +241,9 @@ func GetEventsPage(c *echo.Context) error {
 		})
 	default:
 		events, err = dbconn.Queries().GetUpcomingEventsApproved(ctx, db.GetUpcomingEventsApprovedParams{
-			StartTime: time.Now().Unix(),
-			Limit:     int32(recordsPerPage),
-			Offset:    int32(offset),
+			EndTime: time.Now().Unix(),
+			Limit:   int32(recordsPerPage),
+			Offset:  int32(offset),
 		})
 	}
 	if err != nil {

@@ -167,20 +167,22 @@ func (q *Queries) GetUpcomingEventsAll(ctx context.Context, arg GetUpcomingEvent
 const getUpcomingEventsApproved = `-- name: GetUpcomingEventsApproved :many
 SELECT id, title, body, banner_image_url, facility, start_time, end_time, created_at, created_by, updated_at, updated_by, review_status, reviewed_by, reviewed_on
 FROM event
-WHERE start_time > ?
+WHERE end_time > ?
   AND review_status = 'approved'
 ORDER BY start_time ASC
 LIMIT ?, ?
 `
 
 type GetUpcomingEventsApprovedParams struct {
-	StartTime int64
-	Offset    int32
-	Limit     int32
+	EndTime int64
+	Offset  int32
+	Limit   int32
 }
 
+// Events remain "upcoming" until they finish (end_time), so in-progress events
+// stay visible instead of dropping off the moment they start.
 func (q *Queries) GetUpcomingEventsApproved(ctx context.Context, arg GetUpcomingEventsApprovedParams) ([]Event, error) {
-	rows, err := q.db.QueryContext(ctx, getUpcomingEventsApproved, arg.StartTime, arg.Offset, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, getUpcomingEventsApproved, arg.EndTime, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
