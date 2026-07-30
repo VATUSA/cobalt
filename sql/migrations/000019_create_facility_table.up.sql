@@ -5,6 +5,7 @@ CREATE TABLE facility (
 );
 
 INSERT INTO facility (id, name, url) VALUES
+    ('ZHQ', 'VATUSA Headquarters', 'https://www.vatusa.net'),
     ('ZAB', 'Albuquerque ARTCC', 'https://www.zabartcc.org/'),
     ('ZAN', 'Anchorage ARTCC', 'https://www.zanartcc.org/'),
     ('ZTL', 'Atlanta ARTCC', 'https://www.ztlartcc.org/'),
@@ -13,7 +14,7 @@ INSERT INTO facility (id, name, url) VALUES
     ('ZOB', 'Cleveland ARTCC', 'https://clevelandcenter.org/'),
     ('ZDV', 'Denver ARTCC', 'https://zdvartcc.org/'),
     ('ZFW', 'Fort Worth ARTCC', 'https://www.zfwartcc.net/'),
-    ('HCF', 'Honolulu', 'https://vhcf.net/'),
+    ('HCF', 'Honolulu CF', 'https://vhcf.net/'),
     ('ZHU', 'Houston ARTCC', 'https://houston.center/'),
     ('ZID', 'Indianapolis ARTCC', 'https://flyindycenter.com/'),
     ('ZJX', 'Jacksonville ARTCC', 'https://zjxartcc.org/'),
