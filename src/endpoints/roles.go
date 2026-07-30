@@ -61,15 +61,20 @@ func validateRoleFacility(role acl.Role, facility string) (acl.Object, error) {
 }
 
 func GrantRole(c *echo.Context) error {
+	var req models.GrantRoleRequest
+	if err := c.Bind(&req); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
+
 	cidStr := c.Param("cid")
 	facility := c.Param("facility")
-	roleStr := c.Param("role")
 
 	cidInt, err := strconv.Atoi(cidStr)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid cid"))
 	}
 
+	roleStr := req.Role
 	role := acl.Role(roleStr)
 	if role == "" {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid role"))
