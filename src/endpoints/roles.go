@@ -80,6 +80,13 @@ func GrantRole(c *echo.Context) error {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
 
+	if facility != "ZHQ" {
+		_, err := dbconn.Queries().GetFacility(context.Background(), facility)
+		if err != nil {
+			return GenericError(c, http.StatusBadRequest, errors.New("unknown facility"))
+		}
+	}
+
 	if !auth.IsLoggedIn(c) {
 		return ErrorNoPermission(c)
 	}
@@ -145,6 +152,13 @@ func RevokeRole(c *echo.Context) error {
 	object, err := validateRoleFacility(role, facility)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
+	}
+
+	if facility != "ZHQ" {
+		_, err := dbconn.Queries().GetFacility(context.Background(), facility)
+		if err != nil {
+			return GenericError(c, http.StatusBadRequest, errors.New("unknown facility"))
+		}
 	}
 
 	if !auth.IsLoggedIn(c) {

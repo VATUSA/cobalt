@@ -345,6 +345,12 @@ type Event struct {
 	ReviewedOn     sql.NullInt64
 }
 
+type Facility struct {
+	ID   string
+	Name string
+	Url  string
+}
+
 type NewsPost struct {
 	ID        int32
 	Title     string
