@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -29,7 +30,12 @@ func GetUser(c *echo.Context) error {
 		return GenericError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 
-	output := models.UserFromDatabase(*user, canSeeSensitiveFields)
+	dbRoles, err := dbconn.Queries().GetRolesForUser(context.Background(), int32(cidInt))
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+
+	output := models.UserFromDatabase(*user, canSeeSensitiveFields, models.UserRolesFromDatabase(dbRoles))
 
 	return c.JSON(http.StatusOK, output)
 }

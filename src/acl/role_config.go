@@ -104,6 +104,7 @@ var (
 		RoleDivisionMember,
 		RoleDivisionStaff,
 		RoleDivisionManagement,
+		RoleDivisionTechTeam,
 		RoleSystemInternal,
 		RoleSystemExternal,
 		RoleDivisionCommandCenter,

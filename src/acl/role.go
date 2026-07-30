@@ -17,7 +17,13 @@ func GetUserScopedRoles(cid int) ([]ScopedRole, error) {
 			Role:     RoleAuthenticatedUser,
 		},
 	}
-	// TODO: Determine if the user is a member of the division and assign RoleDivisionMember role
+	user, err := dbconn.GetCombinedUserByCID(cid)
+	if err == nil && user != nil && user.DivisionID == "USA" {
+		output = append(output, ScopedRole{
+			Facility: ScopedRoleGlobalFacility,
+			Role:     RoleDivisionMember,
+		})
+	}
 	for _, role := range roles {
 		output = append(output, ScopedRole{
 			Role:     Role(role.Role),

@@ -11,3 +11,11 @@ const (
 	RegionAmericas = "AMAS"
 	DivisionVATUSA = "USA"
 )
+
+func IsSpecialFacility(facility string) bool {
+	switch facility {
+	case FacilityAcademy, FacilityNonMember, FacilityInactive, FacilityNotExists:
+		return true
+	}
+	return false
+}

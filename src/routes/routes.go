@@ -45,6 +45,8 @@ func SetupRoutes(e *echo.Echo) {
 	user.GET("/search", endpoints.SearchUsers)
 	user.GET("/:cid", endpoints.GetUser)
 	user.GET("/:cid/blockers", endpoints.GetUserBlockers)
+	user.POST("/:cid/role/:facility/:role", endpoints.GrantRole)
+	user.DELETE("/:cid/role/:facility/:role", endpoints.RevokeRole)
 
 	login := e.Group("/login")
 	login.GET("", endpoints.GetLogin)
