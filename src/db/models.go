@@ -293,6 +293,16 @@ type AclUserRole struct {
 	GrantedAt  int64
 }
 
+type ActionLog struct {
+	ID        int64
+	ActorCid  int32
+	TargetCid int32
+	Action    string
+	Log       string
+	CreatedAt int64
+	UpdatedAt int64
+}
+
 type Actor struct {
 	ID                int32
 	Name              string

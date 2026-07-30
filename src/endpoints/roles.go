@@ -3,11 +3,13 @@ package endpoints
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
 	"time"
 	"vatusa-cobalt/acl"
+	"vatusa-cobalt/action"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/config"
 	"vatusa-cobalt/db"
@@ -120,6 +122,8 @@ func GrantRole(c *echo.Context) error {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
 
+	action.Log(*user, action.RoleGranted, fmt.Sprintf("Granted role %s at %s", roleStr, facility), int64(auth.GetUserCid(c)))
+
 	return GenericSuccess(c, cidInt)
 }
 
@@ -187,6 +191,8 @@ func RevokeRole(c *echo.Context) error {
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
+
+	action.Log(*user, action.RoleRevoked, fmt.Sprintf("Revoked role %s at %s", roleStr, facility), int64(auth.GetUserCid(c)))
 
 	return GenericSuccess(c, cidInt)
 }
