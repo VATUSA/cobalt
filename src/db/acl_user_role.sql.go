@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const addRoleToUser = `-- name: AddRoleToUser :exec
@@ -56,6 +57,52 @@ func (q *Queries) GetRolesForUser(ctx context.Context, cid int32) ([]AclUserRole
 			&i.GrantorCid,
 			&i.GrantedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsersByRole = `-- name: GetUsersByRole :many
+SELECT DISTINCT u.cid
+     , u.display_name
+     , u.controller_rating
+     , u.instructor_rating
+FROM acl_user_role aur
+JOIN user u ON aur.cid = u.cid
+WHERE aur.role = ?
+  AND (? IS NULL OR aur.facility = ?)
+`
+
+type GetUsersByRoleParams struct {
+	Role     string
+	Facility sql.NullString
+}
+
+type GetUsersByRoleRow struct {
+	Cid              int64
+	DisplayName      string
+	ControllerRating int32
+	InstructorRating int32
+}
+
+func (q *Queries) GetUsersByRole(ctx context.Context, arg GetUsersByRoleParams) ([]GetUsersByRoleRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUsersByRole, arg.Role, arg.Facility, arg.Facility)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUsersByRoleRow
+	for rows.Next() {
+		var i GetUsersByRoleRow
+		if err := rows.Scan(&i.Cid, &i.DisplayName, &i.ControllerRating, &i.InstructorRating); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
