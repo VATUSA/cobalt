@@ -23,7 +23,7 @@ Three binaries are built from `src/cmd/`: `server` (HTTP API), `background` (asy
 cp .env.example .env   # fill in DB credentials, JWT_KEY, etc.
 cd src
 go build ./...
-go run ./cmd/server.go
+go run ./cmd/server/
 ```
 
 Run tests with `go test ./...` from `src/`.
