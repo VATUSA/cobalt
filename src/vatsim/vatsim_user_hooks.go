@@ -40,6 +40,8 @@ func VatsimUserUpdated(cid int64) error {
 		if err != nil {
 			return err
 		}
+		// LEGACY-CONTROLLERS-PATCH: see legacy_controllers_patch.go
+		provisionLegacyController(cid, vatsimUser, params.Facility)
 	} else if err != nil {
 		return err
 	} else if user.DisplayName != displayName {
