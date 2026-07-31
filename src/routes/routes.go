@@ -40,9 +40,10 @@ func SetupRoutes(e *echo.Echo) {
 	event.POST("/:id/review", endpoints.ReviewEvent)
 	event.DELETE("/:id", endpoints.DeleteEvent)
 
-	user := e.Group("/user/:cid")
-	user.GET("", endpoints.GetUser)
-	user.GET("/blockers", endpoints.GetUserBlockers)
+	user := e.Group("/user")
+	user.GET("/search", endpoints.SearchUsers)
+	user.GET("/:cid", endpoints.GetUser)
+	user.GET("/:cid/blockers", endpoints.GetUserBlockers)
 
 	login := e.Group("/login")
 	login.GET("", endpoints.GetLogin)

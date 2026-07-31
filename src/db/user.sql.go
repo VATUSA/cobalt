@@ -251,6 +251,67 @@ func (q *Queries) InsertUserFromVatsimSync(ctx context.Context, arg InsertUserFr
 	return err
 }
 
+const searchUserCids = `-- name: SearchUserCids :many
+SELECT vu.cid
+FROM vatsim_user vu
+         join user u on vu.cid = u.cid
+where (? is null or CAST(vu.cid AS CHAR) LIKE CONCAT(?, '%'))
+AND (? is null
+    or vu.name_first LIKE ?
+    or vu.name_last LIKE ?)
+AND (? is null or vu.name_first LIKE ?)
+AND (? is null or vu.name_last LIKE ?)
+ORDER BY vu.name_last, vu.name_first, vu.cid
+LIMIT ?
+`
+
+type SearchUserCidsParams struct {
+	CidPrefix interface{}
+	NameAny   sql.NullString
+	NameFirst sql.NullString
+	NameLast  sql.NullString
+	Limit     int32
+}
+
+// Returns only cids so the matching rows can be hydrated through GetCombinedUser,
+// which keeps one definition of the combined user row. The ORDER BY lives here,
+// next to the LIMIT, so which rows survive the limit is deterministic.
+// Callers pass already-escaped LIKE patterns (see dbconn.SearchUsers). cid is cast
+// to CHAR so a partial cid matches as a string prefix rather than numerically.
+func (q *Queries) SearchUserCids(ctx context.Context, arg SearchUserCidsParams) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, searchUserCids,
+		arg.CidPrefix,
+		arg.CidPrefix,
+		arg.NameAny,
+		arg.NameAny,
+		arg.NameAny,
+		arg.NameFirst,
+		arg.NameFirst,
+		arg.NameLast,
+		arg.NameLast,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var cid int64
+		if err := rows.Scan(&cid); err != nil {
+			return nil, err
+		}
+		items = append(items, cid)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const storeUserRatingHours = `-- name: StoreUserRatingHours :exec
 INSERT INTO user_rating_hours (cid, rating, hours, last_check_time) VALUES (?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE hours = VALUES(hours), last_check_time = VALUES(last_check_time)

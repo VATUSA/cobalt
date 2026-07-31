@@ -35,6 +35,24 @@ AND (sqlc.narg(has_cids_slice) IS NULL OR vu.cid IN (sqlc.slice(cids)))
 AND (sqlc.narg(home_facility) is null or u.facility = sqlc.narg(home_facility))
 AND (sqlc.narg(visit_facility) is null or u.cid IN (select cid from user_visit uv where uv.facility = sqlc.narg(visit_facility)));
 
+-- name: SearchUserCids :many
+-- Returns only cids so the matching rows can be hydrated through GetCombinedUser,
+-- which keeps one definition of the combined user row. The ORDER BY lives here,
+-- next to the LIMIT, so which rows survive the limit is deterministic.
+-- Callers pass already-escaped LIKE patterns (see dbconn.SearchUsers). cid is cast
+-- to CHAR so a partial cid matches as a string prefix rather than numerically.
+SELECT vu.cid
+FROM vatsim_user vu
+         join user u on vu.cid = u.cid
+where (sqlc.narg(cid_prefix) is null or CAST(vu.cid AS CHAR) LIKE CONCAT(sqlc.narg(cid_prefix), '%'))
+AND (sqlc.narg(name_any) is null
+    or vu.name_first LIKE sqlc.narg(name_any)
+    or vu.name_last LIKE sqlc.narg(name_any))
+AND (sqlc.narg(name_first) is null or vu.name_first LIKE sqlc.narg(name_first))
+AND (sqlc.narg(name_last) is null or vu.name_last LIKE sqlc.narg(name_last))
+ORDER BY vu.name_last, vu.name_first, vu.cid
+LIMIT ?;
+
 -- name: UpsertUserForMigration :exec
 INSERT INTO user (cid, display_name, controller_rating, instructor_rating, facility, discord_id,
                   last_promotion_time, last_transfer_time, last_competency_date)
