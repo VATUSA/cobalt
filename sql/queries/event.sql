@@ -10,9 +10,11 @@ WHERE id = ?
   AND review_status = 'approved';
 
 -- name: GetUpcomingEventsApproved :many
+-- Events remain "upcoming" until they finish (end_time), so in-progress events
+-- stay visible instead of dropping off the moment they start.
 SELECT *
 FROM event
-WHERE start_time > ?
+WHERE end_time > ?
   AND review_status = 'approved'
 ORDER BY start_time ASC
 LIMIT ?, ?;
