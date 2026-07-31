@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"strings"
 	"time"
 	"vatusa-cobalt/config"
 	"vatusa-cobalt/db"
@@ -42,11 +43,18 @@ func SyncByCID(cid int) error {
 	return ProcessMemberData(*member)
 }
 
+func ParseTime(value string) (time.Time, error) {
+	if !strings.HasSuffix(value, "Z") {
+		value = value + "Z"
+	}
+	return time.Parse(config.ConnectTimestampFormat, value)
+}
+
 func ProcessMemberData(member MemberData) error {
 	queries := dbconn.Queries()
 	ctx := context.Background()
 
-	regTime, err := time.Parse(config.ConnectTimestampFormat, member.RegistrationDate)
+	regTime, err := ParseTime(member.RegistrationDate)
 	if err != nil {
 		return err
 	}
@@ -80,7 +88,7 @@ func ProcessMemberData(member MemberData) error {
 		}
 	}
 	if member.SuspensionDate != nil {
-		parse, err := time.Parse(config.ConnectTimestampFormat, *member.SuspensionDate)
+		parse, err := ParseTime(*member.SuspensionDate)
 		if err != nil {
 			return err
 		}
@@ -91,7 +99,7 @@ func ProcessMemberData(member MemberData) error {
 	}
 
 	if member.LastRatingChange != nil {
-		parse, err := time.Parse(config.ConnectTimestampFormat, *member.LastRatingChange)
+		parse, err := ParseTime(*member.LastRatingChange)
 		if err != nil {
 			return err
 		}
