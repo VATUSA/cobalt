@@ -28,6 +28,7 @@ func SetupRoutes(e *echo.Echo) {
 	news.DELETE("/post/:id", endpoints.DeletePost)
 
 	roles := e.Group("/roles")
+	roles.GET("/ace-team", endpoints.GetACETeam)
 	roles.POST("/legacy_sync", endpoints.LegacySyncRoles)
 	roles.POST("/legacy_sync/bulk", endpoints.LegacySyncRolesBulk)
 

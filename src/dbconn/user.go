@@ -167,6 +167,18 @@ func StoreUserRatingHours(cid int, rating int, hours int) error {
 	return err
 }
 
+func GetUsersByRole(role string, facility *string) ([]db.GetUsersByRoleRow, error) {
+	ctx := context.Background()
+	var fac sql.NullString
+	if facility != nil {
+		fac = sql.NullString{String: *facility, Valid: true}
+	}
+	return Queries().GetUsersByRole(ctx, db.GetUsersByRoleParams{
+		Role:     role,
+		Facility: fac,
+	})
+}
+
 func GetUsersToCheckRatingHours() ([]db.GetCombinedUserRow, error) {
 	ctx := context.Background()
 	cids, err := Queries().GetUserRatingHourCheckCids(ctx, 50)
