@@ -35,7 +35,7 @@ type DivisionUser struct {
 }
 
 func UsersFromDatabase(users []db.GetCombinedUserRow, canSeeSensitiveFields bool) []User {
-	var out []User
+	out := make([]User, 0, len(users))
 	for _, user := range users {
 		out = append(out, UserFromDatabase(user, canSeeSensitiveFields))
 	}
