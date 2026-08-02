@@ -7,8 +7,8 @@ type FacilityTitleRequest struct {
 	Code  string `json:"code"`
 }
 
-type AssignTitlesRequest struct {
-	TitleIds []int64 `json:"title_ids"`
+type AssignFacilityTitleRequest struct {
+	TitleId int64 `json:"title_id"`
 }
 
 type FacilityTitle struct {

@@ -122,41 +122,38 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid cid"))
 	}
-	var request models.AssignTitlesRequest
+	var request models.AssignFacilityTitleRequest
 	err = c.Bind(&request)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
+	titleId := request.TitleId
 
-	for _, titleId := range request.TitleIds {
-		title, err := dbconn.Queries().GetFacilityTitleById(ctx, titleId)
-		if err != nil {
-			return GenericError(c, http.StatusBadRequest, errors.New("invalid title id"))
-		}
-		if title.Facility != facility {
-			return GenericError(c, http.StatusBadRequest, errors.New("title does not belong to facility"))
-		}
-		permissionObject, ok := acl.TitleCodeToPermissionObjectMap[title.Code]
-		if !ok {
-			return GenericError(c, http.StatusBadRequest, errors.New("title code cannot be assigned"))
-		}
-		if !AssertFacility(c, facility, permissionObject, acl.ActionWrite) {
-			return nil
-		}
+	title, err := dbconn.Queries().GetFacilityTitleById(ctx, titleId)
+	if err != nil {
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid title id"))
+	}
+	if title.Facility != facility {
+		return GenericError(c, http.StatusBadRequest, errors.New("title does not belong to facility"))
+	}
+	permissionObject, ok := acl.TitleCodeToPermissionObjectMap[title.Code]
+	if !ok {
+		return GenericError(c, http.StatusBadRequest, errors.New("title code cannot be assigned"))
+	}
+	if !AssertFacility(c, facility, permissionObject, acl.ActionWrite) {
+		return nil
 	}
 
 	grantorCid := int32(auth.GetUserCid(c))
 	grantedAt := time.Now().Unix()
-	for _, titleId := range request.TitleIds {
-		err := dbconn.Queries().AssignUserTitle(ctx, db.AssignUserTitleParams{
-			Cid:        int32(cid),
-			TitleID:    titleId,
-			GrantorCid: grantorCid,
-			GrantedAt:  grantedAt,
-		})
-		if err != nil {
-			return GenericError(c, http.StatusInternalServerError, err)
-		}
+	err = dbconn.Queries().AssignUserTitle(ctx, db.AssignUserTitleParams{
+		Cid:        int32(cid),
+		TitleID:    titleId,
+		GrantorCid: grantorCid,
+		GrantedAt:  grantedAt,
+	})
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
 	}
 
 	return GenericSuccess(c, int(cid))
