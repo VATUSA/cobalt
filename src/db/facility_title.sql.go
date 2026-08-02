@@ -46,18 +46,24 @@ func (q *Queries) CountUserTitlesByTitleId(ctx context.Context, titleID int64) (
 }
 
 const createFacilityTitle = `-- name: CreateFacilityTitle :execresult
-INSERT INTO facility_title (facility, title, created_at)
-VALUES (?, ?, ?)
+INSERT INTO facility_title (facility, title, code, created_at)
+VALUES (?, ?, ?, ?)
 `
 
 type CreateFacilityTitleParams struct {
 	Facility  string
 	Title     string
+	Code      string
 	CreatedAt int64
 }
 
 func (q *Queries) CreateFacilityTitle(ctx context.Context, arg CreateFacilityTitleParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, createFacilityTitle, arg.Facility, arg.Title, arg.CreatedAt)
+	return q.db.ExecContext(ctx, createFacilityTitle,
+		arg.Facility,
+		arg.Title,
+		arg.Code,
+		arg.CreatedAt,
+	)
 }
 
 const deleteFacilityTitleById = `-- name: DeleteFacilityTitleById :exec
@@ -86,7 +92,7 @@ func (q *Queries) DeleteUserTitle(ctx context.Context, arg DeleteUserTitleParams
 }
 
 const getFacilityTitleById = `-- name: GetFacilityTitleById :one
-SELECT id, facility, title, created_at FROM facility_title
+SELECT id, facility, title, code, created_at FROM facility_title
 WHERE id = ?
 `
 
@@ -97,13 +103,14 @@ func (q *Queries) GetFacilityTitleById(ctx context.Context, id int64) (FacilityT
 		&i.ID,
 		&i.Facility,
 		&i.Title,
+		&i.Code,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getFacilityTitles = `-- name: GetFacilityTitles :many
-SELECT id, facility, title, created_at FROM facility_title
+SELECT id, facility, title, code, created_at FROM facility_title
 WHERE facility = ?
 ORDER BY id ASC
 `
@@ -121,6 +128,7 @@ func (q *Queries) GetFacilityTitles(ctx context.Context, facility string) ([]Fac
 			&i.ID,
 			&i.Facility,
 			&i.Title,
+			&i.Code,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -137,7 +145,7 @@ func (q *Queries) GetFacilityTitles(ctx context.Context, facility string) ([]Fac
 }
 
 const getUserTitlesByFacility = `-- name: GetUserTitlesByFacility :many
-SELECT ft.id, ft.facility, ft.title, ut.grantor_cid, ut.granted_at
+SELECT ft.id, ft.facility, ft.title, ft.code, ut.grantor_cid, ut.granted_at
 FROM facility_title ft
 JOIN user_title ut ON ut.title_id = ft.id
 WHERE ut.cid = ? AND ft.facility = ?
@@ -153,6 +161,7 @@ type GetUserTitlesByFacilityRow struct {
 	ID         int64
 	Facility   string
 	Title      string
+	Code       string
 	GrantorCid int32
 	GrantedAt  int64
 }
@@ -170,6 +179,7 @@ func (q *Queries) GetUserTitlesByFacility(ctx context.Context, arg GetUserTitles
 			&i.ID,
 			&i.Facility,
 			&i.Title,
+			&i.Code,
 			&i.GrantorCid,
 			&i.GrantedAt,
 		); err != nil {

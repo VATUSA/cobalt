@@ -8,8 +8,8 @@ SELECT * FROM facility_title
 WHERE id = ?;
 
 -- name: CreateFacilityTitle :execresult
-INSERT INTO facility_title (facility, title, created_at)
-VALUES (?, ?, ?);
+INSERT INTO facility_title (facility, title, code, created_at)
+VALUES (?, ?, ?, ?);
 
 -- name: DeleteFacilityTitleById :exec
 DELETE FROM facility_title
@@ -21,7 +21,7 @@ FROM user_title
 WHERE title_id = ?;
 
 -- name: GetUserTitlesByFacility :many
-SELECT ft.id, ft.facility, ft.title, ut.grantor_cid, ut.granted_at
+SELECT ft.id, ft.facility, ft.title, ft.code, ut.grantor_cid, ut.granted_at
 FROM facility_title ft
 JOIN user_title ut ON ut.title_id = ft.id
 WHERE ut.cid = ? AND ft.facility = ?

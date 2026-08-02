@@ -28,9 +28,23 @@ func GetFacilityTitles(c *echo.Context) error {
 	return c.JSON(http.StatusOK, models.FacilityTitlesFromDatabase(titles))
 }
 
+func validateTitleFacility(c *echo.Context, facility string) bool {
+	if facility == "ZHQ" {
+		return true
+	}
+	if _, err := dbconn.Queries().GetFacility(c.Request().Context(), facility); err != nil {
+		_ = GenericError(c, http.StatusBadRequest, errors.New("unknown facility"))
+		return false
+	}
+	return true
+}
+
 func CreateFacilityTitle(c *echo.Context) error {
 	facility := c.Param("facility")
 	if !AssertFacility(c, facility, acl.ObjectFacilityTitle, acl.ActionWrite) {
+		return nil
+	}
+	if !validateTitleFacility(c, facility) {
 		return nil
 	}
 	ctx := c.Request().Context()
@@ -43,6 +57,7 @@ func CreateFacilityTitle(c *echo.Context) error {
 	result, err := dbconn.Queries().CreateFacilityTitle(ctx, db.CreateFacilityTitleParams{
 		Facility:  facility,
 		Title:     request.Title,
+		Code:      request.Code,
 		CreatedAt: time.Now().Unix(),
 	})
 	if err != nil {
@@ -59,6 +74,9 @@ func CreateFacilityTitle(c *echo.Context) error {
 func DeleteFacilityTitle(c *echo.Context) error {
 	facility := c.Param("facility")
 	if !AssertFacility(c, facility, acl.ObjectFacilityTitle, acl.ActionWrite) {
+		return nil
+	}
+	if !validateTitleFacility(c, facility) {
 		return nil
 	}
 	ctx := c.Request().Context()
@@ -116,6 +134,9 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 	if !AssertFacility(c, facility, acl.ObjectFacilityTitle, acl.ActionWrite) {
 		return nil
 	}
+	if !validateTitleFacility(c, facility) {
+		return nil
+	}
 	ctx := c.Request().Context()
 	cid, err := strconv.ParseInt(c.Param("cid"), 10, 32)
 	if err != nil {
@@ -157,6 +178,9 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 func DeleteUserFacilityTitle(c *echo.Context) error {
 	facility := c.Param("facility")
 	if !AssertFacility(c, facility, acl.ObjectFacilityTitle, acl.ActionWrite) {
+		return nil
+	}
+	if !validateTitleFacility(c, facility) {
 		return nil
 	}
 	ctx := c.Request().Context()

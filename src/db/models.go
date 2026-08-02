@@ -355,6 +355,7 @@ type FacilityTitle struct {
 	ID        int64
 	Facility  string
 	Title     string
+	Code      string
 	CreatedAt int64
 }
 
