@@ -351,6 +351,13 @@ type Facility struct {
 	Url  string
 }
 
+type FacilityTitle struct {
+	ID        int64
+	Facility  string
+	Title     string
+	CreatedAt int64
+}
+
 type NewsPost struct {
 	ID        int32
 	Title     string
@@ -399,6 +406,14 @@ type UserRatingHour struct {
 	Rating        int32
 	Hours         int32
 	LastCheckTime time.Time
+}
+
+type UserTitle struct {
+	ID         int64
+	Cid        int32
+	TitleID    int64
+	GrantorCid int32
+	GrantedAt  int64
 }
 
 type UserVisit struct {

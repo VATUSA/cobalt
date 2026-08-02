@@ -21,6 +21,7 @@ const (
 	ObjectUserSensitiveDetails Object = "user_sensitive_details"
 	ObjectRoster               Object = "roster"
 	ObjectFacilityTechConfig   Object = "facility_tech_config"
+	ObjectFacilityTitle        Object = "facility_title"
 
 	// Role Objects
 	ObjectSystemRole              Object = "system_api_role"

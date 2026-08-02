@@ -258,6 +258,10 @@ var (
 				Action: ActionRead,
 				Object: ObjectFacilityTechConfig,
 			},
+			{
+				Action: ActionRead,
+				Object: ObjectFacilityTitle,
+			},
 		},
 		RoleAirTrafficManager: {
 			{
@@ -335,6 +339,14 @@ var (
 				Action: ActionRead,
 				Object: ObjectFacilityTechConfig,
 			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitle,
+			},
+			{
+				Action: ActionRead,
+				Object: ObjectFacilityTitle,
+			},
 		},
 		RoleDeputyAirTrafficManager: {
 			{
@@ -361,6 +373,14 @@ var (
 				Action: ActionRead,
 				Object: ObjectFacilityTechConfig,
 			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitle,
+			},
+			{
+				Action: ActionRead,
+				Object: ObjectFacilityTitle,
+			},
 		},
 		RoleTrainingAdministrator: {
 			{
@@ -379,6 +399,10 @@ var (
 			{
 				Action: ActionRead,
 				Object: ObjectFacilityTechConfig,
+			},
+			{
+				Action: ActionRead,
+				Object: ObjectFacilityTitle,
 			},
 		},
 		RoleInstructor: {},

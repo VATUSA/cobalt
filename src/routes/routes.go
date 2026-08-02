@@ -70,4 +70,14 @@ func SetupRoutes(e *echo.Echo) {
 	facility := e.Group("/facility/:facility")
 	facility.GET("/v3/apikeys", endpoints.GetFacilityApiKeys)
 
+	facilityTitles := e.Group("/facility/:facility/titles")
+	facilityTitles.GET("", endpoints.GetFacilityTitles)
+	facilityTitles.POST("", endpoints.CreateFacilityTitle)
+	facilityTitles.DELETE("/:id", endpoints.DeleteFacilityTitle)
+
+	userTitles := e.Group("/user/:cid/facility/:facility/titles")
+	userTitles.GET("", endpoints.GetUserFacilityTitles)
+	userTitles.POST("", endpoints.AssignUserFacilityTitles)
+	userTitles.DELETE("/:id", endpoints.DeleteUserFacilityTitle)
+
 }
