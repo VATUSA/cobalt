@@ -18,15 +18,15 @@ CREATE TABLE user_title (
 );
 
 INSERT INTO facility_title (facility, title, code, created_at) VALUES
-    ('ZHQ', 'Division Director', 'VATUSA1', 0),
-    ('ZHQ', 'Deputy Division Director - Air Traffic Services', 'VATUSA2', 0),
-    ('ZHQ', 'Deputy Division Director - Training Services', 'VATUSA3', 0),
-    ('ZHQ', 'Deputy Division Director - Support Services', 'VATUSA4', 0),
-    ('ZHQ', 'Events Manager', 'VATUSA5', 0),
-    ('ZHQ', 'Technical Manager', 'VATUSA6', 0),
-    ('ZHQ', 'Social Media Manager', 'VATUSA7', 0),
-    ('ZHQ', 'Training Services Manager', 'VATUSA8', 0),
-    ('ZHQ', 'Training Content and Curriculum Manager', 'VATUSA9', 0),
+    ('ZHQ', 'Division Director', 'US1', 0),
+    ('ZHQ', 'Deputy Division Director - Air Traffic Services', 'US2', 0),
+    ('ZHQ', 'Deputy Division Director - Training Services', 'US3', 0),
+    ('ZHQ', 'Deputy Division Director - Support Services', 'US4', 0),
+    ('ZHQ', 'Events Manager', 'US5', 0),
+    ('ZHQ', 'Technical Manager', 'US6', 0),
+    ('ZHQ', 'Social Media Manager', 'US7', 0),
+    ('ZHQ', 'Training Services Manager', 'US8', 0),
+    ('ZHQ', 'Training Content and Curriculum Manager', 'US9', 0),
 
     ('ZAB', 'Air Traffic Manager', 'ATM', 0),
     ('ZAB', 'Deputy Air Traffic Manager', 'DATM', 0),

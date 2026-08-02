@@ -321,6 +321,46 @@ func (q *Queries) GetLegacyLastTransferDateToMigrate(ctx context.Context) ([]Get
 	return items, nil
 }
 
+const getLegacyRoleAssignments = `-- name: GetLegacyRoleAssignments :many
+SELECT r.cid, r.facility, r.role, r.created_at
+FROM ` + "`" + `vatusa-old` + "`" + `.roles r
+`
+
+type GetLegacyRoleAssignmentsRow struct {
+	Cid       uint32
+	Facility  string
+	Role      string
+	CreatedAt time.Time
+}
+
+func (q *Queries) GetLegacyRoleAssignments(ctx context.Context) ([]GetLegacyRoleAssignmentsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getLegacyRoleAssignments)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLegacyRoleAssignmentsRow
+	for rows.Next() {
+		var i GetLegacyRoleAssignmentsRow
+		if err := rows.Scan(
+			&i.Cid,
+			&i.Facility,
+			&i.Role,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLegacyRoles = `-- name: GetLegacyRoles :many
 SELECT r.cid, r.role, r.facility
 FROM ` + "`" + `vatusa-old` + "`" + `.roles r

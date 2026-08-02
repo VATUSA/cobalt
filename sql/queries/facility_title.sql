@@ -3,6 +3,10 @@ SELECT * FROM facility_title
 WHERE facility = ?
 ORDER BY id ASC;
 
+-- name: GetAllFacilityTitles :many
+SELECT id, facility, code
+FROM facility_title;
+
 -- name: GetFacilityTitleById :one
 SELECT * FROM facility_title
 WHERE id = ?;

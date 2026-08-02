@@ -69,3 +69,7 @@ group by r.cid, r.role;
 -- name: GetLegacyRoles :many
 SELECT r.cid, r.role, r.facility
 FROM `vatusa-old`.roles r;
+
+-- name: GetLegacyRoleAssignments :many
+SELECT r.cid, r.facility, r.role, r.created_at
+FROM `vatusa-old`.roles r;

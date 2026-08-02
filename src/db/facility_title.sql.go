@@ -91,6 +91,40 @@ func (q *Queries) DeleteUserTitle(ctx context.Context, arg DeleteUserTitleParams
 	return err
 }
 
+const getAllFacilityTitles = `-- name: GetAllFacilityTitles :many
+SELECT id, facility, code
+FROM facility_title
+`
+
+type GetAllFacilityTitlesRow struct {
+	ID       int64
+	Facility string
+	Code     string
+}
+
+func (q *Queries) GetAllFacilityTitles(ctx context.Context) ([]GetAllFacilityTitlesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllFacilityTitles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllFacilityTitlesRow
+	for rows.Next() {
+		var i GetAllFacilityTitlesRow
+		if err := rows.Scan(&i.ID, &i.Facility, &i.Code); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFacilityTitleById = `-- name: GetFacilityTitleById :one
 SELECT id, facility, title, code, created_at FROM facility_title
 WHERE id = ?
