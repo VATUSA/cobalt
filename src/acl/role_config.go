@@ -96,28 +96,12 @@ var RoleToPermissionObjectMap = map[Role]Object{
 	RoleSystemFacility: ObjectSystemRole,
 }
 
-// TitleCodeToPermissionObjectMap defines which Object ActionWrite
+// TitleTierToPermissionObjectMap defines which Object ActionWrite
 // permission should be checked to determine if a facility title with the
-// given code can be granted or removed
-var TitleCodeToPermissionObjectMap = map[string]Object{
-	"US1":  ObjectFacilityTitleSeniorStaff,
-	"US2":  ObjectFacilityTitleSeniorStaff,
-	"US3":  ObjectFacilityTitleSeniorStaff,
-	"US4":  ObjectFacilityTitleSeniorStaff,
-	"US5":  ObjectFacilityTitleSeniorStaff,
-	"US6":  ObjectFacilityTitleSeniorStaff,
-	"US7":  ObjectFacilityTitleSeniorStaff,
-	"US8":  ObjectFacilityTitleSeniorStaff,
-	"US9":  ObjectFacilityTitleSeniorStaff,
-	"ATM":  ObjectFacilityTitleSeniorStaff,
-	"DATM": ObjectFacilityTitleSeniorStaff,
-	"TA":   ObjectFacilityTitleSeniorStaff,
-
-	"EC":  ObjectFacilityTitleJuniorStaff,
-	"FE":  ObjectFacilityTitleJuniorStaff,
-	"WM":  ObjectFacilityTitleJuniorStaff,
-	"MTR": ObjectFacilityTitleJuniorStaff,
-	"INS": ObjectFacilityTitleJuniorStaff,
+// given tier can be granted or removed
+var TitleTierToPermissionObjectMap = map[string]Object{
+	"senior": ObjectFacilityTitleSeniorStaff,
+	"junior": ObjectFacilityTitleJuniorStaff,
 }
 
 // Role Scoping

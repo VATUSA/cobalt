@@ -2,7 +2,8 @@ CREATE TABLE facility_title (
     id bigint not null auto_increment primary key,
     facility varchar(4) not null,
     title varchar(128) not null,
-    code varchar(40) not null default '',
+    code varchar(4) not null default '',
+    tier varchar(6) not null default '',
     created_at bigint not null,
     unique key uq_facility_title (facility, title),
     FOREIGN KEY (facility) REFERENCES facility (id) ON DELETE CASCADE
@@ -227,3 +228,9 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZDC', 'Web Maintainer', 'WM', 0),
     ('ZDC', 'Instructor', 'INS', 0),
     ('ZDC', 'Mentor', 'MTR', 0);
+
+UPDATE facility_title SET tier = 'senior'
+WHERE code IN ('US1', 'US2', 'US3', 'US4', 'US5', 'US6', 'US7', 'US8', 'US9', 'ATM', 'DATM', 'TA');
+
+UPDATE facility_title SET tier = 'junior'
+WHERE code IN ('EC', 'FE', 'WM', 'INS', 'MTR');

@@ -47,11 +47,15 @@ func CreateFacilityTitle(c *echo.Context) error {
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
+	if _, ok := acl.TitleTierToPermissionObjectMap[request.Tier]; !ok {
+		return GenericError(c, http.StatusBadRequest, errors.New("invalid title tier"))
+	}
 
 	result, err := dbconn.Queries().CreateFacilityTitle(ctx, db.CreateFacilityTitleParams{
 		Facility:  facility,
 		Title:     request.Title,
 		Code:      request.Code,
+		Tier:      request.Tier,
 		CreatedAt: time.Now().Unix(),
 	})
 	if err != nil {
@@ -136,9 +140,9 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 	if title.Facility != facility {
 		return GenericError(c, http.StatusBadRequest, errors.New("title does not belong to facility"))
 	}
-	permissionObject, ok := acl.TitleCodeToPermissionObjectMap[title.Code]
+	permissionObject, ok := acl.TitleTierToPermissionObjectMap[title.Tier]
 	if !ok {
-		return GenericError(c, http.StatusBadRequest, errors.New("title code cannot be assigned"))
+		return GenericError(c, http.StatusBadRequest, errors.New("title tier cannot be assigned"))
 	}
 	if !AssertFacility(c, facility, permissionObject, acl.ActionWrite) {
 		return nil
@@ -181,9 +185,9 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 	if title.Facility != facility {
 		return GenericError(c, http.StatusNotFound, errors.New("title not found"))
 	}
-	permissionObject, ok := acl.TitleCodeToPermissionObjectMap[title.Code]
+	permissionObject, ok := acl.TitleTierToPermissionObjectMap[title.Tier]
 	if !ok {
-		return GenericError(c, http.StatusBadRequest, errors.New("title code cannot be assigned"))
+		return GenericError(c, http.StatusBadRequest, errors.New("title tier cannot be assigned"))
 	}
 	if !AssertFacility(c, facility, permissionObject, acl.ActionWrite) {
 		return nil

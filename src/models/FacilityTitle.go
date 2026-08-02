@@ -5,6 +5,7 @@ import "vatusa-cobalt/db"
 type FacilityTitleRequest struct {
 	Title string `json:"title"`
 	Code  string `json:"code"`
+	Tier  string `json:"tier"`
 }
 
 type AssignFacilityTitleRequest struct {
@@ -16,6 +17,7 @@ type FacilityTitle struct {
 	Facility  string `json:"facility"`
 	Title     string `json:"title"`
 	Code      string `json:"code"`
+	Tier      string `json:"tier"`
 	CreatedAt int64  `json:"created_at"`
 }
 
@@ -25,6 +27,7 @@ func FacilityTitleFromDatabase(ent db.FacilityTitle) FacilityTitle {
 		Facility:  ent.Facility,
 		Title:     ent.Title,
 		Code:      ent.Code,
+		Tier:      ent.Tier,
 		CreatedAt: ent.CreatedAt,
 	}
 }
@@ -42,6 +45,7 @@ type UserFacilityTitle struct {
 	Facility   string `json:"facility"`
 	Title      string `json:"title"`
 	Code       string `json:"code"`
+	Tier       string `json:"tier"`
 	GrantorCid int32  `json:"grantor_cid"`
 	GrantedAt  int64  `json:"granted_at"`
 }
@@ -52,6 +56,7 @@ func UserFacilityTitleFromDatabase(ent db.GetUserTitlesByFacilityRow) UserFacili
 		Facility:   ent.Facility,
 		Title:      ent.Title,
 		Code:       ent.Code,
+		Tier:       ent.Tier,
 		GrantorCid: ent.GrantorCid,
 		GrantedAt:  ent.GrantedAt,
 	}
