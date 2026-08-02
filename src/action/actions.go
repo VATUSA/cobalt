@@ -15,5 +15,7 @@ const (
 	RemovedFromVisitFacility Action = "removed_from_visit_facility"
 	RoleGranted              Action = "role_granted"
 	RoleRevoked              Action = "role_revoked"
+	TitleGranted             Action = "title_granted"
+	TitleRevoked             Action = "title_revoked"
 	Migrated                 Action = "migrated"
 )

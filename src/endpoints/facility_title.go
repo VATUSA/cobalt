@@ -2,10 +2,12 @@ package endpoints
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 	"vatusa-cobalt/acl"
+	"vatusa-cobalt/action"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/dbconn"
@@ -148,6 +150,14 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 		return nil
 	}
 
+	user, err := dbconn.GetCombinedUserByCID(int(cid))
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if user == nil {
+		return GenericError(c, http.StatusNotFound, errors.New("user not found"))
+	}
+
 	grantorCid := int32(auth.GetUserCid(c))
 	grantedAt := time.Now().Unix()
 	err = dbconn.Queries().AssignUserTitle(ctx, db.AssignUserTitleParams{
@@ -159,6 +169,8 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
+
+	action.Log(*user, action.TitleGranted, fmt.Sprintf("Granted title %s at %s", title.Title, facility), int64(auth.GetUserCid(c)))
 
 	return GenericSuccess(c, int(cid))
 }
@@ -193,6 +205,14 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 		return nil
 	}
 
+	user, err := dbconn.GetCombinedUserByCID(int(cid))
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if user == nil {
+		return GenericError(c, http.StatusNotFound, errors.New("user not found"))
+	}
+
 	err = dbconn.Queries().DeleteUserTitle(ctx, db.DeleteUserTitleParams{
 		Cid:     int32(cid),
 		TitleID: titleId,
@@ -200,5 +220,8 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to remove title"))
 	}
+
+	action.Log(*user, action.TitleRevoked, fmt.Sprintf("Revoked title %s at %s", title.Title, facility), int64(auth.GetUserCid(c)))
+
 	return GenericSuccess(c, int(titleId))
 }
