@@ -10,7 +10,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run main.go <command>")
+		fmt.Println("Usage: cli <command>")
 		fmt.Println("Commands:")
 		for command, _ := range cli.Commands {
 			fmt.Printf("\t%s\n", command)
