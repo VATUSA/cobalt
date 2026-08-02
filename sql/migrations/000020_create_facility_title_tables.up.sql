@@ -4,7 +4,8 @@ CREATE TABLE facility_title (
     title varchar(128) not null,
     code varchar(40) not null default '',
     created_at bigint not null,
-    unique key uq_facility_title (facility, title)
+    unique key uq_facility_title (facility, title),
+    FOREIGN KEY (facility) REFERENCES facility (id) ON DELETE CASCADE
 );
 
 CREATE TABLE user_title (
@@ -14,7 +15,8 @@ CREATE TABLE user_title (
     grantor_cid int not null,
     granted_at bigint not null,
     unique key uq_user_title (cid, title_id),
-    key idx_user_title_title_id (title_id)
+    key idx_user_title_title_id (title_id),
+    FOREIGN KEY (title_id) REFERENCES facility_title (id) ON DELETE CASCADE
 );
 
 INSERT INTO facility_title (facility, title, code, created_at) VALUES

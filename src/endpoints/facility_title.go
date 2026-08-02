@@ -26,9 +26,6 @@ func GetFacilityTitles(c *echo.Context) error {
 }
 
 func validateTitleFacility(c *echo.Context, facility string) bool {
-	if facility == "ZHQ" {
-		return true
-	}
 	if _, err := dbconn.Queries().GetFacility(c.Request().Context(), facility); err != nil {
 		_ = GenericError(c, http.StatusBadRequest, errors.New("unknown facility"))
 		return false
@@ -88,14 +85,6 @@ func DeleteFacilityTitle(c *echo.Context) error {
 	}
 	if title.Facility != facility {
 		return GenericError(c, http.StatusNotFound, errors.New("title not found"))
-	}
-
-	assignedCount, err := dbconn.Queries().CountUserTitlesByTitleId(ctx, titleId)
-	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
-	}
-	if assignedCount > 0 {
-		return GenericError(c, http.StatusBadRequest, errors.New("title is assigned to users"))
 	}
 
 	err = dbconn.Queries().DeleteFacilityTitleById(ctx, titleId)

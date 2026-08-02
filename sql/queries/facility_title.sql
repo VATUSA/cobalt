@@ -19,11 +19,6 @@ VALUES (?, ?, ?, ?);
 DELETE FROM facility_title
 WHERE id = ?;
 
--- name: CountUserTitlesByTitleId :one
-SELECT count(*)
-FROM user_title
-WHERE title_id = ?;
-
 -- name: GetUserTitlesByFacility :many
 SELECT ft.id, ft.facility, ft.title, ft.code, ut.grantor_cid, ut.granted_at
 FROM facility_title ft

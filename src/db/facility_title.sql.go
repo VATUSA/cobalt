@@ -32,19 +32,6 @@ func (q *Queries) AssignUserTitle(ctx context.Context, arg AssignUserTitleParams
 	return err
 }
 
-const countUserTitlesByTitleId = `-- name: CountUserTitlesByTitleId :one
-SELECT count(*)
-FROM user_title
-WHERE title_id = ?
-`
-
-func (q *Queries) CountUserTitlesByTitleId(ctx context.Context, titleID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countUserTitlesByTitleId, titleID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createFacilityTitle = `-- name: CreateFacilityTitle :execresult
 INSERT INTO facility_title (facility, title, code, created_at)
 VALUES (?, ?, ?, ?)
