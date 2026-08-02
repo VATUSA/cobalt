@@ -96,6 +96,30 @@ var RoleToPermissionObjectMap = map[Role]Object{
 	RoleSystemFacility: ObjectSystemRole,
 }
 
+// TitleCodeToPermissionObjectMap defines which Object ActionWrite
+// permission should be checked to determine if a facility title with the
+// given code can be granted or removed
+var TitleCodeToPermissionObjectMap = map[string]Object{
+	"US1":  ObjectFacilityTitleSeniorStaff,
+	"US2":  ObjectFacilityTitleSeniorStaff,
+	"US3":  ObjectFacilityTitleSeniorStaff,
+	"US4":  ObjectFacilityTitleSeniorStaff,
+	"US5":  ObjectFacilityTitleSeniorStaff,
+	"US6":  ObjectFacilityTitleSeniorStaff,
+	"US7":  ObjectFacilityTitleSeniorStaff,
+	"US8":  ObjectFacilityTitleSeniorStaff,
+	"US9":  ObjectFacilityTitleSeniorStaff,
+	"ATM":  ObjectFacilityTitleSeniorStaff,
+	"DATM": ObjectFacilityTitleSeniorStaff,
+	"TA":   ObjectFacilityTitleSeniorStaff,
+
+	"EC":  ObjectFacilityTitleJuniorStaff,
+	"FE":  ObjectFacilityTitleJuniorStaff,
+	"WM":  ObjectFacilityTitleJuniorStaff,
+	"MTR": ObjectFacilityTitleJuniorStaff,
+	"INS": ObjectFacilityTitleJuniorStaff,
+}
+
 // Role Scoping
 var (
 	GlobalRoles = []Role{
@@ -208,6 +232,18 @@ var (
 				Action: ActionWrite,
 				Object: ObjectRoster,
 			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitleManagement,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitleSeniorStaff,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitleJuniorStaff,
+			},
 		},
 		RoleDivisionStaff: {
 			{
@@ -257,10 +293,6 @@ var (
 			{
 				Action: ActionRead,
 				Object: ObjectFacilityTechConfig,
-			},
-			{
-				Action: ActionRead,
-				Object: ObjectFacilityTitle,
 			},
 		},
 		RoleAirTrafficManager: {
@@ -341,11 +373,7 @@ var (
 			},
 			{
 				Action: ActionWrite,
-				Object: ObjectFacilityTitle,
-			},
-			{
-				Action: ActionRead,
-				Object: ObjectFacilityTitle,
+				Object: ObjectFacilityTitleJuniorStaff,
 			},
 		},
 		RoleDeputyAirTrafficManager: {
@@ -375,17 +403,17 @@ var (
 			},
 			{
 				Action: ActionWrite,
-				Object: ObjectFacilityTitle,
-			},
-			{
-				Action: ActionRead,
-				Object: ObjectFacilityTitle,
+				Object: ObjectFacilityTitleJuniorStaff,
 			},
 		},
 		RoleTrainingAdministrator: {
 			{
 				Action: ActionWrite,
 				Object: ObjectFacilityTrainingRole,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitleJuniorStaff,
 			},
 		},
 		RoleEventCoordinator: {
@@ -399,10 +427,6 @@ var (
 			{
 				Action: ActionRead,
 				Object: ObjectFacilityTechConfig,
-			},
-			{
-				Action: ActionRead,
-				Object: ObjectFacilityTitle,
 			},
 		},
 		RoleInstructor: {},

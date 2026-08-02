@@ -23,6 +23,10 @@ const (
 	ObjectFacilityTechConfig   Object = "facility_tech_config"
 	ObjectFacilityTitle        Object = "facility_title"
 
+	ObjectFacilityTitleManagement  Object = "facility_title_management"
+	ObjectFacilityTitleSeniorStaff Object = "facility_title_senior_staff"
+	ObjectFacilityTitleJuniorStaff Object = "facility_title_junior_staff"
+
 	// Role Objects
 	ObjectSystemRole              Object = "system_api_role"
 	ObjectDivisionManagementRole  Object = "division_management_role"

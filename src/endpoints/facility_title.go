@@ -16,9 +16,6 @@ import (
 
 func GetFacilityTitles(c *echo.Context) error {
 	facility := c.Param("facility")
-	if !AssertFacility(c, facility, acl.ObjectFacilityTitle, acl.ActionRead) {
-		return nil
-	}
 
 	titles, err := dbconn.Queries().GetFacilityTitles(c.Request().Context(), facility)
 	if err != nil {
@@ -41,7 +38,7 @@ func validateTitleFacility(c *echo.Context, facility string) bool {
 
 func CreateFacilityTitle(c *echo.Context) error {
 	facility := c.Param("facility")
-	if !AssertFacility(c, facility, acl.ObjectFacilityTitle, acl.ActionWrite) {
+	if !AssertGlobal(c, acl.ObjectFacilityTitleManagement, acl.ActionWrite) {
 		return nil
 	}
 	if !validateTitleFacility(c, facility) {
@@ -73,7 +70,7 @@ func CreateFacilityTitle(c *echo.Context) error {
 
 func DeleteFacilityTitle(c *echo.Context) error {
 	facility := c.Param("facility")
-	if !AssertFacility(c, facility, acl.ObjectFacilityTitle, acl.ActionWrite) {
+	if !AssertGlobal(c, acl.ObjectFacilityTitleManagement, acl.ActionWrite) {
 		return nil
 	}
 	if !validateTitleFacility(c, facility) {
@@ -110,9 +107,6 @@ func DeleteFacilityTitle(c *echo.Context) error {
 
 func GetUserFacilityTitles(c *echo.Context) error {
 	facility := c.Param("facility")
-	if !AssertFacility(c, facility, acl.ObjectFacilityTitle, acl.ActionRead) {
-		return nil
-	}
 	cid, err := strconv.ParseInt(c.Param("cid"), 10, 32)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid cid"))
@@ -131,9 +125,6 @@ func GetUserFacilityTitles(c *echo.Context) error {
 
 func AssignUserFacilityTitles(c *echo.Context) error {
 	facility := c.Param("facility")
-	if !AssertFacility(c, facility, acl.ObjectFacilityTitle, acl.ActionWrite) {
-		return nil
-	}
 	if !validateTitleFacility(c, facility) {
 		return nil
 	}
@@ -156,6 +147,13 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 		if title.Facility != facility {
 			return GenericError(c, http.StatusBadRequest, errors.New("title does not belong to facility"))
 		}
+		permissionObject, ok := acl.TitleCodeToPermissionObjectMap[title.Code]
+		if !ok {
+			return GenericError(c, http.StatusBadRequest, errors.New("title code cannot be assigned"))
+		}
+		if !AssertFacility(c, facility, permissionObject, acl.ActionWrite) {
+			return nil
+		}
 	}
 
 	grantorCid := int32(auth.GetUserCid(c))
@@ -177,9 +175,6 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 
 func DeleteUserFacilityTitle(c *echo.Context) error {
 	facility := c.Param("facility")
-	if !AssertFacility(c, facility, acl.ObjectFacilityTitle, acl.ActionWrite) {
-		return nil
-	}
 	if !validateTitleFacility(c, facility) {
 		return nil
 	}
@@ -191,6 +186,21 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 	titleId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid title id"))
+	}
+
+	title, err := dbconn.Queries().GetFacilityTitleById(ctx, titleId)
+	if err != nil {
+		return GenericError(c, http.StatusNotFound, errors.New("title not found"))
+	}
+	if title.Facility != facility {
+		return GenericError(c, http.StatusNotFound, errors.New("title not found"))
+	}
+	permissionObject, ok := acl.TitleCodeToPermissionObjectMap[title.Code]
+	if !ok {
+		return GenericError(c, http.StatusBadRequest, errors.New("title code cannot be assigned"))
+	}
+	if !AssertFacility(c, facility, permissionObject, acl.ActionWrite) {
+		return nil
 	}
 
 	err = dbconn.Queries().DeleteUserTitle(ctx, db.DeleteUserTitleParams{
