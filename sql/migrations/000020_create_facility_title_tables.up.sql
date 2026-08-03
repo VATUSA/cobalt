@@ -37,8 +37,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZAB', 'Events Coordinator', 'EC', 0),
     ('ZAB', 'Facility Engineer', 'FE', 0),
     ('ZAB', 'Web Maintainer', 'WM', 0),
-    ('ZAB', 'Instructor', 'INS', 0),
-    ('ZAB', 'Mentor', 'MTR', 0),
 
     ('ZAN', 'Air Traffic Manager', 'ATM', 0),
     ('ZAN', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -46,8 +44,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZAN', 'Events Coordinator', 'EC', 0),
     ('ZAN', 'Facility Engineer', 'FE', 0),
     ('ZAN', 'Web Maintainer', 'WM', 0),
-    ('ZAN', 'Instructor', 'INS', 0),
-    ('ZAN', 'Mentor', 'MTR', 0),
 
     ('ZTL', 'Air Traffic Manager', 'ATM', 0),
     ('ZTL', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -55,8 +51,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZTL', 'Events Coordinator', 'EC', 0),
     ('ZTL', 'Facility Engineer', 'FE', 0),
     ('ZTL', 'Web Maintainer', 'WM', 0),
-    ('ZTL', 'Instructor', 'INS', 0),
-    ('ZTL', 'Mentor', 'MTR', 0),
 
     ('ZBW', 'Air Traffic Manager', 'ATM', 0),
     ('ZBW', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -64,8 +58,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZBW', 'Events Coordinator', 'EC', 0),
     ('ZBW', 'Facility Engineer', 'FE', 0),
     ('ZBW', 'Web Maintainer', 'WM', 0),
-    ('ZBW', 'Instructor', 'INS', 0),
-    ('ZBW', 'Mentor', 'MTR', 0),
 
     ('ZAU', 'Air Traffic Manager', 'ATM', 0),
     ('ZAU', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -73,8 +65,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZAU', 'Events Coordinator', 'EC', 0),
     ('ZAU', 'Facility Engineer', 'FE', 0),
     ('ZAU', 'Web Maintainer', 'WM', 0),
-    ('ZAU', 'Instructor', 'INS', 0),
-    ('ZAU', 'Mentor', 'MTR', 0),
 
     ('ZOB', 'Air Traffic Manager', 'ATM', 0),
     ('ZOB', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -82,8 +72,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZOB', 'Events Coordinator', 'EC', 0),
     ('ZOB', 'Facility Engineer', 'FE', 0),
     ('ZOB', 'Web Maintainer', 'WM', 0),
-    ('ZOB', 'Instructor', 'INS', 0),
-    ('ZOB', 'Mentor', 'MTR', 0),
 
     ('ZDV', 'Air Traffic Manager', 'ATM', 0),
     ('ZDV', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -91,8 +79,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZDV', 'Events Coordinator', 'EC', 0),
     ('ZDV', 'Facility Engineer', 'FE', 0),
     ('ZDV', 'Web Maintainer', 'WM', 0),
-    ('ZDV', 'Instructor', 'INS', 0),
-    ('ZDV', 'Mentor', 'MTR', 0),
 
     ('ZFW', 'Air Traffic Manager', 'ATM', 0),
     ('ZFW', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -100,8 +86,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZFW', 'Events Coordinator', 'EC', 0),
     ('ZFW', 'Facility Engineer', 'FE', 0),
     ('ZFW', 'Web Maintainer', 'WM', 0),
-    ('ZFW', 'Instructor', 'INS', 0),
-    ('ZFW', 'Mentor', 'MTR', 0),
 
     ('HCF', 'Air Traffic Manager', 'ATM', 0),
     ('HCF', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -109,8 +93,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('HCF', 'Events Coordinator', 'EC', 0),
     ('HCF', 'Facility Engineer', 'FE', 0),
     ('HCF', 'Web Maintainer', 'WM', 0),
-    ('HCF', 'Instructor', 'INS', 0),
-    ('HCF', 'Mentor', 'MTR', 0),
 
     ('ZHU', 'Air Traffic Manager', 'ATM', 0),
     ('ZHU', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -118,8 +100,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZHU', 'Events Coordinator', 'EC', 0),
     ('ZHU', 'Facility Engineer', 'FE', 0),
     ('ZHU', 'Web Maintainer', 'WM', 0),
-    ('ZHU', 'Instructor', 'INS', 0),
-    ('ZHU', 'Mentor', 'MTR', 0),
 
     ('ZID', 'Air Traffic Manager', 'ATM', 0),
     ('ZID', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -127,8 +107,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZID', 'Events Coordinator', 'EC', 0),
     ('ZID', 'Facility Engineer', 'FE', 0),
     ('ZID', 'Web Maintainer', 'WM', 0),
-    ('ZID', 'Instructor', 'INS', 0),
-    ('ZID', 'Mentor', 'MTR', 0),
 
     ('ZJX', 'Air Traffic Manager', 'ATM', 0),
     ('ZJX', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -136,8 +114,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZJX', 'Events Coordinator', 'EC', 0),
     ('ZJX', 'Facility Engineer', 'FE', 0),
     ('ZJX', 'Web Maintainer', 'WM', 0),
-    ('ZJX', 'Instructor', 'INS', 0),
-    ('ZJX', 'Mentor', 'MTR', 0),
 
     ('ZKC', 'Air Traffic Manager', 'ATM', 0),
     ('ZKC', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -145,8 +121,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZKC', 'Events Coordinator', 'EC', 0),
     ('ZKC', 'Facility Engineer', 'FE', 0),
     ('ZKC', 'Web Maintainer', 'WM', 0),
-    ('ZKC', 'Instructor', 'INS', 0),
-    ('ZKC', 'Mentor', 'MTR', 0),
 
     ('ZLA', 'Air Traffic Manager', 'ATM', 0),
     ('ZLA', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -154,8 +128,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZLA', 'Events Coordinator', 'EC', 0),
     ('ZLA', 'Facility Engineer', 'FE', 0),
     ('ZLA', 'Web Maintainer', 'WM', 0),
-    ('ZLA', 'Instructor', 'INS', 0),
-    ('ZLA', 'Mentor', 'MTR', 0),
 
     ('ZME', 'Air Traffic Manager', 'ATM', 0),
     ('ZME', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -163,8 +135,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZME', 'Events Coordinator', 'EC', 0),
     ('ZME', 'Facility Engineer', 'FE', 0),
     ('ZME', 'Web Maintainer', 'WM', 0),
-    ('ZME', 'Instructor', 'INS', 0),
-    ('ZME', 'Mentor', 'MTR', 0),
 
     ('ZMA', 'Air Traffic Manager', 'ATM', 0),
     ('ZMA', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -172,8 +142,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZMA', 'Events Coordinator', 'EC', 0),
     ('ZMA', 'Facility Engineer', 'FE', 0),
     ('ZMA', 'Web Maintainer', 'WM', 0),
-    ('ZMA', 'Instructor', 'INS', 0),
-    ('ZMA', 'Mentor', 'MTR', 0),
 
     ('ZMP', 'Air Traffic Manager', 'ATM', 0),
     ('ZMP', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -181,8 +149,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZMP', 'Events Coordinator', 'EC', 0),
     ('ZMP', 'Facility Engineer', 'FE', 0),
     ('ZMP', 'Web Maintainer', 'WM', 0),
-    ('ZMP', 'Instructor', 'INS', 0),
-    ('ZMP', 'Mentor', 'MTR', 0),
 
     ('ZNY', 'Air Traffic Manager', 'ATM', 0),
     ('ZNY', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -190,8 +156,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZNY', 'Events Coordinator', 'EC', 0),
     ('ZNY', 'Facility Engineer', 'FE', 0),
     ('ZNY', 'Web Maintainer', 'WM', 0),
-    ('ZNY', 'Instructor', 'INS', 0),
-    ('ZNY', 'Mentor', 'MTR', 0),
 
     ('ZOA', 'Air Traffic Manager', 'ATM', 0),
     ('ZOA', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -199,8 +163,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZOA', 'Events Coordinator', 'EC', 0),
     ('ZOA', 'Facility Engineer', 'FE', 0),
     ('ZOA', 'Web Maintainer', 'WM', 0),
-    ('ZOA', 'Instructor', 'INS', 0),
-    ('ZOA', 'Mentor', 'MTR', 0),
 
     ('ZLC', 'Air Traffic Manager', 'ATM', 0),
     ('ZLC', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -208,8 +170,6 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZLC', 'Events Coordinator', 'EC', 0),
     ('ZLC', 'Facility Engineer', 'FE', 0),
     ('ZLC', 'Web Maintainer', 'WM', 0),
-    ('ZLC', 'Instructor', 'INS', 0),
-    ('ZLC', 'Mentor', 'MTR', 0),
 
     ('ZSE', 'Air Traffic Manager', 'ATM', 0),
     ('ZSE', 'Deputy Air Traffic Manager', 'DATM', 0),
@@ -217,20 +177,16 @@ INSERT INTO facility_title (facility, title, code, created_at) VALUES
     ('ZSE', 'Events Coordinator', 'EC', 0),
     ('ZSE', 'Facility Engineer', 'FE', 0),
     ('ZSE', 'Web Maintainer', 'WM', 0),
-    ('ZSE', 'Instructor', 'INS', 0),
-    ('ZSE', 'Mentor', 'MTR', 0),
 
     ('ZDC', 'Air Traffic Manager', 'ATM', 0),
     ('ZDC', 'Deputy Air Traffic Manager', 'DATM', 0),
     ('ZDC', 'Training Administrator', 'TA', 0),
     ('ZDC', 'Events Coordinator', 'EC', 0),
     ('ZDC', 'Facility Engineer', 'FE', 0),
-    ('ZDC', 'Web Maintainer', 'WM', 0),
-    ('ZDC', 'Instructor', 'INS', 0),
-    ('ZDC', 'Mentor', 'MTR', 0);
+    ('ZDC', 'Web Maintainer', 'WM', 0);
 
 UPDATE facility_title SET tier = 'senior'
 WHERE code IN ('US1', 'US2', 'US3', 'US4', 'US5', 'US6', 'US7', 'US8', 'US9', 'ATM', 'DATM', 'TA');
 
 UPDATE facility_title SET tier = 'junior'
-WHERE code IN ('EC', 'FE', 'WM', 'INS', 'MTR');
+WHERE code IN ('EC', 'FE', 'WM');
