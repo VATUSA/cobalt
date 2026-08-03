@@ -9,16 +9,20 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var queries *db.Queries
+var database *sql.DB
 
-func Queries() *db.Queries {
-	if queries == nil {
-		database, err := sql.Open("mysql", config.ConnectionString())
+func DB() *sql.DB {
+	if database == nil {
+		var err error
+		database, err = sql.Open("mysql", config.ConnectionString())
 		if err != nil {
 			log.Fatal(err)
 		}
 		database.SetMaxOpenConns(config.MaxOpenConns())
-		queries = db.New(database)
 	}
-	return queries
+	return database
+}
+
+func Queries() *db.Queries {
+	return db.New(DB())
 }

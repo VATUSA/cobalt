@@ -9,7 +9,14 @@ import (
 
 func BulkMigrateActionLogs() error {
 	ctx := context.Background()
-	queries := dbconn.Queries()
+
+	tx, err := dbconn.DB().BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	queries := dbconn.Queries().WithTx(tx)
 
 	logs, err := queries.GetLegacyActionLogs(ctx)
 	if err != nil {
@@ -30,5 +37,5 @@ func BulkMigrateActionLogs() error {
 		}
 	}
 
-	return nil
+	return tx.Commit()
 }
