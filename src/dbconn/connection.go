@@ -17,6 +17,7 @@ func Queries() *db.Queries {
 		if err != nil {
 			log.Fatal(err)
 		}
+		database.SetMaxOpenConns(config.MaxOpenConns())
 		queries = db.New(database)
 	}
 	return queries
