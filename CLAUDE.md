@@ -91,6 +91,39 @@ without a `cobalt_dev` row.
 `current`'s side of this (the one-time `/auth/callback` handoff, decoupled from cobalt after
 login) is documented in that repo's `CLAUDE.md`.
 
+## Event banner uploads (DigitalOcean Spaces)
+
+Event banners used to be caller-supplied URLs, which in practice meant Imgur (blocked in
+several jurisdictions, including the UK) or Discord (which discourages off-app CDN use).
+We now host them ourselves in the **`vatusa-events` Spaces bucket, region `sfo3`** — note
+that most other VATUSA buckets are `nyc3`.
+
+`POST /event/create` and `POST /event/:id` accept **either** a JSON body (unchanged
+contract: `banner_image_url` is used as-is) **or** `multipart/form-data` with the same
+fields plus a `banner_image` file part. The staff app in `webapps` always sends multipart.
+When a file is present, `storage.UploadEventBanner` validates and uploads it and the
+generated URL is what lands in `events.banner_image_url` — the database schema is
+unchanged. When no file is present, `banner_image_url` from the request is kept, which is
+what lets an edit that doesn't replace the image keep its existing banner.
+
+The upload happens **after** the facility permission check, so an unauthorised request
+can never write to the bucket. Uploads are validated in `storage/image.go`: max 8 MB, must
+decode as PNG/JPEG/GIF/WebP, must be 16:9 within a 0.02 tolerance. The decode is
+security-relevant — without it the endpoint would store HTML or SVG on a public bucket and
+hand back a URL, which is a stored-XSS primitive. Object keys embed 16 random bytes and
+are never rewritten, so objects are immutable and cached with `max-age=31536000`; replacing
+a banner writes a new object and orphans the old one.
+
+`storage/sigv4.go` signs the single PutObject call by hand rather than pulling in the AWS
+SDK (~15 modules, plus its default flexible-checksum behaviour has to be disabled for
+non-AWS S3 endpoints). It's pinned against AWS's published test vectors in
+`storage/sigv4_test.go`.
+
+Config lives in `config/spaces.go` (`DO_SPACES_KEY`, `DO_SPACES_SECRET`, `DO_SPACES_REGION`,
+`DO_SPACES_BUCKET`, optional `DO_SPACES_ENDPOINT` and `DO_SPACES_PUBLIC_BASE_URL`). With no
+key/secret set — the normal local setup — uploads return `storage.ErrNotConfigured` and only
+the JSON/URL path works.
+
 ## API testing
 
 A **Bruno** collection lives in `Bruno/` (api, login, roster, user, Events, News, etc.) for
