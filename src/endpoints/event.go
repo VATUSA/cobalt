@@ -1,8 +1,10 @@
 package endpoints
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,14 +15,89 @@ import (
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/models"
+	"vatusa-cobalt/storage"
 
 	"github.com/labstack/echo/v5"
 )
 
+// bannerFormField is the multipart field the staff app posts the chosen banner
+// image under. Events used to carry a caller-supplied banner_image_url, which
+// in practice meant Imgur or Discord links; we now host the image ourselves and
+// generate the URL, so the field is still what lands in the database but its
+// value comes from us.
+const bannerFormField = "banner_image"
+
+// bindEventRequest fills request from the incoming body and returns the
+// uploaded banner, if any. Multipart submissions come from the staff app and
+// may carry a file; a JSON body is still accepted so API clients that already
+// have a hosted URL keep working. In both cases banner_image_url is honoured
+// as the existing value, which is what lets an edit that doesn't replace the
+// image keep the banner it already has.
+func bindEventRequest(c *echo.Context, request *models.EventRequest) (*multipart.FileHeader, error) {
+	contentType := c.Request().Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "multipart/form-data") {
+		return nil, c.Bind(request)
+	}
+
+	// ParseMultipartForm will happily spill an unbounded body to temp files, so
+	// cap the whole request first. The slack over MaxBannerBytes covers the
+	// multipart framing and the other form fields.
+	req := c.Request()
+	req.Body = http.MaxBytesReader(c.Response(), req.Body, storage.MaxBannerBytes+(1<<20))
+
+	// Small in-memory budget: anything bigger spills to a temp file that Go
+	// removes when the request ends, rather than being held in the heap.
+	if err := req.ParseMultipartForm(1 << 20); err != nil {
+		return nil, errors.New("could not read the submitted form (is the image too large?)")
+	}
+
+	form := req.MultipartForm
+	field := func(name string) string {
+		if values := form.Value[name]; len(values) > 0 {
+			return strings.TrimSpace(values[0])
+		}
+		return ""
+	}
+
+	request.Title = field("title")
+	request.Body = field("body")
+	request.Facility = field("facility")
+	request.BannerImageURL = field("banner_image_url")
+	request.StartTimestamp = field("start_timestamp")
+	request.EndTimestamp = field("end_timestamp")
+
+	if files := form.File[bannerFormField]; len(files) > 0 && files[0].Size > 0 {
+		return files[0], nil
+	}
+	return nil, nil
+}
+
+// resolveBannerURL uploads a submitted banner and returns the URL to store, or
+// falls back to the URL already on the request when no new file was chosen.
+// Call it only after the facility permission check has passed, so an
+// unauthorised request can't write to the bucket.
+func resolveBannerURL(ctx context.Context, facility, existingURL string, banner *multipart.FileHeader) (string, int, error) {
+	if banner == nil {
+		if existingURL == "" {
+			return "", http.StatusBadRequest, errors.New("a banner image is required")
+		}
+		return existingURL, 0, nil
+	}
+
+	url, err := storage.UploadEventBanner(ctx, facility, banner)
+	if err != nil {
+		if errors.Is(err, storage.ErrInvalidImage) {
+			return "", http.StatusBadRequest, err
+		}
+		return "", http.StatusInternalServerError, err
+	}
+	return url, 0, nil
+}
+
 func CreateEvent(c *echo.Context) error {
 	ctx := c.Request().Context()
 	var request models.EventRequest
-	err := c.Bind(&request)
+	banner, err := bindEventRequest(c, &request)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
@@ -38,10 +115,17 @@ func CreateEvent(c *echo.Context) error {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid end time"))
 	}
 
+	// Last thing before the insert: an upload that succeeds but is then
+	// followed by a rejected request leaves an orphaned object in the bucket.
+	bannerURL, status, err := resolveBannerURL(ctx, request.Facility, request.BannerImageURL, banner)
+	if err != nil {
+		return GenericError(c, status, err)
+	}
+
 	result, err := dbconn.Queries().CreateEvent(ctx, db.CreateEventParams{
 		Title:          request.Title,
 		Body:           request.Body,
-		BannerImageUrl: request.BannerImageURL,
+		BannerImageUrl: bannerURL,
 		Facility:       request.Facility,
 		StartTime:      startTime.Unix(),
 		EndTime:        endTime.Unix(),
@@ -67,7 +151,7 @@ func UpdateEvent(c *echo.Context) error {
 	}
 	ctx := c.Request().Context()
 	var request models.EventRequest
-	err = c.Bind(&request)
+	banner, err := bindEventRequest(c, &request)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
@@ -94,10 +178,22 @@ func UpdateEvent(c *echo.Context) error {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid end time"))
 	}
 
+	// Without a replacement file the event keeps the banner it already has,
+	// even if the client omitted banner_image_url entirely. Left until last so
+	// a request rejected above doesn't orphan an object in the bucket.
+	existingBannerURL := request.BannerImageURL
+	if existingBannerURL == "" {
+		existingBannerURL = event.BannerImageUrl
+	}
+	bannerURL, status, err := resolveBannerURL(ctx, request.Facility, existingBannerURL, banner)
+	if err != nil {
+		return GenericError(c, status, err)
+	}
+
 	err = dbconn.Queries().UpdateEvent(ctx, db.UpdateEventParams{
 		Title:          request.Title,
 		Body:           request.Body,
-		BannerImageUrl: request.BannerImageURL,
+		BannerImageUrl: bannerURL,
 		Facility:       request.Facility,
 		StartTime:      startTime.Unix(),
 		EndTime:        endTime.Unix(),
