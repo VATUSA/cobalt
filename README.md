@@ -108,3 +108,12 @@ See `CLAUDE.md` for more implementation detail on this flow.
 
 A [Bruno](https://www.usebruno.com) collection lives in `Bruno/` for exercising endpoints
 locally (api, login, roster, user, events, news, etc.).
+
+## License
+
+See [LICENSE.md](./LICENSE.md).
+
+## Contributing
+
+Contributions are currently closed to anyone not on the VATUSA Web Team.
+
