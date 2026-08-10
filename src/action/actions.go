@@ -13,4 +13,7 @@ const (
 	ForceVisit               Action = "force_visit"
 	RemovedFromHomeFacility  Action = "removed_from_home_facility"
 	RemovedFromVisitFacility Action = "removed_from_visit_facility"
+	RoleGranted              Action = "role_granted"
+	RoleRevoked              Action = "role_revoked"
+	Migrated                 Action = "migrated"
 )

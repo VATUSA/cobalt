@@ -293,6 +293,16 @@ type AclUserRole struct {
 	GrantedAt  int64
 }
 
+type ActionLog struct {
+	ID        int64
+	ActorCid  int32
+	TargetCid int32
+	Action    string
+	Log       string
+	CreatedAt int64
+	UpdatedAt int64
+}
+
 type Actor struct {
 	ID                int32
 	Name              string
@@ -333,6 +343,12 @@ type Event struct {
 	ReviewStatus   sql.NullString
 	ReviewedBy     sql.NullInt32
 	ReviewedOn     sql.NullInt64
+}
+
+type Facility struct {
+	ID   string
+	Name string
+	Url  string
 }
 
 type NewsPost struct {

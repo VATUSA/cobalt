@@ -28,7 +28,7 @@ func GetMySession(c *echo.Context) error {
 		return c.JSON(http.StatusNotFound, models.Session{})
 	}
 
-	userModel := models.UserFromDatabase(*user, true)
+	userModel := models.UserFromDatabase(*user, true, nil)
 
 	permissionHandler := GetPermissionHandler(c)
 

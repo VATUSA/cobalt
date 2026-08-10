@@ -2,13 +2,21 @@ package models
 
 import (
 	"strings"
+	"vatusa-cobalt/acl"
 	"vatusa-cobalt/db"
 )
+
+type UserRole struct {
+	Facility  string `json:"facility"`
+	Role      string `json:"role"`
+	GrantedAt int64  `json:"granted_at"`
+}
 
 type User struct {
 	CID          int           `json:"cid"`
 	NetworkUser  *NetworkUser  `json:"network_user"`
 	DivisionUser *DivisionUser `json:"division_user"`
+	Roles        []UserRole    `json:"roles"`
 }
 
 type NetworkUser struct {
@@ -34,15 +42,31 @@ type DivisionUser struct {
 	LastTransferTimestamp  *int64   `json:"last_transfer_timestamp"`
 }
 
-func UsersFromDatabase(users []db.GetCombinedUserRow, canSeeSensitiveFields bool) []User {
-	out := make([]User, 0, len(users))
-	for _, user := range users {
-		out = append(out, UserFromDatabase(user, canSeeSensitiveFields))
+func UserRolesFromDatabase(dbRoles []db.AclUserRole) []UserRole {
+	var out []UserRole
+	for _, r := range dbRoles {
+		facility := r.Facility
+		if facility == acl.ScopedRoleGlobalFacility {
+			facility = "ZHQ"
+		}
+		out = append(out, UserRole{
+			Facility:  facility,
+			Role:      r.Role,
+			GrantedAt: r.GrantedAt,
+		})
 	}
 	return out
 }
 
-func UserFromDatabase(user db.GetCombinedUserRow, canSeeSensitiveFields bool) User {
+func UsersFromDatabase(users []db.GetCombinedUserRow, canSeeSensitiveFields bool) []User {
+	var out []User
+	for _, user := range users {
+		out = append(out, UserFromDatabase(user, canSeeSensitiveFields, nil))
+	}
+	return out
+}
+
+func UserFromDatabase(user db.GetCombinedUserRow, canSeeSensitiveFields bool, roles []UserRole) User {
 	output := User{
 		CID: int(user.Cid),
 		NetworkUser: &NetworkUser{
@@ -57,6 +81,7 @@ func UserFromDatabase(user db.GetCombinedUserRow, canSeeSensitiveFields bool) Us
 			MilitaryRating: int(user.Militaryrating),
 		},
 		DivisionUser: nil,
+		Roles:        roles,
 	}
 	if user.SubdivisionID.Valid {
 		output.NetworkUser.SubDivision = &user.SubdivisionID.String

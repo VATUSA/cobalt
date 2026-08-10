@@ -47,7 +47,7 @@ func CreateTransferRequest(user db.GetCombinedUserRow, toFacility string, reason
 		return nil, err
 	}
 	err = action.Log(user, action.TransferRequest,
-		fmt.Sprintf("%s -> %s (%s)", user.Facility, toFacility, reason), actor.Cid)
+		fmt.Sprintf("Transfer request from %s to %s: %s", user.Facility, toFacility, reason), actor.Cid)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +72,15 @@ func AcceptTransferRequest(request db.TransferRequest, actorCid int64) error {
 	if err != nil {
 		return err
 	}
+	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
+	if err != nil {
+		return err
+	}
+	if actor == nil {
+		return errors.New("actor not found")
+	}
 	err = action.Log(*user, action.TransferApproved,
-		fmt.Sprintf("%s -> %s", request.FromFacility, request.ToFacility), actorCid)
+		fmt.Sprintf("Transfer request to %s accepted by %s (%d)", request.ToFacility, actor.DisplayName, actorCid), actorCid)
 	if err != nil {
 		return err
 	}
@@ -97,7 +104,15 @@ func RejectTransferRequest(request db.TransferRequest, actorCid int64) error {
 	if err != nil {
 		return err
 	}
-	err = action.Log(*user, action.TransferDenied, request.Reason, actorCid)
+	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
+	if err != nil {
+		return err
+	}
+	if actor == nil {
+		return errors.New("actor not found")
+	}
+	err = action.Log(*user, action.TransferDenied,
+		fmt.Sprintf("Transfer request to %s denied by %s (%d): %s", request.ToFacility, actor.DisplayName, actorCid, request.Reason), actorCid)
 	if err != nil {
 		return err
 	}
@@ -112,8 +127,15 @@ func ForceTransfer(user db.GetCombinedUserRow, fromFacility string, toFacility s
 	if err != nil {
 		return err
 	}
+	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
+	if err != nil {
+		return err
+	}
+	if actor == nil {
+		return errors.New("actor not found")
+	}
 	err = action.Log(user, action.ForceTransfer,
-		fmt.Sprintf("%s -> %s (%s)", fromFacility, toFacility, reason), actorCid)
+		fmt.Sprintf("Forced transfer from %s to %s by %s (%d): %s", fromFacility, toFacility, actor.DisplayName, actorCid, reason), actorCid)
 	if err != nil {
 		return err
 	}

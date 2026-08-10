@@ -44,7 +44,7 @@ func TransferRequestsCombinedFromDatabase(requests []dbconn.TransferRequestCombi
 func TransferRequestCombinedFromDatabase(request dbconn.TransferRequestCombined, canSeeSensitiveFields bool) TransferRequestCombined {
 	return TransferRequestCombined{
 		TransferRequest: TransferRequestFromDatabase(request.TransferRequest),
-		User:            UserFromDatabase(request.CombinedUserRow, canSeeSensitiveFields),
+		User:            UserFromDatabase(request.CombinedUserRow, canSeeSensitiveFields, nil),
 	}
 }
 
