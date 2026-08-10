@@ -1,0 +1,10 @@
+name: PR Checks
+on:
+  pull_request:
+jobs:
+  migrations-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check migration versions are unique
+        run: ./scripts/check-migrations.sh

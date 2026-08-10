@@ -8,9 +8,15 @@ jobs:
     with:
       image-name: 'cobalt'
     secrets: inherit
+  migrations-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check migration versions are unique
+        run: ./scripts/check-migrations.sh
   common-dev-ci:
     uses: vatusa/gitops/.github/workflows/common-dev-ci.yml@main
-    needs: common-build
+    needs: [common-build, migrations-check]
     with:
       image-name: 'cobalt'
       kustomization-folder: 'cobalt'
