@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"vatusa-cobalt/config"
 )
 
 type permissionKey string
@@ -157,4 +158,36 @@ func (ph *PermissionHandler) GetFacilityPermissionsString() string {
 		}
 	}
 	return strings.Join(segments, ",")
+}
+
+func (ph *PermissionHandler) GetAssignableRoles() map[string][]Role {
+	facilities := map[string]bool{}
+	for key := range ph.facilityPermissions {
+		facility, _, _ := extractFacilityPermissionKey(key)
+		if config.IsSpecialFacility(facility) {
+			continue
+		}
+		facilities[facility] = true
+	}
+
+	output := map[string][]Role{}
+	for role, object := range RoleToPermissionObjectMap {
+		if slices.Contains(AutomaticRoles, role) {
+			continue
+		}
+		if ph.HasGlobal(object, ActionWrite) {
+			output["ZHQ"] = append(output["ZHQ"], role)
+			continue
+		}
+		for facility := range facilities {
+			if ph.HasFacility(facility, object, ActionWrite) {
+				output[facility] = append(output[facility], role)
+			}
+		}
+	}
+
+	for _, roles := range output {
+		slices.Sort(roles)
+	}
+	return output
 }

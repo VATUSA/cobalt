@@ -59,6 +59,26 @@ func GetMySession(c *echo.Context) error {
 	return c.JSON(http.StatusOK, session)
 }
 
+func GetMyAssignableRoles(c *echo.Context) error {
+	cid := auth.GetUserCid(c)
+	if cid == -1 {
+		return GenericError(c, http.StatusUnauthorized, errors.New("login required"))
+	}
+
+	permissionHandler := GetPermissionHandler(c)
+
+	roles := map[string][]string{}
+	for facility, roleList := range permissionHandler.GetAssignableRoles() {
+		names := make([]string, 0, len(roleList))
+		for _, role := range roleList {
+			names = append(names, string(role))
+		}
+		roles[facility] = names
+	}
+
+	return c.JSON(http.StatusOK, models.AssignableRoles{Roles: roles})
+}
+
 func MySubmitTransferRequest(c *echo.Context) error {
 	cid := auth.GetUserCid(c)
 	if cid == -1 {
