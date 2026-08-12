@@ -6,5 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check migration versions are unique
-        run: ./scripts/check-migrations.sh
+        with:
+          fetch-depth: 0
+      - name: Check migrations are unique, complete, and ordered against base
+        run: ./scripts/check-migrations.sh --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"

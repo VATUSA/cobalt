@@ -12,8 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check migration versions are unique
-        run: ./scripts/check-migrations.sh
+        with:
+          fetch-depth: 0
+      - name: Check migrations are unique and ordered
+        run: |
+          base="$(git rev-parse --verify HEAD^ 2>/dev/null || true)"
+          if [ -n "$base" ]; then
+            ./scripts/check-migrations.sh --base "$base"
+          else
+            ./scripts/check-migrations.sh
+          fi
   common-dev-ci:
     uses: vatusa/gitops/.github/workflows/common-dev-ci.yml@main
     needs: [common-build, migrations-check]
