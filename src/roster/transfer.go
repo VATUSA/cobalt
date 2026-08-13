@@ -14,6 +14,8 @@ import (
 const (
 	TransferAccept string = "accept"
 	TransferReject string = "reject"
+
+	systemActorDisplayName = "Automated"
 )
 
 func CreateTransferRequest(user db.GetCombinedUserRow, toFacility string, reason string, actor db.GetCombinedUserRow) (*db.TransferRequest, error) {
@@ -30,28 +32,29 @@ func CreateTransferRequest(user db.GetCombinedUserRow, toFacility string, reason
 		ToFacility:   toFacility,
 		Reason:       reason,
 	}
-	queries := dbconn.Queries()
 	ctx := context.Background()
 
-	res, err := queries.CreateTransferRequest(ctx, params)
-	if err != nil {
-		return nil, err
-	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
+	return dbconn.WithTransactionResult(ctx, func(q *db.Queries) (*db.TransferRequest, error) {
+		res, err := q.CreateTransferRequest(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		id, err := res.LastInsertId()
+		if err != nil {
+			return nil, err
+		}
 
-	transferRequest, err := queries.GetTransferRequestById(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	err = action.Log(user, action.TransferRequest,
-		fmt.Sprintf("Transfer request from %s to %s: %s", user.Facility, toFacility, reason), actor.Cid)
-	if err != nil {
-		return nil, err
-	}
-	return &transferRequest, nil
+		transferRequest, err := q.GetTransferRequestById(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		err = action.Log(q, user, action.TransferRequest,
+			fmt.Sprintf("Transfer request from %s to %s: %s", user.Facility, toFacility, reason), actor.Cid)
+		if err != nil {
+			return nil, err
+		}
+		return &transferRequest, nil
+	})
 }
 
 func AcceptTransferRequest(request db.TransferRequest, actorCid int64) error {
@@ -62,29 +65,23 @@ func AcceptTransferRequest(request db.TransferRequest, actorCid int64) error {
 	if user == nil {
 		return errors.New("user not found")
 	}
-	err = doTransfer(*user, request.FromFacility, request.ToFacility, request.Reason, request.CreatedAt, actorCid)
+	actorName, err := resolveActorDisplayName(actorCid)
 	if err != nil {
 		return err
 	}
-	queries := dbconn.Queries()
 	ctx := context.Background()
-	err = queries.DeleteTransferRequest(ctx, request.ID)
-	if err != nil {
-		return err
-	}
-	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
-	if err != nil {
-		return err
-	}
-	if actor == nil {
-		return errors.New("actor not found")
-	}
-	err = action.Log(*user, action.TransferApproved,
-		fmt.Sprintf("Transfer request to %s accepted by %s (%d)", request.ToFacility, actor.DisplayName, actorCid), actorCid)
-	if err != nil {
-		return err
-	}
-	return nil
+	return dbconn.WithTransaction(ctx, func(q *db.Queries) error {
+		err := doTransfer(q, *user, request.FromFacility, request.ToFacility, request.Reason, request.CreatedAt, actorCid)
+		if err != nil {
+			return err
+		}
+		err = q.DeleteTransferRequest(ctx, request.ID)
+		if err != nil {
+			return err
+		}
+		return action.Log(q, *user, action.TransferApproved,
+			fmt.Sprintf("Transfer request to %s accepted by %s (%d)", request.ToFacility, actorName, actorCid), actorCid)
+	})
 }
 
 func RejectTransferRequest(request db.TransferRequest, actorCid int64) error {
@@ -95,62 +92,66 @@ func RejectTransferRequest(request db.TransferRequest, actorCid int64) error {
 	if user == nil {
 		return errors.New("user not found")
 	}
+	actorName, err := resolveActorDisplayName(actorCid)
+	if err != nil {
+		return err
+	}
 	ctx := context.Background()
 	params := db.UpdateTransferRequestStatusParams{
 		Status: "rejected",
 		ID:     request.ID,
 	}
-	err = dbconn.Queries().UpdateTransferRequestStatus(ctx, params)
-	if err != nil {
-		return err
-	}
-	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
-	if err != nil {
-		return err
-	}
-	if actor == nil {
-		return errors.New("actor not found")
-	}
-	err = action.Log(*user, action.TransferDenied,
-		fmt.Sprintf("Transfer request to %s denied by %s (%d): %s", request.ToFacility, actor.DisplayName, actorCid, request.Reason), actorCid)
-	if err != nil {
-		return err
-	}
-	return nil
+	return dbconn.WithTransaction(ctx, func(q *db.Queries) error {
+		err := q.UpdateTransferRequestStatus(ctx, params)
+		if err != nil {
+			return err
+		}
+		return action.Log(q, *user, action.TransferDenied,
+			fmt.Sprintf("Transfer request to %s denied by %s (%d): %s", request.ToFacility, actorName, actorCid, request.Reason), actorCid)
+	})
 }
 
 func ForceTransfer(user db.GetCombinedUserRow, fromFacility string, toFacility string, reason string, actorCid int64) error {
 	if fromFacility == toFacility {
 		return errors.New("fromFacility and toFacility must not be equal")
 	}
-	err := doTransfer(user, fromFacility, toFacility, reason, time.Now(), actorCid)
+	actorName, err := resolveActorDisplayName(actorCid)
 	if err != nil {
 		return err
+	}
+	ctx := context.Background()
+	return dbconn.WithTransaction(ctx, func(q *db.Queries) error {
+		err := doTransfer(q, user, fromFacility, toFacility, reason, time.Now(), actorCid)
+		if err != nil {
+			return err
+		}
+		return action.Log(q, user, action.ForceTransfer,
+			fmt.Sprintf("Forced transfer from %s to %s by %s (%d): %s", fromFacility, toFacility, actorName, actorCid, reason), actorCid)
+	})
+}
+
+func resolveActorDisplayName(actorCid int64) (string, error) {
+	if actorCid == 0 {
+		return systemActorDisplayName, nil
 	}
 	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
 	if err != nil {
-		return err
+		return "", err
 	}
 	if actor == nil {
-		return errors.New("actor not found")
+		return "", errors.New("actor not found")
 	}
-	err = action.Log(user, action.ForceTransfer,
-		fmt.Sprintf("Forced transfer from %s to %s by %s (%d): %s", fromFacility, toFacility, actor.DisplayName, actorCid, reason), actorCid)
-	if err != nil {
-		return err
-	}
-	return nil
+	return actor.DisplayName, nil
 }
 
-func doTransfer(user db.GetCombinedUserRow, fromFacility string, toFacility string, reason string, requestedAt time.Time, actorCid int64) error {
+func doTransfer(q *db.Queries, user db.GetCombinedUserRow, fromFacility string, toFacility string, reason string, requestedAt time.Time, actorCid int64) error {
 	if fromFacility == toFacility {
 		return errors.New("fromFacility and toFacility must not be equal")
 	}
 	transferTime := time.Now()
-	queries := dbconn.Queries()
 	ctx := context.Background()
 
-	err := queries.UpdateUserForTransfer(ctx, db.UpdateUserForTransferParams{
+	err := q.UpdateUserForTransfer(ctx, db.UpdateUserForTransferParams{
 		Facility: toFacility,
 		LastTransferTime: sql.NullTime{
 			Time:  transferTime,
@@ -162,7 +163,7 @@ func doTransfer(user db.GetCombinedUserRow, fromFacility string, toFacility stri
 		return err
 	}
 
-	_, err = queries.CreateTransferHistoryRecord(ctx, db.CreateTransferHistoryRecordParams{
+	_, err = q.CreateTransferHistoryRecord(ctx, db.CreateTransferHistoryRecordParams{
 		Cid:          user.Cid,
 		FromFacility: fromFacility,
 		ToFacility:   toFacility,
