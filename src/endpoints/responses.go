@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-func GenericSuccess(c *echo.Context, id int) error {
+func RespondSuccess(c *echo.Context, id int) error {
 	response := models.GenericResponse{
 		Success: true,
 		Id:      id,
@@ -16,17 +16,30 @@ func GenericSuccess(c *echo.Context, id int) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-func GenericError(c *echo.Context, statusCode int, errors ...error) error {
+// RespondError is the choke point every error response flows through. The first
+// error becomes the payload; the rest are diagnostic detail, logged but never
+// serialized. Unexpected internals are scrubbed; wrap a message in SafeError to
+// keep it client-visible.
+func RespondError(c *echo.Context, statusCode int, errors ...error) error {
 	response := models.GenericResponse{
 		Success: false,
 		Errors:  []string{},
 	}
-	for _, err := range errors {
-		response.Errors = append(response.Errors, err.Error())
+	status := statusCode
+	for i, err := range errors {
+		classified := classifyError(statusCode, err)
+		if i == 0 {
+			status = classified.status
+			response.Code = string(classified.code)
+			response.Errors = append(response.Errors, classified.message)
+		}
+		if classified.log {
+			logScrubbedError(c, err)
+		}
 	}
-	return c.JSON(statusCode, response)
+	return c.JSON(status, response)
 }
 
-func ErrorNoPermission(c *echo.Context) error {
-	return GenericError(c, http.StatusForbidden, errors.New("permission denied"))
+func RespondForbidden(c *echo.Context) error {
+	return RespondError(c, http.StatusForbidden, errors.New("permission denied"))
 }

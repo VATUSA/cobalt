@@ -17,7 +17,7 @@ func AssertGlobal(c *echo.Context, object acl.Object, action acl.Action) bool {
 	if HasGlobal(c, object, action) {
 		return true
 	}
-	_ = GenericError(c, http.StatusForbidden,
+	_ = RespondError(c, http.StatusForbidden,
 		errors.New(fmt.Sprintf("missing acl global %s:%s", object, action)))
 	return false
 }
@@ -30,7 +30,7 @@ func AssertFacility(c *echo.Context, facility string, object acl.Object, action 
 	if HasFacility(c, facility, object, action) {
 		return true
 	}
-	_ = GenericError(c, http.StatusForbidden,
+	_ = RespondError(c, http.StatusForbidden,
 		errors.New(fmt.Sprintf("missing acl %s %s:%s", facility, object, action)))
 	return false
 }

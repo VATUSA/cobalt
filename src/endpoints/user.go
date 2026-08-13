@@ -19,20 +19,20 @@ func GetUser(c *echo.Context) error {
 	cid := c.Param("cid")
 	cidInt, err := strconv.Atoi(cid)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid cid"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid cid"))
 	}
 
 	user, err := dbconn.GetCombinedUserByCID(cidInt)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	if user == nil {
-		return GenericError(c, http.StatusNotFound, errors.New("user not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 
 	dbRoles, err := dbconn.Queries().GetRolesForUser(context.Background(), int32(cidInt))
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
 	output := models.UserFromDatabase(*user, canSeeSensitiveFields, models.UserRolesFromDatabase(dbRoles))
@@ -50,7 +50,7 @@ func SearchUsers(c *echo.Context) error {
 	}
 	query := c.QueryParam("q")
 	if strings.TrimSpace(query) == "" {
-		return GenericError(c, http.StatusBadRequest, errors.New("q is required"))
+		return RespondError(c, http.StatusBadRequest, errors.New("q is required"))
 	}
 
 	limit, err := strconv.Atoi(c.QueryParam("limit"))
@@ -64,7 +64,7 @@ func SearchUsers(c *echo.Context) error {
 
 	users, err := dbconn.SearchUsers(query, limit)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
 	// The gate above is the same permission that unredacts names, so results
@@ -81,14 +81,14 @@ func GetUserBlockers(c *echo.Context) error {
 	cid := c.Param("cid")
 	cidInt, err := strconv.Atoi(cid)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid cid"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid cid"))
 	}
 	user, err := dbconn.GetCombinedUserByCID(cidInt)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	if user == nil {
-		return GenericError(c, http.StatusNotFound, errors.New("user not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 	userBlockers := roster.GetUserBlockers(*user)
 	return c.JSON(http.StatusOK, userBlockers)

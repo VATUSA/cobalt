@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"vatusa-cobalt/config"
+	"vatusa-cobalt/endpoints"
 	"vatusa-cobalt/routes"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -29,7 +30,9 @@ func main() {
 	}
 
 	e := echo.New()
+	e.HTTPErrorHandler = endpoints.ErrorHandler
 	e.Group("/api")
+	e.Use(middleware.Recover())
 	e.Use(middleware.RequestLogger())
 
 	e.GET("/", func(c *echo.Context) error {

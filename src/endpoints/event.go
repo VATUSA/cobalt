@@ -99,7 +99,7 @@ func CreateEvent(c *echo.Context) error {
 	var request models.EventRequest
 	banner, err := bindEventRequest(c, &request)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, err)
+		return RespondError(c, http.StatusBadRequest, err)
 	}
 
 	if !AssertFacility(c, request.Facility, acl.ObjectEvent, acl.ActionWrite) {
@@ -108,18 +108,18 @@ func CreateEvent(c *echo.Context) error {
 
 	startTime, err := time.Parse(config.TimestampFormat, request.StartTimestamp)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid start time"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid start time"))
 	}
 	endTime, err := time.Parse(config.TimestampFormat, request.EndTimestamp)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid end time"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid end time"))
 	}
 
 	// Last thing before the insert: an upload that succeeds but is then
 	// followed by a rejected request leaves an orphaned object in the bucket.
 	bannerURL, status, err := resolveBannerURL(ctx, request.Facility, request.BannerImageURL, banner)
 	if err != nil {
-		return GenericError(c, status, err)
+		return RespondError(c, status, err)
 	}
 
 	result, err := dbconn.Queries().CreateEvent(ctx, db.CreateEventParams{
@@ -135,30 +135,30 @@ func CreateEvent(c *echo.Context) error {
 		UpdatedBy:      int32(auth.GetUserCid(c)),
 	})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	insertId, err := result.LastInsertId()
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
-	return GenericSuccess(c, int(insertId))
+	return RespondSuccess(c, int(insertId))
 }
 
 func UpdateEvent(c *echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid event id"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid event id"))
 	}
 	ctx := c.Request().Context()
 	var request models.EventRequest
 	banner, err := bindEventRequest(c, &request)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, err)
+		return RespondError(c, http.StatusBadRequest, err)
 	}
 
 	event, err := dbconn.Queries().GetEventById(ctx, int64(id))
 	if err != nil {
-		return GenericError(c, http.StatusNotFound, errors.New("event not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("event not found"))
 	}
 
 	// Check both facilities: user must have write access to both current and new facility
@@ -171,11 +171,11 @@ func UpdateEvent(c *echo.Context) error {
 
 	startTime, err := time.Parse(config.TimestampFormat, request.StartTimestamp)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid start time"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid start time"))
 	}
 	endTime, err := time.Parse(config.TimestampFormat, request.EndTimestamp)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid end time"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid end time"))
 	}
 
 	// Without a replacement file the event keeps the banner it already has,
@@ -187,7 +187,7 @@ func UpdateEvent(c *echo.Context) error {
 	}
 	bannerURL, status, err := resolveBannerURL(ctx, request.Facility, existingBannerURL, banner)
 	if err != nil {
-		return GenericError(c, status, err)
+		return RespondError(c, status, err)
 	}
 
 	err = dbconn.Queries().UpdateEvent(ctx, db.UpdateEventParams{
@@ -202,9 +202,9 @@ func UpdateEvent(c *echo.Context) error {
 		ID:             int64(id),
 	})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
-	return GenericSuccess(c, id)
+	return RespondSuccess(c, id)
 }
 
 func ReviewEvent(c *echo.Context) error {
@@ -213,19 +213,19 @@ func ReviewEvent(c *echo.Context) error {
 	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid event id"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid event id"))
 	}
 	var request models.EventReviewRequest
 	if err = c.Bind(&request); err != nil {
-		return GenericError(c, http.StatusBadRequest, err)
+		return RespondError(c, http.StatusBadRequest, err)
 	}
 	if request.Status != "approved" && request.Status != "rejected" {
-		return GenericError(c, http.StatusBadRequest, errors.New("status must be 'approved' or 'rejected'"))
+		return RespondError(c, http.StatusBadRequest, errors.New("status must be 'approved' or 'rejected'"))
 	}
 	ctx := c.Request().Context()
 	_, err = dbconn.Queries().GetEventById(ctx, int64(id))
 	if err != nil {
-		return GenericError(c, http.StatusNotFound, errors.New("event not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("event not found"))
 	}
 	reviewerCid := int32(auth.GetUserCid(c))
 	err = dbconn.Queries().SetEventReviewStatus(ctx, db.SetEventReviewStatusParams{
@@ -235,20 +235,20 @@ func ReviewEvent(c *echo.Context) error {
 		ID:           int64(id),
 	})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
-	return GenericSuccess(c, id)
+	return RespondSuccess(c, id)
 }
 
 func DeleteEvent(c *echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid event id"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid event id"))
 	}
 	ctx := c.Request().Context()
 	event, err := dbconn.Queries().GetEventById(ctx, int64(id))
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
 	if !AssertFacility(c, event.Facility, acl.ObjectEvent, acl.ActionWrite) {
@@ -257,26 +257,26 @@ func DeleteEvent(c *echo.Context) error {
 
 	err = dbconn.Queries().DeleteEvent(ctx, int64(id))
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
-	return GenericSuccess(c, id)
+	return RespondSuccess(c, id)
 }
 
 func GetEventById(c *echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid event id"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid event id"))
 	}
 	ctx := c.Request().Context()
 	event, err := dbconn.Queries().GetEventById(ctx, int64(id))
 	if err != nil {
-		return GenericError(c, http.StatusNotFound, errors.New("event not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("event not found"))
 	}
 	if event.ReviewStatus.String != "approved" {
 		authorized := HasGlobal(c, acl.ObjectEventApproval, acl.ActionRead) ||
 			HasFacility(c, event.Facility, acl.ObjectEvent, acl.ActionWrite)
 		if !authorized {
-			return GenericError(c, http.StatusNotFound, errors.New("event not found"))
+			return RespondError(c, http.StatusNotFound, errors.New("event not found"))
 		}
 	}
 	return c.JSON(http.StatusOK, models.EventFromDatabase(event))
@@ -299,7 +299,7 @@ func GetUpcomingEvents(c *echo.Context) error {
 		Offset:  0,
 	})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	return c.JSON(http.StatusOK, models.EventsFromDatabase(events))
 }
@@ -307,7 +307,7 @@ func GetUpcomingEvents(c *echo.Context) error {
 func GetEventsPage(c *echo.Context) error {
 	page, err := strconv.Atoi(c.QueryParamOr("page", "1"))
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid page"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid page"))
 	}
 	facility := strings.ToUpper(strings.TrimSpace(c.QueryParamOr("facility", "")))
 	recordsPerPage := 25
@@ -343,7 +343,7 @@ func GetEventsPage(c *echo.Context) error {
 		})
 	}
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	return c.JSON(http.StatusOK, models.EventsFromDatabase(events))
 }

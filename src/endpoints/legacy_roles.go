@@ -20,7 +20,7 @@ func LegacySyncRoles(c *echo.Context) error {
 	}
 	err = legacy_migration.SyncRolesForUser(request)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
 	return c.JSON(http.StatusOK, "sync roles successful")
@@ -39,7 +39,7 @@ func LegacySyncRolesBulk(c *echo.Context) error {
 	for _, req := range request.Requests {
 		err = legacy_migration.SyncRolesForUser(req)
 		if err != nil {
-			return GenericError(c, http.StatusInternalServerError, err)
+			return RespondError(c, http.StatusInternalServerError, err)
 		}
 	}
 
