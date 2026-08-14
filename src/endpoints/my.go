@@ -3,6 +3,7 @@ package endpoints
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/models"
@@ -99,6 +100,9 @@ func MySubmitTransferRequest(c *echo.Context) error {
 	blockers := roster.GetUserBlockers(*user)
 	if blockers.IsTransferBlocked {
 		return RespondError(c, http.StatusBadRequest, errors.New("user is transfer blocked"))
+	}
+	if strings.EqualFold(user.Facility, request.ToFacility) {
+		return RespondError(c, http.StatusBadRequest, errors.New("from facility and to facility must not be equal"))
 	}
 	rec, err := roster.CreateTransferRequest(*user, request.ToFacility, request.Reason, *user)
 	if err != nil {

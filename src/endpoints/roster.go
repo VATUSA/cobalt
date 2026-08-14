@@ -76,16 +76,23 @@ func ActionFacilityPendingTransfer(c *echo.Context) error {
 	if request.Action == roster.TransferAccept {
 		err = roster.AcceptTransferRequest(transferRequest, int64(cid))
 		if err != nil {
-			return RespondError(c, http.StatusInternalServerError, err)
+			return respondTransferActionError(c, err)
 		}
 		return RespondSuccess(c, int(transferRequest.ID))
 	} else if request.Action == roster.TransferReject {
 		err = roster.RejectTransferRequest(transferRequest, int64(cid))
 		if err != nil {
-			return RespondError(c, http.StatusInternalServerError, err)
+			return respondTransferActionError(c, err)
 		}
 		return RespondSuccess(c, int(transferRequest.ID))
 	}
 
 	return RespondError(c, http.StatusBadRequest, errors.New("invalid action"))
+}
+
+func respondTransferActionError(c *echo.Context, err error) error {
+	if errors.Is(err, roster.ErrUserNotFound) {
+		return RespondError(c, http.StatusNotFound, err)
+	}
+	return RespondError(c, http.StatusInternalServerError, err)
 }

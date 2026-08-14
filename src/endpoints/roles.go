@@ -148,7 +148,7 @@ func GrantRole(c *echo.Context) error {
 		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
-return RespondSuccess(c, cidInt)
+	return RespondSuccess(c, cidInt)
 }
 
 func RevokeRole(c *echo.Context) error {
@@ -237,5 +237,5 @@ func RevokeRole(c *echo.Context) error {
 		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
-return RespondSuccess(c, cidInt)
+	return RespondSuccess(c, cidInt)
 }

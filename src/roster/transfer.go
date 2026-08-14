@@ -18,6 +18,8 @@ const (
 	systemActorDisplayName = "Automated"
 )
 
+var ErrUserNotFound = errors.New("user not found")
+
 func CreateTransferRequest(user db.GetCombinedUserRow, toFacility string, reason string, actor db.GetCombinedUserRow) (*db.TransferRequest, error) {
 	if user.Facility == toFacility {
 		return nil, errors.New("fromFacility and toFacility must not be equal")
@@ -63,7 +65,7 @@ func AcceptTransferRequest(request db.TransferRequest, actorCid int64) error {
 		return err
 	}
 	if user == nil {
-		return errors.New("user not found")
+		return ErrUserNotFound
 	}
 	actorName, err := resolveActorDisplayName(actorCid)
 	if err != nil {
@@ -90,7 +92,7 @@ func RejectTransferRequest(request db.TransferRequest, actorCid int64) error {
 		return err
 	}
 	if user == nil {
-		return errors.New("user not found")
+		return ErrUserNotFound
 	}
 	actorName, err := resolveActorDisplayName(actorCid)
 	if err != nil {
