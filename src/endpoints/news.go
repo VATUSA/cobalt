@@ -74,7 +74,7 @@ func UpdatePost(c *echo.Context) error {
 		ID:       int32(postId),
 	})
 	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, SafeError("failed to update post"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to update post"), err)
 	}
 	return RespondSuccess(c, postId)
 }
@@ -99,7 +99,7 @@ func DeletePost(c *echo.Context) error {
 
 	err = dbconn.Queries().DeleteNewsPostById(ctx, int32(postId))
 	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, SafeError("failed to delete post"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to delete post"), err)
 	}
 	return RespondSuccess(c, postId)
 }
@@ -157,7 +157,7 @@ func GetNewsPage(c *echo.Context) error {
 		Limit:  int32(recordsPerPage),
 	})
 	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, SafeError("error loading posts"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("error loading posts"), err)
 	}
 	output := models.NewsPostsFromDatabase(news)
 	return c.JSON(http.StatusOK, output)

@@ -86,15 +86,15 @@ func Connect(c *echo.Context) error {
 	code := c.QueryParam("code")
 	token, err := vatsim.FetchToken(code)
 	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, SafeError("error fetching connect access token"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("error fetching connect access token"), err)
 	}
 	userData, err := vatsim.FetchUserData(token)
 	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, SafeError("error fetching connect user data"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("error fetching connect user data"), err)
 	}
 	cid, err := strconv.Atoi(userData.CID)
 	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, SafeError("error extracting cid"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("error extracting cid"), err)
 	}
 
 	err = vatsim.StoreVatsimUserRecordConnect(userData)
@@ -124,7 +124,7 @@ func Connect(c *echo.Context) error {
 
 	jwt, err := login.CreateTokenForUser(*user)
 	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, SafeError("failed to create token"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to create token"), err)
 	}
 	c.SetCookie(auth.NewSessionCookie(jwt))
 
@@ -173,7 +173,7 @@ func GetGenerateUserToken(c *echo.Context) error {
 	}
 	token, err := login.CreateTokenForUser(*user)
 	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, SafeError("failed to create token"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to create token"), err)
 	}
 	data := make(map[string]string)
 	data["token"] = token
@@ -250,7 +250,7 @@ func LoginAs(c *echo.Context) error {
 
 	token, err := login.CreateTokenForUser(*user)
 	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, SafeError("failed to create token"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to create token"), err)
 	}
 	c.SetCookie(auth.NewSessionCookie(token))
 	return c.JSON(http.StatusOK, "success")

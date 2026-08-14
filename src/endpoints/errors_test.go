@@ -46,6 +46,7 @@ func TestClassifyError(t *testing.T) {
 			wantStatus: http.StatusConflict,
 			wantMsg:    "already exists",
 			wantCode:   CodeConflict,
+			wantLog:    true,
 		},
 		{
 			name:   "wrapped duplicate entry is still recognized",
@@ -57,6 +58,7 @@ func TestClassifyError(t *testing.T) {
 			wantStatus: http.StatusConflict,
 			wantMsg:    "already exists",
 			wantCode:   CodeConflict,
+			wantLog:    true,
 		},
 		{
 			name:   "foreign key violation is a conflict",
@@ -68,6 +70,7 @@ func TestClassifyError(t *testing.T) {
 			wantStatus: http.StatusConflict,
 			wantMsg:    "conflict",
 			wantCode:   CodeConflict,
+			wantLog:    true,
 		},
 		{
 			name:   "deadlock is a retryable conflict and is logged",
@@ -151,6 +154,7 @@ func TestClassifyError(t *testing.T) {
 			wantStatus: http.StatusInternalServerError,
 			wantMsg:    "failed to update post",
 			wantCode:   CodeInternal,
+			wantLog:    true,
 		},
 		{
 			name:       "safe message passes through a 4xx verbatim",
@@ -167,6 +171,23 @@ func TestClassifyError(t *testing.T) {
 			wantStatus: http.StatusInternalServerError,
 			wantMsg:    "failed to create token",
 			wantCode:   CodeInternal,
+			wantLog:    true,
+		},
+		{
+			name:       "method not allowed status maps to method_not_allowed code",
+			status:     http.StatusMethodNotAllowed,
+			err:        errors.New("method not allowed"),
+			wantStatus: http.StatusMethodNotAllowed,
+			wantMsg:    "method not allowed",
+			wantCode:   CodeMethodNotAllowed,
+		},
+		{
+			name:       "unprocessable entity status maps to unprocessable_entity code",
+			status:     http.StatusUnprocessableEntity,
+			err:        errors.New("invalid payload"),
+			wantStatus: http.StatusUnprocessableEntity,
+			wantMsg:    "invalid payload",
+			wantCode:   CodeUnprocessableEntity,
 		},
 	}
 
@@ -337,5 +358,29 @@ func TestErrorHandlerScrubsPanics(t *testing.T) {
 	}
 	if !strings.Contains(body, internalErrorMessage) || !strings.Contains(body, `"code":"internal"`) {
 		t.Errorf("response = %s", body)
+	}
+}
+
+func TestErrorHandlerRendersHTTPErrorEnvelope(t *testing.T) {
+	e := echo.New()
+	e.HTTPErrorHandler = ErrorHandler
+	e.Logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	e.GET("/unauthorized", func(c *echo.Context) error {
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid or expired session")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/unauthorized", nil)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "invalid or expired session") {
+		t.Errorf("HTTPError message was not preserved: %s", body)
+	}
+	if !strings.Contains(body, `"code":"unauthorized"`) {
+		t.Errorf("response missing code: %s", body)
 	}
 }

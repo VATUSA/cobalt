@@ -14,7 +14,7 @@ func CookieAuth(next echo.HandlerFunc) echo.HandlerFunc {
 		if err == nil {
 			cid, err = auth.GetCIDFromToken(token.Value)
 			if err != nil {
-				return c.String(http.StatusUnauthorized, "token error")
+				return echo.NewHTTPError(http.StatusUnauthorized, "invalid or expired session")
 			}
 		}
 		c.Set(auth.ContextUserCID, cid)

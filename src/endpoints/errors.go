@@ -15,12 +15,14 @@ import (
 type ErrorCode string
 
 const (
-	CodeInternal     ErrorCode = "internal"
-	CodeNotFound     ErrorCode = "not_found"
-	CodeConflict     ErrorCode = "conflict"
-	CodeBadRequest   ErrorCode = "bad_request"
-	CodeForbidden    ErrorCode = "forbidden"
-	CodeUnauthorized ErrorCode = "unauthorized"
+	CodeInternal            ErrorCode = "internal"
+	CodeNotFound            ErrorCode = "not_found"
+	CodeConflict            ErrorCode = "conflict"
+	CodeBadRequest          ErrorCode = "bad_request"
+	CodeForbidden           ErrorCode = "forbidden"
+	CodeUnauthorized        ErrorCode = "unauthorized"
+	CodeMethodNotAllowed    ErrorCode = "method_not_allowed"
+	CodeUnprocessableEntity ErrorCode = "unprocessable_entity"
 )
 
 const internalErrorMessage = "internal server error"
@@ -56,6 +58,10 @@ func codeForStatus(status int) ErrorCode {
 		return CodeForbidden
 	case http.StatusUnauthorized:
 		return CodeUnauthorized
+	case http.StatusMethodNotAllowed:
+		return CodeMethodNotAllowed
+	case http.StatusUnprocessableEntity:
+		return CodeUnprocessableEntity
 	default:
 		return CodeBadRequest
 	}
@@ -71,7 +77,9 @@ func classifyError(status int, err error) classifiedError {
 		if status < http.StatusInternalServerError {
 			code = codeForStatus(status)
 		}
-		return classifiedError{status: status, message: safe.message, code: code}
+		// A safe message at 5xx is still a server failure: log it so a
+		// dropped underlying error can't make the failure invisible.
+		return classifiedError{status: status, message: safe.message, code: code, log: status >= http.StatusInternalServerError}
 	}
 
 	if status < http.StatusInternalServerError {
@@ -85,11 +93,11 @@ func classifyError(status int, err error) classifiedError {
 	case errors.As(err, &mysqlErr):
 		switch mysqlErr.Number {
 		case 1062:
-			return classifiedError{status: http.StatusConflict, message: "already exists", code: CodeConflict}
+			return classifiedError{status: http.StatusConflict, message: "already exists", code: CodeConflict, log: true}
 		case 1213:
 			return classifiedError{status: http.StatusConflict, message: "conflict", code: CodeConflict, log: true}
 		case 1451, 1452:
-			return classifiedError{status: http.StatusConflict, message: "conflict", code: CodeConflict}
+			return classifiedError{status: http.StatusConflict, message: "conflict", code: CodeConflict, log: true}
 		default:
 			return classifiedError{status: http.StatusInternalServerError, message: internalErrorMessage, code: CodeInternal, log: true}
 		}
