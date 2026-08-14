@@ -121,18 +121,32 @@ func GrantRole(c *echo.Context) error {
 		}
 	}
 
-	err = dbconn.Queries().AddRoleToUser(context.Background(), db.AddRoleToUserParams{
-		Cid:        int32(cidInt),
-		Facility:   dbFacility,
-		Role:       roleStr,
-		GrantorCid: int32(auth.GetUserCid(c)),
-		GrantedAt:  time.Now().Unix(),
+	actorCid := int64(auth.GetUserCid(c))
+	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if actor == nil {
+		return GenericError(c, http.StatusInternalServerError, errors.New("actor not found"))
+	}
+
+	err = dbconn.WithTransaction(context.Background(), func(q *db.Queries) error {
+		err := q.AddRoleToUser(context.Background(), db.AddRoleToUserParams{
+			Cid:        int32(cidInt),
+			Facility:   dbFacility,
+			Role:       roleStr,
+			GrantorCid: int32(actorCid),
+			GrantedAt:  time.Now().Unix(),
+		})
+		if err != nil {
+			return err
+		}
+		return action.Log(q, *user, action.RoleGranted,
+			fmt.Sprintf("Granted role %s at %s by %s (%d)", roleStr, facility, actor.DisplayName, actorCid), actorCid)
 	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
-
-	action.Log(*user, action.RoleGranted, fmt.Sprintf("Granted role %s at %s", roleStr, facility), int64(auth.GetUserCid(c)))
 
 	return GenericSuccess(c, cidInt)
 }
@@ -198,16 +212,30 @@ func RevokeRole(c *echo.Context) error {
 		return GenericError(c, http.StatusNotFound, errors.New("role not found"))
 	}
 
-	err = dbconn.Queries().RemoveRoleFromUser(context.Background(), db.RemoveRoleFromUserParams{
-		Cid:      int32(cidInt),
-		Facility: dbFacility,
-		Role:     roleStr,
+	actorCid := int64(auth.GetUserCid(c))
+	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if actor == nil {
+		return GenericError(c, http.StatusInternalServerError, errors.New("actor not found"))
+	}
+
+	err = dbconn.WithTransaction(context.Background(), func(q *db.Queries) error {
+		err := q.RemoveRoleFromUser(context.Background(), db.RemoveRoleFromUserParams{
+			Cid:      int32(cidInt),
+			Facility: dbFacility,
+			Role:     roleStr,
+		})
+		if err != nil {
+			return err
+		}
+		return action.Log(q, *user, action.RoleRevoked,
+			fmt.Sprintf("Revoked role %s at %s by %s (%d)", roleStr, facility, actor.DisplayName, actorCid), actorCid)
 	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
 	}
-
-	action.Log(*user, action.RoleRevoked, fmt.Sprintf("Revoked role %s at %s", roleStr, facility), int64(auth.GetUserCid(c)))
 
 	return GenericSuccess(c, cidInt)
 }

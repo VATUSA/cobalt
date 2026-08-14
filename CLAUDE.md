@@ -49,6 +49,15 @@ all three and defaults its entrypoint to `server`. Packages under `src/`:
 - `vatsim` — VATSIM integration; `legacy_migration` — migration from the legacy system
 - `config`, `cli`, `server`, `cmd` — wiring and entrypoints
 
+### Action logging and transactions
+
+Any flow that writes business data and also records an `action_log` row must do both
+atomically via `dbconn.WithTransaction` (or `dbconn.WithTransactionResult` when the flow
+returns a row). `action.Log` only accepts the tx-backed `*db.Queries`, so an audit record
+can never be written outside the transaction — `dbconn.Queries()` is read-only. The system
+actor (VATSIM sync, automated jobs) is CID 0 with display name `Automated` (legacy
+`action_log.from = 0` convention; `roster.resolveActorDisplayName`).
+
 ## Login / VATSIM Connect flow
 
 Cobalt is the sole identity provider for the VATUSA stack (`webapps` and `current` both
