@@ -4,6 +4,25 @@ Command to create migrations:
 
 migrate create -ext sql -dir sql/migrations -seq create_users_table
 
-Command to generate db models:
+Use -seq (sequential) naming. It is a required flag: the create default writes
+timestamped names (format 20060102150405), which CI rejects as a mixed scheme
+and which permanently break -seq afterward (the next sequence number becomes
+the 14-digit timestamp). CI enforces that all versions share one digit length
+(scripts/check-migrations.sh).
 
+golang-migrate only applies migrations with a version newer than the highest
+one already recorded in a database's schema_migrations table. A migration with
+an older version that is merged after a newer one has deployed is silently
+skipped. A version number is therefore consumed the moment its migration is
+merged to the release branch, and merged migrations are immutable: CI refuses
+edits, renames, and deletions of existing migrations and requires every new
+version to be strictly greater than everything already on the base branch.
+
+If your branch's migration fell behind one that merged first, rename its .up
+and .down files to the next free -seq number before merging — no database
+action is needed since it has not been applied anywhere yet. If your branch
+predates a merged migration, rebase so the branch carries it. CI enforces all
+of this (scripts/check-migrations.sh --base).
+
+Command to generate db models:
 sqlc generate
