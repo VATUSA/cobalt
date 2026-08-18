@@ -158,19 +158,31 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 		return RespondError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 
-	grantorCid := int32(auth.GetUserCid(c))
-	grantedAt := time.Now().Unix()
-	err = dbconn.Queries().AssignUserTitle(ctx, db.AssignUserTitleParams{
-		Cid:        int32(cid),
-		TitleID:    titleId,
-		GrantorCid: grantorCid,
-		GrantedAt:  grantedAt,
+	actorCid := int64(auth.GetUserCid(c))
+	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
+	if err != nil {
+		return RespondError(c, http.StatusInternalServerError, err)
+	}
+	if actor == nil {
+		return RespondError(c, http.StatusInternalServerError, errors.New("actor not found"))
+	}
+
+	err = dbconn.WithTransaction(ctx, func(q *db.Queries) error {
+		err := q.AssignUserTitle(ctx, db.AssignUserTitleParams{
+			Cid:        int32(cid),
+			TitleID:    titleId,
+			GrantorCid: int32(actorCid),
+			GrantedAt:  time.Now().Unix(),
+		})
+		if err != nil {
+			return err
+		}
+		return action.Log(q, *user, action.TitleGranted,
+			fmt.Sprintf("Granted title %s at %s by %s (%d)", title.Title, facility, actor.DisplayName, actorCid), actorCid)
 	})
 	if err != nil {
 		return RespondError(c, http.StatusInternalServerError, err)
 	}
-
-	action.Log(dbconn.Queries(), *user, action.TitleGranted, fmt.Sprintf("Granted title %s at %s", title.Title, facility), int64(auth.GetUserCid(c)))
 
 	return RespondSuccess(c, int(cid))
 }
@@ -213,15 +225,29 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 		return RespondError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 
-	err = dbconn.Queries().DeleteUserTitle(ctx, db.DeleteUserTitleParams{
-		Cid:     int32(cid),
-		TitleID: titleId,
-	})
+	actorCid := int64(auth.GetUserCid(c))
+	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
 	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, SafeError("failed to remove title"), err)
+		return RespondError(c, http.StatusInternalServerError, err)
+	}
+	if actor == nil {
+		return RespondError(c, http.StatusInternalServerError, errors.New("actor not found"))
 	}
 
-	action.Log(dbconn.Queries(), *user, action.TitleRevoked, fmt.Sprintf("Revoked title %s at %s", title.Title, facility), int64(auth.GetUserCid(c)))
+	err = dbconn.WithTransaction(ctx, func(q *db.Queries) error {
+		err := q.DeleteUserTitle(ctx, db.DeleteUserTitleParams{
+			Cid:     int32(cid),
+			TitleID: titleId,
+		})
+		if err != nil {
+			return err
+		}
+		return action.Log(q, *user, action.TitleRevoked,
+			fmt.Sprintf("Revoked title %s at %s by %s (%d)", title.Title, facility, actor.DisplayName, actorCid), actorCid)
+	})
+	if err != nil {
+		return RespondError(c, http.StatusInternalServerError, err)
+	}
 
 	return RespondSuccess(c, int(titleId))
 }
