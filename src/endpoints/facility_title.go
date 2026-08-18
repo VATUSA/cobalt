@@ -21,7 +21,7 @@ func GetFacilityTitles(c *echo.Context) error {
 
 	titles, err := dbconn.Queries().GetFacilityTitles(c.Request().Context(), facility)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
 	return c.JSON(http.StatusOK, models.FacilityTitlesFromDatabase(titles))
@@ -29,7 +29,7 @@ func GetFacilityTitles(c *echo.Context) error {
 
 func validateTitleFacility(c *echo.Context, facility string) bool {
 	if _, err := dbconn.Queries().GetFacility(c.Request().Context(), facility); err != nil {
-		_ = GenericError(c, http.StatusBadRequest, errors.New("unknown facility"))
+		_ = RespondError(c, http.StatusBadRequest, errors.New("unknown facility"))
 		return false
 	}
 	return true
@@ -47,10 +47,10 @@ func CreateFacilityTitle(c *echo.Context) error {
 	var request models.FacilityTitleRequest
 	err := c.Bind(&request)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, err)
+		return RespondError(c, http.StatusBadRequest, err)
 	}
 	if _, ok := acl.TitleTierToPermissionObjectMap[request.Tier]; !ok {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid title tier"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid title tier"))
 	}
 
 	result, err := dbconn.Queries().CreateFacilityTitle(ctx, db.CreateFacilityTitleParams{
@@ -61,14 +61,14 @@ func CreateFacilityTitle(c *echo.Context) error {
 		CreatedAt: time.Now().Unix(),
 	})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	lastInsertId, err := result.LastInsertId()
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
-	return GenericSuccess(c, int(lastInsertId))
+	return RespondSuccess(c, int(lastInsertId))
 }
 
 func DeleteFacilityTitle(c *echo.Context) error {
@@ -82,29 +82,29 @@ func DeleteFacilityTitle(c *echo.Context) error {
 	ctx := c.Request().Context()
 	titleId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid title id"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid title id"))
 	}
 
 	title, err := dbconn.Queries().GetFacilityTitleById(ctx, titleId)
 	if err != nil {
-		return GenericError(c, http.StatusNotFound, errors.New("title not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("title not found"))
 	}
 	if title.Facility != facility {
-		return GenericError(c, http.StatusNotFound, errors.New("title not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("title not found"))
 	}
 
 	err = dbconn.Queries().DeleteFacilityTitleById(ctx, titleId)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, errors.New("failed to delete title"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to delete title"), err)
 	}
-	return GenericSuccess(c, int(titleId))
+	return RespondSuccess(c, int(titleId))
 }
 
 func GetUserFacilityTitles(c *echo.Context) error {
 	facility := c.Param("facility")
 	cid, err := strconv.ParseInt(c.Param("cid"), 10, 32)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid cid"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid cid"))
 	}
 
 	titles, err := dbconn.Queries().GetUserTitlesByFacility(c.Request().Context(), db.GetUserTitlesByFacilityParams{
@@ -112,7 +112,7 @@ func GetUserFacilityTitles(c *echo.Context) error {
 		Facility: facility,
 	})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
 	return c.JSON(http.StatusOK, models.UserFacilityTitlesFromDatabase(titles))
@@ -126,25 +126,25 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 	ctx := c.Request().Context()
 	cid, err := strconv.ParseInt(c.Param("cid"), 10, 32)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid cid"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid cid"))
 	}
 	var request models.AssignFacilityTitleRequest
 	err = c.Bind(&request)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, err)
+		return RespondError(c, http.StatusBadRequest, err)
 	}
 	titleId := request.TitleId
 
 	title, err := dbconn.Queries().GetFacilityTitleById(ctx, titleId)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid title id"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid title id"))
 	}
 	if title.Facility != facility {
-		return GenericError(c, http.StatusBadRequest, errors.New("title does not belong to facility"))
+		return RespondError(c, http.StatusBadRequest, errors.New("title does not belong to facility"))
 	}
 	permissionObject, ok := acl.TitleTierToPermissionObjectMap[title.Tier]
 	if !ok {
-		return GenericError(c, http.StatusBadRequest, errors.New("title tier cannot be assigned"))
+		return RespondError(c, http.StatusBadRequest, errors.New("title tier cannot be assigned"))
 	}
 	if !AssertFacility(c, facility, permissionObject, acl.ActionWrite) {
 		return nil
@@ -152,10 +152,10 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 
 	user, err := dbconn.GetCombinedUserByCID(int(cid))
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	if user == nil {
-		return GenericError(c, http.StatusNotFound, errors.New("user not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 
 	grantorCid := int32(auth.GetUserCid(c))
@@ -167,12 +167,12 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 		GrantedAt:  grantedAt,
 	})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
-	action.Log(*user, action.TitleGranted, fmt.Sprintf("Granted title %s at %s", title.Title, facility), int64(auth.GetUserCid(c)))
+	action.Log(dbconn.Queries(), *user, action.TitleGranted, fmt.Sprintf("Granted title %s at %s", title.Title, facility), int64(auth.GetUserCid(c)))
 
-	return GenericSuccess(c, int(cid))
+	return RespondSuccess(c, int(cid))
 }
 
 func DeleteUserFacilityTitle(c *echo.Context) error {
@@ -183,23 +183,23 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 	ctx := c.Request().Context()
 	cid, err := strconv.ParseInt(c.Param("cid"), 10, 32)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid cid"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid cid"))
 	}
 	titleId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid title id"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid title id"))
 	}
 
 	title, err := dbconn.Queries().GetFacilityTitleById(ctx, titleId)
 	if err != nil {
-		return GenericError(c, http.StatusNotFound, errors.New("title not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("title not found"))
 	}
 	if title.Facility != facility {
-		return GenericError(c, http.StatusNotFound, errors.New("title not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("title not found"))
 	}
 	permissionObject, ok := acl.TitleTierToPermissionObjectMap[title.Tier]
 	if !ok {
-		return GenericError(c, http.StatusBadRequest, errors.New("title tier cannot be assigned"))
+		return RespondError(c, http.StatusBadRequest, errors.New("title tier cannot be assigned"))
 	}
 	if !AssertFacility(c, facility, permissionObject, acl.ActionWrite) {
 		return nil
@@ -207,10 +207,10 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 
 	user, err := dbconn.GetCombinedUserByCID(int(cid))
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	if user == nil {
-		return GenericError(c, http.StatusNotFound, errors.New("user not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 
 	err = dbconn.Queries().DeleteUserTitle(ctx, db.DeleteUserTitleParams{
@@ -218,10 +218,10 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 		TitleID: titleId,
 	})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, errors.New("failed to remove title"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to remove title"), err)
 	}
 
-	action.Log(*user, action.TitleRevoked, fmt.Sprintf("Revoked title %s at %s", title.Title, facility), int64(auth.GetUserCid(c)))
+	action.Log(dbconn.Queries(), *user, action.TitleRevoked, fmt.Sprintf("Revoked title %s at %s", title.Title, facility), int64(auth.GetUserCid(c)))
 
-	return GenericSuccess(c, int(titleId))
+	return RespondSuccess(c, int(titleId))
 }
