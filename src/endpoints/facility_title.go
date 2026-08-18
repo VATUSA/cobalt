@@ -108,7 +108,7 @@ func GetUserFacilityTitles(c *echo.Context) error {
 	}
 
 	titles, err := dbconn.Queries().GetUserTitlesByFacility(c.Request().Context(), db.GetUserTitlesByFacilityParams{
-		Cid:      int32(cid),
+		Cid:      cid,
 		Facility: facility,
 	})
 	if err != nil {
@@ -169,7 +169,7 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 
 	err = dbconn.WithTransaction(ctx, func(q *db.Queries) error {
 		err := q.AssignUserTitle(ctx, db.AssignUserTitleParams{
-			Cid:        int32(cid),
+			Cid:        cid,
 			TitleID:    titleId,
 			GrantorCid: int32(actorCid),
 			GrantedAt:  time.Now().Unix(),
@@ -236,7 +236,7 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 
 	err = dbconn.WithTransaction(ctx, func(q *db.Queries) error {
 		err := q.DeleteUserTitle(ctx, db.DeleteUserTitleParams{
-			Cid:     int32(cid),
+			Cid:     cid,
 			TitleID: titleId,
 		})
 		if err != nil {

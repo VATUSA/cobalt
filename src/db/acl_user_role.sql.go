@@ -102,7 +102,12 @@ func (q *Queries) GetUsersByRole(ctx context.Context, arg GetUsersByRoleParams) 
 	var items []GetUsersByRoleRow
 	for rows.Next() {
 		var i GetUsersByRoleRow
-		if err := rows.Scan(&i.Cid, &i.DisplayName, &i.ControllerRating, &i.InstructorRating); err != nil {
+		if err := rows.Scan(
+			&i.Cid,
+			&i.DisplayName,
+			&i.ControllerRating,
+			&i.InstructorRating,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

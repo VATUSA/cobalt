@@ -178,7 +178,7 @@ func BulkMigrateTitles() error {
 		}
 
 		err = queries.AssignUserTitle(ctx, db.AssignUserTitleParams{
-			Cid:        int32(a.Cid),
+			Cid:        int64(a.Cid),
 			TitleID:    titleID,
 			GrantorCid: 0,
 			GrantedAt:  a.CreatedAt.Unix(),

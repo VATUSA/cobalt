@@ -16,7 +16,7 @@ VALUES (?, ?, ?, ?)
 `
 
 type AssignUserTitleParams struct {
-	Cid        int32
+	Cid        int64
 	TitleID    int64
 	GrantorCid int32
 	GrantedAt  int64
@@ -71,7 +71,7 @@ WHERE cid = ? AND title_id = ?
 `
 
 type DeleteUserTitleParams struct {
-	Cid     int32
+	Cid     int64
 	TitleID int64
 }
 
@@ -178,7 +178,7 @@ ORDER BY ft.id ASC
 `
 
 type GetUserTitlesByFacilityParams struct {
-	Cid      int32
+	Cid      int64
 	Facility string
 }
 

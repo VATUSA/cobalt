@@ -412,7 +412,7 @@ type UserRatingHour struct {
 
 type UserTitle struct {
 	ID         int64
-	Cid        int32
+	Cid        int64
 	TitleID    int64
 	GrantorCid int32
 	GrantedAt  int64

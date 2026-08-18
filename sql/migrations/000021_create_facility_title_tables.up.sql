@@ -11,13 +11,14 @@ CREATE TABLE facility_title (
 
 CREATE TABLE user_title (
     id bigint not null auto_increment primary key,
-    cid int not null,
+    cid bigint not null,
     title_id bigint not null,
     grantor_cid int not null,
     granted_at bigint not null,
     unique key uq_user_title (cid, title_id),
     key idx_user_title_title_id (title_id),
-    FOREIGN KEY (title_id) REFERENCES facility_title (id) ON DELETE CASCADE
+    FOREIGN KEY (title_id) REFERENCES facility_title (id) ON DELETE CASCADE,
+    FOREIGN KEY (cid) REFERENCES user (cid) ON DELETE CASCADE
 );
 
 INSERT INTO facility_title (facility, title, code, created_at) VALUES
