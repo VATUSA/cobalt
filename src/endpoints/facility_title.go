@@ -1,6 +1,8 @@
 package endpoints
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -29,10 +31,53 @@ func GetFacilityTitles(c *echo.Context) error {
 
 func validateTitleFacility(c *echo.Context, facility string) bool {
 	if _, err := dbconn.Queries().GetFacility(c.Request().Context(), facility); err != nil {
-		_ = RespondError(c, http.StatusBadRequest, errors.New("unknown facility"))
+		if errors.Is(err, sql.ErrNoRows) {
+			_ = RespondError(c, http.StatusBadRequest, errors.New("unknown facility"))
+		} else {
+			_ = RespondError(c, http.StatusInternalServerError, err)
+		}
 		return false
 	}
 	return true
+}
+
+func userHoldsTitle(ctx context.Context, cid int64, facility string, titleId int64) (bool, error) {
+	titles, err := dbconn.Queries().GetUserTitlesByFacility(ctx, db.GetUserTitlesByFacilityParams{
+		Cid:      cid,
+		Facility: facility,
+	})
+	if err != nil {
+		return false, err
+	}
+	for _, t := range titles {
+		if t.ID == titleId {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func resolveTitleTierPermission(c *echo.Context, facility string, tier string) bool {
+	permissionObject, ok := acl.TitleTierToPermissionObjectMap[acl.TitleTier(tier)]
+	if !ok {
+		_ = RespondError(c, http.StatusBadRequest, errors.New("title tier cannot be assigned"))
+		return false
+	}
+	return AssertFacility(c, facility, permissionObject, acl.ActionWrite)
+}
+
+func resolveActor(c *echo.Context) (int64, *db.GetCombinedUserRow, bool) {
+	actorCid := int64(auth.GetUserCid(c))
+	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
+	if err != nil {
+		_ = RespondError(c, http.StatusInternalServerError, err)
+		return 0, nil, false
+	}
+	if actor == nil {
+		_ = RespondError(c, http.StatusInternalServerError, errors.New("actor not found"))
+		return 0, nil, false
+	}
+	return actorCid, actor, true
 }
 
 func CreateFacilityTitle(c *echo.Context) error {
@@ -142,11 +187,7 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 	if title.Facility != facility {
 		return RespondError(c, http.StatusBadRequest, errors.New("title does not belong to facility"))
 	}
-	permissionObject, ok := acl.TitleTierToPermissionObjectMap[acl.TitleTier(title.Tier)]
-	if !ok {
-		return RespondError(c, http.StatusBadRequest, errors.New("title tier cannot be assigned"))
-	}
-	if !AssertFacility(c, facility, permissionObject, acl.ActionWrite) {
+	if !resolveTitleTierPermission(c, facility, title.Tier) {
 		return nil
 	}
 
@@ -158,26 +199,17 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 		return RespondError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 
-	existingTitles, err := dbconn.Queries().GetUserTitlesByFacility(ctx, db.GetUserTitlesByFacilityParams{
-		Cid:      cid,
-		Facility: facility,
-	})
+	held, err := userHoldsTitle(ctx, cid, facility, titleId)
 	if err != nil {
 		return RespondError(c, http.StatusInternalServerError, err)
 	}
-	for _, t := range existingTitles {
-		if t.ID == titleId {
-			return RespondError(c, http.StatusConflict, errors.New("title already assigned"))
-		}
+	if held {
+		return RespondError(c, http.StatusConflict, errors.New("title already assigned"))
 	}
 
-	actorCid := int64(auth.GetUserCid(c))
-	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
-	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, err)
-	}
-	if actor == nil {
-		return RespondError(c, http.StatusInternalServerError, errors.New("actor not found"))
+	actorCid, actor, ok := resolveActor(c)
+	if !ok {
+		return nil
 	}
 
 	err = dbconn.WithTransaction(ctx, func(q *db.Queries) error {
@@ -222,11 +254,7 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 	if title.Facility != facility {
 		return RespondError(c, http.StatusNotFound, errors.New("title not found"))
 	}
-	permissionObject, ok := acl.TitleTierToPermissionObjectMap[acl.TitleTier(title.Tier)]
-	if !ok {
-		return RespondError(c, http.StatusBadRequest, errors.New("title tier cannot be assigned"))
-	}
-	if !AssertFacility(c, facility, permissionObject, acl.ActionWrite) {
+	if !resolveTitleTierPermission(c, facility, title.Tier) {
 		return nil
 	}
 
@@ -238,31 +266,17 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 		return RespondError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 
-	existingTitles, err := dbconn.Queries().GetUserTitlesByFacility(ctx, db.GetUserTitlesByFacilityParams{
-		Cid:      cid,
-		Facility: facility,
-	})
+	held, err := userHoldsTitle(ctx, cid, facility, titleId)
 	if err != nil {
 		return RespondError(c, http.StatusInternalServerError, err)
-	}
-	held := false
-	for _, t := range existingTitles {
-		if t.ID == titleId {
-			held = true
-			break
-		}
 	}
 	if !held {
 		return RespondError(c, http.StatusNotFound, errors.New("title not found"))
 	}
 
-	actorCid := int64(auth.GetUserCid(c))
-	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
-	if err != nil {
-		return RespondError(c, http.StatusInternalServerError, err)
-	}
-	if actor == nil {
-		return RespondError(c, http.StatusInternalServerError, errors.New("actor not found"))
+	actorCid, actor, ok := resolveActor(c)
+	if !ok {
+		return nil
 	}
 
 	err = dbconn.WithTransaction(ctx, func(q *db.Queries) error {
