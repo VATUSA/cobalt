@@ -27,7 +27,7 @@ WHERE ut.cid = ? AND ft.facility = ?
 ORDER BY ft.id ASC;
 
 -- name: AssignUserTitle :exec
-INSERT IGNORE INTO user_title (cid, title_id, grantor_cid, granted_at)
+INSERT INTO user_title (cid, title_id, grantor_cid, granted_at)
 VALUES (?, ?, ?, ?);
 
 -- name: DeleteUserTitle :exec

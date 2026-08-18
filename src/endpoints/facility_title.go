@@ -158,6 +158,19 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 		return RespondError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 
+	existingTitles, err := dbconn.Queries().GetUserTitlesByFacility(ctx, db.GetUserTitlesByFacilityParams{
+		Cid:      cid,
+		Facility: facility,
+	})
+	if err != nil {
+		return RespondError(c, http.StatusInternalServerError, err)
+	}
+	for _, t := range existingTitles {
+		if t.ID == titleId {
+			return RespondError(c, http.StatusConflict, errors.New("title already assigned"))
+		}
+	}
+
 	actorCid := int64(auth.GetUserCid(c))
 	actor, err := dbconn.GetCombinedUserByCID(int(actorCid))
 	if err != nil {
@@ -223,6 +236,24 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 	}
 	if user == nil {
 		return RespondError(c, http.StatusNotFound, errors.New("user not found"))
+	}
+
+	existingTitles, err := dbconn.Queries().GetUserTitlesByFacility(ctx, db.GetUserTitlesByFacilityParams{
+		Cid:      cid,
+		Facility: facility,
+	})
+	if err != nil {
+		return RespondError(c, http.StatusInternalServerError, err)
+	}
+	held := false
+	for _, t := range existingTitles {
+		if t.ID == titleId {
+			held = true
+			break
+		}
+	}
+	if !held {
+		return RespondError(c, http.StatusNotFound, errors.New("title not found"))
 	}
 
 	actorCid := int64(auth.GetUserCid(c))

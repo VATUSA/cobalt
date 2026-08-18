@@ -11,7 +11,7 @@ import (
 )
 
 const assignUserTitle = `-- name: AssignUserTitle :exec
-INSERT IGNORE INTO user_title (cid, title_id, grantor_cid, granted_at)
+INSERT INTO user_title (cid, title_id, grantor_cid, granted_at)
 VALUES (?, ?, ?, ?)
 `
 
