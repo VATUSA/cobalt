@@ -86,24 +86,24 @@ func Connect(c *echo.Context) error {
 	code := c.QueryParam("code")
 	token, err := vatsim.FetchToken(code)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "error fetching connect access token")
+		return RespondError(c, http.StatusInternalServerError, SafeError("error fetching connect access token"), err)
 	}
 	userData, err := vatsim.FetchUserData(token)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "error fetching connect user data")
+		return RespondError(c, http.StatusInternalServerError, SafeError("error fetching connect user data"), err)
 	}
 	cid, err := strconv.Atoi(userData.CID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "error extracting cid")
+		return RespondError(c, http.StatusInternalServerError, SafeError("error extracting cid"), err)
 	}
 
 	err = vatsim.StoreVatsimUserRecordConnect(userData)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, errors.New("error storing vatsim user record"), err)
+		return RespondError(c, http.StatusInternalServerError, SafeError("error storing vatsim user record"), err)
 	}
 
 	if userData.Vatsim.Rating.Id == config.RatingInactive || userData.Vatsim.Rating.Id == config.RatingSuspended {
-		return GenericError(c, http.StatusForbidden, errors.New("account is inactive or suspended"))
+		return RespondError(c, http.StatusForbidden, errors.New("account is inactive or suspended"))
 	}
 
 	if config.IsProduction() || config.IsStaging() {
@@ -116,15 +116,15 @@ func Connect(c *echo.Context) error {
 
 	user, err := dbconn.GetCombinedUserByCID(cid)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	if user == nil {
-		return GenericError(c, http.StatusInternalServerError, errors.New("user record does not exist"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("user record does not exist"))
 	}
 
 	jwt, err := login.CreateTokenForUser(*user)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to create token"), err)
 	}
 	c.SetCookie(auth.NewSessionCookie(jwt))
 
@@ -162,18 +162,18 @@ func GetGenerateUserToken(c *echo.Context) error {
 	}
 	cid, err := strconv.Atoi(c.Param("cid"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid cid")
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid cid"))
 	}
 	user, err := dbconn.GetCombinedUserByCID(cid)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	if user == nil {
-		return GenericError(c, http.StatusInternalServerError, errors.New("user record does not exist"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("user record does not exist"))
 	}
 	token, err := login.CreateTokenForUser(*user)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to create token"), err)
 	}
 	data := make(map[string]string)
 	data["token"] = token
@@ -187,15 +187,15 @@ func PostUserDetailsFromToken(c *echo.Context) error {
 	var request models.TokenSessionRequest
 	err := c.Bind(&request)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, err)
+		return RespondError(c, http.StatusBadRequest, err)
 	}
 	cid, err := auth.GetCIDFromToken(request.Token)
 	if err != nil {
-		return GenericError(c, http.StatusUnauthorized, errors.New("invalid token"))
+		return RespondError(c, http.StatusUnauthorized, errors.New("invalid token"))
 	}
 	user, err := dbconn.GetCombinedUserByCID(cid)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	if user == nil {
 		return c.JSON(http.StatusNotFound, models.Session{})
@@ -234,23 +234,23 @@ func PostUserDetailsFromToken(c *echo.Context) error {
 
 func LoginAs(c *echo.Context) error {
 	if !config.IsDevelopment() {
-		return echo.NewHTTPError(http.StatusNotFound, "Not found")
+		return RespondError(c, http.StatusNotFound, errors.New("not found"))
 	}
 	cid, err := strconv.Atoi(c.Param("cid"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Bad Request")
+		return RespondError(c, http.StatusBadRequest, errors.New("bad request"))
 	}
 	user, err := dbconn.GetCombinedUserByCID(cid)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	if user == nil {
-		return GenericError(c, http.StatusInternalServerError, errors.New("user record does not exist"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("user record does not exist"))
 	}
 
 	token, err := login.CreateTokenForUser(*user)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create token")
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to create token"), err)
 	}
 	c.SetCookie(auth.NewSessionCookie(token))
 	return c.JSON(http.StatusOK, "success")
@@ -265,14 +265,14 @@ func WhoAmI(c *echo.Context) error {
 // stagingTokenError logs why the prod->staging /token/:cid relay failed and
 // returns the generic 500 shown to the browser. The cause is logged rather
 // than returned because it can carry internal service detail.
-func stagingTokenError(cid int, cause error) error {
+func stagingTokenError(c *echo.Context, cid int, cause error) error {
 	log.Printf("staging relay: failed to mint token for cid %d via %s: %v", cid, config.StagingInternalURL(), cause)
-	return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate staging token")
+	return RespondError(c, http.StatusInternalServerError, SafeError("failed to generate staging token"))
 }
 
 func GetLoginForStaging(c *echo.Context) error {
 	if !config.IsProduction() {
-		return echo.NewHTTPError(http.StatusNotFound, "Not found")
+		return RespondError(c, http.StatusNotFound, errors.New("not found"))
 	}
 	redirect := validatedRedirect(c)
 	if !auth.IsLoggedIn(c) {
@@ -284,19 +284,19 @@ func GetLoginForStaging(c *echo.Context) error {
 	tokenURL := fmt.Sprintf("%s/token/%d", config.StagingInternalURL(), cid)
 	req, err := http.NewRequest("GET", tokenURL, nil)
 	if err != nil {
-		return stagingTokenError(cid, err)
+		return stagingTokenError(c, cid, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(auth.ActorTokenHeader, config.StagingActorToken())
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return stagingTokenError(cid, err)
+		return stagingTokenError(c, cid, err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return stagingTokenError(cid, err)
+		return stagingTokenError(c, cid, err)
 	}
 
 	// The staging instance answers with {"token": "..."} on success and a
@@ -308,10 +308,10 @@ func GetLoginForStaging(c *echo.Context) error {
 		Errors []string `json:"errors"`
 	}
 	if err := json.Unmarshal(body, &data); err != nil {
-		return stagingTokenError(cid, fmt.Errorf("status %d, unparseable body %q", resp.StatusCode, string(body)))
+		return stagingTokenError(c, cid, fmt.Errorf("status %d, unparseable body %q", resp.StatusCode, string(body)))
 	}
 	if resp.StatusCode != http.StatusOK || data.Token == "" {
-		return stagingTokenError(cid, fmt.Errorf("status %d: %s", resp.StatusCode, strings.Join(data.Errors, "; ")))
+		return stagingTokenError(c, cid, fmt.Errorf("status %d: %s", resp.StatusCode, strings.Join(data.Errors, "; ")))
 	}
 	redirectUrl := fmt.Sprintf("%s/login/useToken/%s", config.StagingPublicURL(), data.Token)
 	if redirect != "" {
@@ -322,7 +322,7 @@ func GetLoginForStaging(c *echo.Context) error {
 
 func LoginUseToken(c *echo.Context) error {
 	if !config.IsStaging() {
-		return echo.NewHTTPError(http.StatusNotFound, "Not found")
+		return RespondError(c, http.StatusNotFound, errors.New("not found"))
 	}
 	token := c.Param("token")
 

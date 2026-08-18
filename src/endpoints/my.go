@@ -3,6 +3,7 @@ package endpoints
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"vatusa-cobalt/auth"
 	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/models"
@@ -22,7 +23,7 @@ func GetMySession(c *echo.Context) error {
 	}
 	user, err := dbconn.GetCombinedUserByCID(cid)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	if user == nil {
 		return c.JSON(http.StatusNotFound, models.Session{})
@@ -62,7 +63,7 @@ func GetMySession(c *echo.Context) error {
 func GetMyAssignableRoles(c *echo.Context) error {
 	cid := auth.GetUserCid(c)
 	if cid == -1 {
-		return GenericError(c, http.StatusUnauthorized, errors.New("login required"))
+		return RespondError(c, http.StatusUnauthorized, errors.New("login required"))
 	}
 
 	permissionHandler := GetPermissionHandler(c)
@@ -82,27 +83,30 @@ func GetMyAssignableRoles(c *echo.Context) error {
 func MySubmitTransferRequest(c *echo.Context) error {
 	cid := auth.GetUserCid(c)
 	if cid == -1 {
-		return GenericError(c, http.StatusUnauthorized, errors.New("login required"))
+		return RespondError(c, http.StatusUnauthorized, errors.New("login required"))
 	}
 	user, err := dbconn.GetCombinedUserByCID(cid)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	if user == nil {
-		return GenericError(c, http.StatusNotFound, errors.New("user not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("user not found"))
 	}
 	var request models.MyTransferRequestRequest
 	err = c.Bind(&request)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, err)
+		return RespondError(c, http.StatusBadRequest, err)
 	}
 	blockers := roster.GetUserBlockers(*user)
 	if blockers.IsTransferBlocked {
-		return GenericError(c, http.StatusBadRequest, errors.New("user is transfer blocked"))
+		return RespondError(c, http.StatusBadRequest, errors.New("user is transfer blocked"))
+	}
+	if strings.EqualFold(user.Facility, request.ToFacility) {
+		return RespondError(c, http.StatusBadRequest, errors.New("from facility and to facility must not be equal"))
 	}
 	rec, err := roster.CreateTransferRequest(*user, request.ToFacility, request.Reason, *user)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
-	return GenericSuccess(c, int(rec.ID))
+	return RespondSuccess(c, int(rec.ID))
 }

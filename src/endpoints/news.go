@@ -22,7 +22,7 @@ func CreatePost(c *echo.Context) error {
 	var request models.NewsPostRequest
 	err := c.Bind(&request)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, err)
+		return RespondError(c, http.StatusBadRequest, err)
 	}
 
 	result, err := dbconn.Queries().CreatePost(
@@ -34,30 +34,30 @@ func CreatePost(c *echo.Context) error {
 			PostTime:  time.Now().Unix(),
 		})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	lastInsertId, err := result.LastInsertId()
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
-	return GenericSuccess(c, int(lastInsertId))
+	return RespondSuccess(c, int(lastInsertId))
 }
 
 func UpdatePost(c *echo.Context) error {
 	postId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid post id"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid post id"))
 	}
 	ctx := c.Request().Context()
 	var request models.NewsPostRequest
 	err = c.Bind(&request)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, err)
+		return RespondError(c, http.StatusBadRequest, err)
 	}
 	post, err := dbconn.Queries().GetPostById(ctx, int32(postId))
 	if err != nil {
-		return GenericError(c, http.StatusNotFound, errors.New("post not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("post not found"))
 	}
 
 	if !AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
@@ -74,20 +74,20 @@ func UpdatePost(c *echo.Context) error {
 		ID:       int32(postId),
 	})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, errors.New("failed to update post"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to update post"), err)
 	}
-	return GenericSuccess(c, postId)
+	return RespondSuccess(c, postId)
 }
 
 func DeletePost(c *echo.Context) error {
 	postId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid post id"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid post id"))
 	}
 	ctx := c.Request().Context()
 	post, err := dbconn.Queries().GetPostById(ctx, int32(postId))
 	if err != nil {
-		return GenericError(c, http.StatusNotFound, errors.New("post not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("post not found"))
 	}
 
 	if !AssertGlobal(c, acl.ObjectNewsPost, acl.ActionWrite) {
@@ -99,9 +99,9 @@ func DeletePost(c *echo.Context) error {
 
 	err = dbconn.Queries().DeleteNewsPostById(ctx, int32(postId))
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, errors.New("failed to delete post"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("failed to delete post"), err)
 	}
-	return GenericSuccess(c, postId)
+	return RespondSuccess(c, postId)
 }
 
 func GetLastPosts(c *echo.Context) error {
@@ -119,7 +119,7 @@ func GetLastPosts(c *echo.Context) error {
 
 	posts, err := dbconn.Queries().GetRecentNewsPosts(ctx, int32(countInt))
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
 	output := models.NewsPostsFromDatabase(posts)
@@ -132,11 +132,11 @@ func GetPost(c *echo.Context) error {
 	id := c.Param("id")
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid post id"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid post id"))
 	}
 	post, err := dbconn.Queries().GetPostById(ctx, int32(idInt))
 	if err != nil {
-		return GenericError(c, http.StatusNotFound, errors.New("post not found"))
+		return RespondError(c, http.StatusNotFound, errors.New("post not found"))
 	}
 	output := models.NewsPostFromDatabase(post)
 	return c.JSON(http.StatusOK, output)
@@ -147,7 +147,7 @@ func GetNewsPage(c *echo.Context) error {
 	page := c.Param("page")
 	pageInt, err := strconv.Atoi(page)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid page"))
+		return RespondError(c, http.StatusBadRequest, errors.New("invalid page"))
 	}
 	recordsPerPage := 25
 	offset := (pageInt - 1) * recordsPerPage
@@ -157,7 +157,7 @@ func GetNewsPage(c *echo.Context) error {
 		Limit:  int32(recordsPerPage),
 	})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, errors.New("error loading posts"))
+		return RespondError(c, http.StatusInternalServerError, SafeError("error loading posts"), err)
 	}
 	output := models.NewsPostsFromDatabase(news)
 	return c.JSON(http.StatusOK, output)

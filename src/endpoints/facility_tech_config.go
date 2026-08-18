@@ -19,7 +19,7 @@ func GetFacilityApiKeys(c *echo.Context) error {
 
 	rows, err := dbconn.Queries().GetV3ApiKeysByFacility(context.Background(), sql.NullString{String: facility, Valid: true})
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
 	return c.JSON(http.StatusOK, models.V3ApiKeysFromDatabase(rows))

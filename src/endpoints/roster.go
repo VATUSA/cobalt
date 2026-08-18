@@ -19,11 +19,11 @@ func GetFacilityRoster(c *echo.Context) error {
 
 	homeUsers, err := dbconn.GetCombinedUsersByHomeFacility(facility)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	visitUsers, err := dbconn.GetCombinedUsersByVisitingFacility(facility)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
 	model := models.RosterFromDatabase(homeUsers, visitUsers, canSeeSensitiveFields)
@@ -39,7 +39,7 @@ func GetFacilityPendingTransfers(c *echo.Context) error {
 
 	transferRequests, err := dbconn.GetFacilityPendingTransferRequests(facility)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 	model := models.TransferRequestsCombinedFromDatabase(transferRequests, canSeeSensitiveFields)
 	return c.JSON(http.StatusOK, model)
@@ -53,10 +53,10 @@ func ActionFacilityPendingTransfer(c *echo.Context) error {
 	var request models.TransferAction
 	err := c.Bind(&request)
 	if err != nil {
-		return GenericError(c, http.StatusBadRequest, err)
+		return RespondError(c, http.StatusBadRequest, err)
 	}
 	if request.Action == roster.TransferReject && request.Reason == "" {
-		return GenericError(c, http.StatusBadRequest, errors.New("reason is required when rejecting requests"))
+		return RespondError(c, http.StatusBadRequest, errors.New("reason is required when rejecting requests"))
 	}
 	cid := auth.GetUserCid(c)
 	if cid == -1 {
@@ -64,28 +64,35 @@ func ActionFacilityPendingTransfer(c *echo.Context) error {
 		cid = int(request.ActorCid)
 		ph := acl.GetPermissionHandlerCache().GetHandlerForCid(cid)
 		if !ph.HasFacility(facility, acl.ObjectUserSensitiveDetails, acl.ActionWrite) {
-			return ErrorNoPermission(c)
+			return RespondForbidden(c)
 		}
 	}
 	ctx := context.Background()
 	transferRequest, err := dbconn.Queries().GetTransferRequestById(ctx, request.Id)
 	if err != nil {
-		return GenericError(c, http.StatusInternalServerError, err)
+		return RespondError(c, http.StatusInternalServerError, err)
 	}
 
 	if request.Action == roster.TransferAccept {
 		err = roster.AcceptTransferRequest(transferRequest, int64(cid))
 		if err != nil {
-			return GenericError(c, http.StatusInternalServerError, err)
+			return respondTransferActionError(c, err)
 		}
-		return GenericSuccess(c, int(transferRequest.ID))
+		return RespondSuccess(c, int(transferRequest.ID))
 	} else if request.Action == roster.TransferReject {
 		err = roster.RejectTransferRequest(transferRequest, int64(cid))
 		if err != nil {
-			return GenericError(c, http.StatusInternalServerError, err)
+			return respondTransferActionError(c, err)
 		}
-		return GenericSuccess(c, int(transferRequest.ID))
+		return RespondSuccess(c, int(transferRequest.ID))
 	}
 
-	return GenericError(c, http.StatusBadRequest, errors.New("invalid action"))
+	return RespondError(c, http.StatusBadRequest, errors.New("invalid action"))
+}
+
+func respondTransferActionError(c *echo.Context, err error) error {
+	if errors.Is(err, roster.ErrUserNotFound) {
+		return RespondError(c, http.StatusNotFound, err)
+	}
+	return RespondError(c, http.StatusInternalServerError, err)
 }
