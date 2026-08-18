@@ -49,7 +49,7 @@ func CreateFacilityTitle(c *echo.Context) error {
 	if err != nil {
 		return RespondError(c, http.StatusBadRequest, err)
 	}
-	if _, ok := acl.TitleTierToPermissionObjectMap[request.Tier]; !ok {
+	if _, ok := acl.TitleTierToPermissionObjectMap[acl.TitleTier(request.Tier)]; !ok {
 		return RespondError(c, http.StatusBadRequest, errors.New("invalid title tier"))
 	}
 
@@ -142,7 +142,7 @@ func AssignUserFacilityTitles(c *echo.Context) error {
 	if title.Facility != facility {
 		return RespondError(c, http.StatusBadRequest, errors.New("title does not belong to facility"))
 	}
-	permissionObject, ok := acl.TitleTierToPermissionObjectMap[title.Tier]
+	permissionObject, ok := acl.TitleTierToPermissionObjectMap[acl.TitleTier(title.Tier)]
 	if !ok {
 		return RespondError(c, http.StatusBadRequest, errors.New("title tier cannot be assigned"))
 	}
@@ -222,7 +222,7 @@ func DeleteUserFacilityTitle(c *echo.Context) error {
 	if title.Facility != facility {
 		return RespondError(c, http.StatusNotFound, errors.New("title not found"))
 	}
-	permissionObject, ok := acl.TitleTierToPermissionObjectMap[title.Tier]
+	permissionObject, ok := acl.TitleTierToPermissionObjectMap[acl.TitleTier(title.Tier)]
 	if !ok {
 		return RespondError(c, http.StatusBadRequest, errors.New("title tier cannot be assigned"))
 	}

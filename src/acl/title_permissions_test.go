@@ -5,14 +5,14 @@ import "testing"
 func TestTitleTierToPermissionObjectMap(t *testing.T) {
 	cases := []struct {
 		name string
-		tier string
+		tier TitleTier
 		want Object
 		ok   bool
 	}{
-		{name: "senior tier", tier: "senior", want: ObjectFacilityTitleSeniorStaff, ok: true},
-		{name: "junior tier", tier: "junior", want: ObjectFacilityTitleJuniorStaff, ok: true},
-		{name: "unknown tier", tier: "trainee", want: "", ok: false},
-		{name: "empty tier", tier: "", want: "", ok: false},
+		{name: "senior tier", tier: TitleTierSenior, want: ObjectFacilityTitleSeniorStaff, ok: true},
+		{name: "junior tier", tier: TitleTierJunior, want: ObjectFacilityTitleJuniorStaff, ok: true},
+		{name: "unknown tier", tier: TitleTier("trainee"), want: "", ok: false},
+		{name: "empty tier", tier: TitleTier(""), want: "", ok: false},
 	}
 
 	for _, tc := range cases {
