@@ -1,0 +1,193 @@
+CREATE TABLE facility_title (
+    id bigint not null auto_increment primary key,
+    facility varchar(4) not null,
+    title varchar(128) not null,
+    code varchar(4) not null default '',
+    tier varchar(6) not null default '',
+    created_at bigint not null,
+    unique key uq_facility_title (facility, title),
+    FOREIGN KEY (facility) REFERENCES facility (id) ON DELETE CASCADE
+);
+
+CREATE TABLE user_title (
+    id bigint not null auto_increment primary key,
+    cid bigint not null,
+    title_id bigint not null,
+    grantor_cid int not null,
+    granted_at bigint not null,
+    unique key uq_user_title (cid, title_id),
+    key idx_user_title_title_id (title_id),
+    FOREIGN KEY (title_id) REFERENCES facility_title (id) ON DELETE CASCADE,
+    FOREIGN KEY (cid) REFERENCES user (cid) ON DELETE CASCADE
+);
+
+INSERT INTO facility_title (facility, title, code, created_at) VALUES
+    ('ZHQ', 'Division Director', 'US1', 0),
+    ('ZHQ', 'Deputy Division Director - Air Traffic Services', 'US2', 0),
+    ('ZHQ', 'Deputy Division Director - Training Services', 'US3', 0),
+    ('ZHQ', 'Deputy Division Director - Support Services', 'US4', 0),
+    ('ZHQ', 'Events Manager', 'US5', 0),
+    ('ZHQ', 'Technical Manager', 'US6', 0),
+    ('ZHQ', 'Social Media Manager', 'US7', 0),
+    ('ZHQ', 'Training Services Manager', 'US8', 0),
+    ('ZHQ', 'Training Content and Curriculum Manager', 'US9', 0),
+
+    ('ZAB', 'Air Traffic Manager', 'ATM', 0),
+    ('ZAB', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZAB', 'Training Administrator', 'TA', 0),
+    ('ZAB', 'Events Coordinator', 'EC', 0),
+    ('ZAB', 'Facility Engineer', 'FE', 0),
+    ('ZAB', 'Web Maintainer', 'WM', 0),
+
+    ('ZAN', 'Air Traffic Manager', 'ATM', 0),
+    ('ZAN', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZAN', 'Training Administrator', 'TA', 0),
+    ('ZAN', 'Events Coordinator', 'EC', 0),
+    ('ZAN', 'Facility Engineer', 'FE', 0),
+    ('ZAN', 'Web Maintainer', 'WM', 0),
+
+    ('ZTL', 'Air Traffic Manager', 'ATM', 0),
+    ('ZTL', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZTL', 'Training Administrator', 'TA', 0),
+    ('ZTL', 'Events Coordinator', 'EC', 0),
+    ('ZTL', 'Facility Engineer', 'FE', 0),
+    ('ZTL', 'Web Maintainer', 'WM', 0),
+
+    ('ZBW', 'Air Traffic Manager', 'ATM', 0),
+    ('ZBW', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZBW', 'Training Administrator', 'TA', 0),
+    ('ZBW', 'Events Coordinator', 'EC', 0),
+    ('ZBW', 'Facility Engineer', 'FE', 0),
+    ('ZBW', 'Web Maintainer', 'WM', 0),
+
+    ('ZAU', 'Air Traffic Manager', 'ATM', 0),
+    ('ZAU', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZAU', 'Training Administrator', 'TA', 0),
+    ('ZAU', 'Events Coordinator', 'EC', 0),
+    ('ZAU', 'Facility Engineer', 'FE', 0),
+    ('ZAU', 'Web Maintainer', 'WM', 0),
+
+    ('ZOB', 'Air Traffic Manager', 'ATM', 0),
+    ('ZOB', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZOB', 'Training Administrator', 'TA', 0),
+    ('ZOB', 'Events Coordinator', 'EC', 0),
+    ('ZOB', 'Facility Engineer', 'FE', 0),
+    ('ZOB', 'Web Maintainer', 'WM', 0),
+
+    ('ZDV', 'Air Traffic Manager', 'ATM', 0),
+    ('ZDV', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZDV', 'Training Administrator', 'TA', 0),
+    ('ZDV', 'Events Coordinator', 'EC', 0),
+    ('ZDV', 'Facility Engineer', 'FE', 0),
+    ('ZDV', 'Web Maintainer', 'WM', 0),
+
+    ('ZFW', 'Air Traffic Manager', 'ATM', 0),
+    ('ZFW', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZFW', 'Training Administrator', 'TA', 0),
+    ('ZFW', 'Events Coordinator', 'EC', 0),
+    ('ZFW', 'Facility Engineer', 'FE', 0),
+    ('ZFW', 'Web Maintainer', 'WM', 0),
+
+    ('HCF', 'Air Traffic Manager', 'ATM', 0),
+    ('HCF', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('HCF', 'Training Administrator', 'TA', 0),
+    ('HCF', 'Events Coordinator', 'EC', 0),
+    ('HCF', 'Facility Engineer', 'FE', 0),
+    ('HCF', 'Web Maintainer', 'WM', 0),
+
+    ('ZHU', 'Air Traffic Manager', 'ATM', 0),
+    ('ZHU', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZHU', 'Training Administrator', 'TA', 0),
+    ('ZHU', 'Events Coordinator', 'EC', 0),
+    ('ZHU', 'Facility Engineer', 'FE', 0),
+    ('ZHU', 'Web Maintainer', 'WM', 0),
+
+    ('ZID', 'Air Traffic Manager', 'ATM', 0),
+    ('ZID', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZID', 'Training Administrator', 'TA', 0),
+    ('ZID', 'Events Coordinator', 'EC', 0),
+    ('ZID', 'Facility Engineer', 'FE', 0),
+    ('ZID', 'Web Maintainer', 'WM', 0),
+
+    ('ZJX', 'Air Traffic Manager', 'ATM', 0),
+    ('ZJX', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZJX', 'Training Administrator', 'TA', 0),
+    ('ZJX', 'Events Coordinator', 'EC', 0),
+    ('ZJX', 'Facility Engineer', 'FE', 0),
+    ('ZJX', 'Web Maintainer', 'WM', 0),
+
+    ('ZKC', 'Air Traffic Manager', 'ATM', 0),
+    ('ZKC', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZKC', 'Training Administrator', 'TA', 0),
+    ('ZKC', 'Events Coordinator', 'EC', 0),
+    ('ZKC', 'Facility Engineer', 'FE', 0),
+    ('ZKC', 'Web Maintainer', 'WM', 0),
+
+    ('ZLA', 'Air Traffic Manager', 'ATM', 0),
+    ('ZLA', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZLA', 'Training Administrator', 'TA', 0),
+    ('ZLA', 'Events Coordinator', 'EC', 0),
+    ('ZLA', 'Facility Engineer', 'FE', 0),
+    ('ZLA', 'Web Maintainer', 'WM', 0),
+
+    ('ZME', 'Air Traffic Manager', 'ATM', 0),
+    ('ZME', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZME', 'Training Administrator', 'TA', 0),
+    ('ZME', 'Events Coordinator', 'EC', 0),
+    ('ZME', 'Facility Engineer', 'FE', 0),
+    ('ZME', 'Web Maintainer', 'WM', 0),
+
+    ('ZMA', 'Air Traffic Manager', 'ATM', 0),
+    ('ZMA', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZMA', 'Training Administrator', 'TA', 0),
+    ('ZMA', 'Events Coordinator', 'EC', 0),
+    ('ZMA', 'Facility Engineer', 'FE', 0),
+    ('ZMA', 'Web Maintainer', 'WM', 0),
+
+    ('ZMP', 'Air Traffic Manager', 'ATM', 0),
+    ('ZMP', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZMP', 'Training Administrator', 'TA', 0),
+    ('ZMP', 'Events Coordinator', 'EC', 0),
+    ('ZMP', 'Facility Engineer', 'FE', 0),
+    ('ZMP', 'Web Maintainer', 'WM', 0),
+
+    ('ZNY', 'Air Traffic Manager', 'ATM', 0),
+    ('ZNY', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZNY', 'Training Administrator', 'TA', 0),
+    ('ZNY', 'Events Coordinator', 'EC', 0),
+    ('ZNY', 'Facility Engineer', 'FE', 0),
+    ('ZNY', 'Web Maintainer', 'WM', 0),
+
+    ('ZOA', 'Air Traffic Manager', 'ATM', 0),
+    ('ZOA', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZOA', 'Training Administrator', 'TA', 0),
+    ('ZOA', 'Events Coordinator', 'EC', 0),
+    ('ZOA', 'Facility Engineer', 'FE', 0),
+    ('ZOA', 'Web Maintainer', 'WM', 0),
+
+    ('ZLC', 'Air Traffic Manager', 'ATM', 0),
+    ('ZLC', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZLC', 'Training Administrator', 'TA', 0),
+    ('ZLC', 'Events Coordinator', 'EC', 0),
+    ('ZLC', 'Facility Engineer', 'FE', 0),
+    ('ZLC', 'Web Maintainer', 'WM', 0),
+
+    ('ZSE', 'Air Traffic Manager', 'ATM', 0),
+    ('ZSE', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZSE', 'Training Administrator', 'TA', 0),
+    ('ZSE', 'Events Coordinator', 'EC', 0),
+    ('ZSE', 'Facility Engineer', 'FE', 0),
+    ('ZSE', 'Web Maintainer', 'WM', 0),
+
+    ('ZDC', 'Air Traffic Manager', 'ATM', 0),
+    ('ZDC', 'Deputy Air Traffic Manager', 'DATM', 0),
+    ('ZDC', 'Training Administrator', 'TA', 0),
+    ('ZDC', 'Events Coordinator', 'EC', 0),
+    ('ZDC', 'Facility Engineer', 'FE', 0),
+    ('ZDC', 'Web Maintainer', 'WM', 0);
+
+UPDATE facility_title SET tier = 'senior'
+WHERE code IN ('US1', 'US2', 'US3', 'US4', 'US5', 'US6', 'US7', 'US8', 'US9', 'ATM', 'DATM', 'TA');
+
+UPDATE facility_title SET tier = 'junior'
+WHERE code IN ('EC', 'FE', 'WM');

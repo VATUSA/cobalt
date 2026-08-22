@@ -142,6 +142,54 @@ func SyncRolesForUser(request models.SyncRolesRequest) error {
 	return nil
 }
 
+func resolveLegacyTitleID(titleIDs map[string]map[string]int64, facility, role string) (int64, bool) {
+	titleID, ok := titleIDs[facility][role]
+	if !ok && strings.HasPrefix(role, "US") {
+		titleID, ok = titleIDs["ZHQ"][role]
+	}
+	return titleID, ok
+}
+
+func BulkMigrateTitles() error {
+	queries := dbconn.Queries()
+	ctx := context.Background()
+
+	facilityTitles, err := queries.GetAllFacilityTitles(ctx)
+	if err != nil {
+		return err
+	}
+	titleIDs := make(map[string]map[string]int64)
+	for _, ft := range facilityTitles {
+		if titleIDs[ft.Facility] == nil {
+			titleIDs[ft.Facility] = make(map[string]int64)
+		}
+		titleIDs[ft.Facility][ft.Code] = ft.ID
+	}
+
+	assignments, err := queries.GetLegacyRoleAssignments(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, a := range assignments {
+		titleID, ok := resolveLegacyTitleID(titleIDs, a.Facility, a.Role)
+		if !ok {
+			continue
+		}
+
+		err = queries.AssignUserTitle(ctx, db.AssignUserTitleParams{
+			Cid:        int64(a.Cid),
+			TitleID:    titleID,
+			GrantorCid: 0,
+			GrantedAt:  a.CreatedAt.Unix(),
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func BulkMigrateRoles() error {
 	queries := dbconn.Queries()
 	ctx := context.Background()

@@ -13,5 +13,9 @@ func MigrateUsers(args []string) error {
 	if err != nil {
 		return err
 	}
+	err = legacy_migration.BulkMigrateTitles()
+	if err != nil {
+		return err
+	}
 	return nil
 }

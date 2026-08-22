@@ -96,6 +96,21 @@ var RoleToPermissionObjectMap = map[Role]Object{
 	RoleSystemFacility: ObjectSystemRole,
 }
 
+type TitleTier string
+
+const (
+	TitleTierSenior TitleTier = "senior"
+	TitleTierJunior TitleTier = "junior"
+)
+
+// TitleTierToPermissionObjectMap defines which Object ActionWrite
+// permission should be checked to determine if a facility title with the
+// given tier can be granted or removed
+var TitleTierToPermissionObjectMap = map[TitleTier]Object{
+	TitleTierSenior: ObjectFacilityTitleSeniorStaff,
+	TitleTierJunior: ObjectFacilityTitleJuniorStaff,
+}
+
 // Role Scoping
 var (
 	GlobalRoles = []Role{
@@ -207,6 +222,18 @@ var (
 			{
 				Action: ActionWrite,
 				Object: ObjectRoster,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitleManagement,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitleSeniorStaff,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitleJuniorStaff,
 			},
 		},
 		RoleDivisionStaff: {
@@ -335,6 +362,10 @@ var (
 				Action: ActionRead,
 				Object: ObjectFacilityTechConfig,
 			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitleJuniorStaff,
+			},
 		},
 		RoleDeputyAirTrafficManager: {
 			{
@@ -361,11 +392,19 @@ var (
 				Action: ActionRead,
 				Object: ObjectFacilityTechConfig,
 			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitleJuniorStaff,
+			},
 		},
 		RoleTrainingAdministrator: {
 			{
 				Action: ActionWrite,
 				Object: ObjectFacilityTrainingRole,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectFacilityTitleJuniorStaff,
 			},
 		},
 		RoleEventCoordinator: {
