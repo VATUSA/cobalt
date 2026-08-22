@@ -80,6 +80,50 @@ func TestLegacyToModernRoles_DivisionStaffPrefix(t *testing.T) {
 	}
 }
 
+func TestResolveLegacyTitleID(t *testing.T) {
+	titleIDs := map[string]map[string]int64{
+		"ZNY": {"ATM": 10, "MTR": 11, "US6": 99},
+		"ZHQ": {"US1": 1, "US2": 2, "US6": 6},
+	}
+
+	cases := []struct {
+		name     string
+		facility string
+		role     string
+		wantID   int64
+		wantOK   bool
+	}{
+		{name: "role found at facility", facility: "ZNY", role: "ATM", wantID: 10, wantOK: true},
+		{name: "role found at facility, two digits", facility: "ZNY", role: "MTR", wantID: 11, wantOK: true},
+		{name: "US role found at facility directly", facility: "ZNY", role: "US6", wantID: 99, wantOK: true},
+		{name: "US role missing at facility falls back to ZHQ", facility: "ZNY", role: "US1", wantID: 1, wantOK: true},
+		{name: "US role missing everywhere", facility: "ZNY", role: "US9", wantID: 0, wantOK: false},
+		{name: "non-US role missing at facility", facility: "ZNY", role: "EC", wantID: 0, wantOK: false},
+		{name: "role at facility without entry", facility: "ZZZ", role: "ATM", wantID: 0, wantOK: false},
+		{name: "role at empty facility", facility: "", role: "ATM", wantID: 0, wantOK: false},
+		{name: "empty role", facility: "ZNY", role: "", wantID: 0, wantOK: false},
+		{name: "nil map", facility: "ZNY", role: "ATM", wantID: 0, wantOK: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var ids map[string]map[string]int64
+			if tc.role == "ATM" && tc.facility == "ZNY" && tc.name == "nil map" {
+				ids = nil
+			} else {
+				ids = titleIDs
+			}
+			gotID, gotOK := resolveLegacyTitleID(ids, tc.facility, tc.role)
+			if gotOK != tc.wantOK {
+				t.Errorf("resolveLegacyTitleID(%q, %q) ok = %v, want %v", tc.facility, tc.role, gotOK, tc.wantOK)
+			}
+			if gotID != tc.wantID {
+				t.Errorf("resolveLegacyTitleID(%q, %q) id = %d, want %d", tc.facility, tc.role, gotID, tc.wantID)
+			}
+		})
+	}
+}
+
 func TestLegacyToModernRoles_USWTExcludedFromPrefixFallback(t *testing.T) {
 	// USWT is handled by the direct map (-> RoleDivisionTechTeam) and must
 	// not also fall through to the "USn" division-staff heuristic, which

@@ -142,6 +142,14 @@ func SyncRolesForUser(request models.SyncRolesRequest) error {
 	return nil
 }
 
+func resolveLegacyTitleID(titleIDs map[string]map[string]int64, facility, role string) (int64, bool) {
+	titleID, ok := titleIDs[facility][role]
+	if !ok && strings.HasPrefix(role, "US") {
+		titleID, ok = titleIDs["ZHQ"][role]
+	}
+	return titleID, ok
+}
+
 func BulkMigrateTitles() error {
 	queries := dbconn.Queries()
 	ctx := context.Background()
@@ -164,10 +172,7 @@ func BulkMigrateTitles() error {
 	}
 
 	for _, a := range assignments {
-		titleID, ok := titleIDs[a.Facility][a.Role]
-		if !ok && strings.HasPrefix(a.Role, "US") {
-			titleID, ok = titleIDs["ZHQ"][a.Role]
-		}
+		titleID, ok := resolveLegacyTitleID(titleIDs, a.Facility, a.Role)
 		if !ok {
 			continue
 		}
