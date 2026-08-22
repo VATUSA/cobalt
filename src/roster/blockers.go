@@ -190,6 +190,10 @@ var Blockers = []Blocker{
 }
 
 func GetUserBlockers(user db.GetCombinedUserRow) UserBlockers {
+	return aggregateBlockers(CheckUserBlockers(user))
+}
+
+func aggregateBlockers(blockers []Blocker) UserBlockers {
 	userBlockers := UserBlockers{
 		IsTransferBlocked:       false,
 		TransferBlockedReasons:  []string{},
@@ -197,7 +201,6 @@ func GetUserBlockers(user db.GetCombinedUserRow) UserBlockers {
 		IsPromotionBlocked:      false,
 		PromotionBlockedReasons: []string{},
 	}
-	blockers := CheckUserBlockers(user)
 	for _, blocker := range blockers {
 		if slices.Contains(blocker.Blocks, BlocksTransfer) {
 			userBlockers.IsTransferBlocked = true
