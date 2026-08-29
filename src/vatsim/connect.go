@@ -28,14 +28,28 @@ const (
 )
 
 func ConnectBaseURL() string {
+	if override := config.ConnectBaseURLOverride(); override != "" {
+		return override
+	}
 	if config.IsDevelopment() {
 		return CONNECT_BASE_URL_DEV
 	}
 	return CONNECT_BASE_URL_PROD
 }
 
+// ConnectAuthorizeBaseURL is the base URL used only for the browser-facing
+// /oauth/authorize redirect. It's the same host as ConnectBaseURL() in
+// production, but can differ in local/integration testing (see
+// config.ConnectAuthorizeBaseURLOverride).
+func ConnectAuthorizeBaseURL() string {
+	if override := config.ConnectAuthorizeBaseURLOverride(); override != "" {
+		return override
+	}
+	return ConnectBaseURL()
+}
+
 func ConnectAuthorizeURL() string {
-	return ConnectBaseURL() + CONNECT_URI_AUTHORIZE
+	return ConnectAuthorizeBaseURL() + CONNECT_URI_AUTHORIZE
 }
 
 func ConnectTokenURL() string {
@@ -47,6 +61,9 @@ func ConnectUserURL() string {
 }
 
 func ConnectRedirectURI() string {
+	if override := config.ConnectRedirectURIOverride(); override != "" {
+		return override
+	}
 	if config.IsDevelopment() {
 		return "http://localhost:8000/cobalt" + CONNECT_REDIRECT_URI
 	}

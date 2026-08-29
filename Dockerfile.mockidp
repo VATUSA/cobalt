@@ -1,0 +1,13 @@
+# Test-only image: builds just the mock VATSIM Connect IdP used by
+# docker-compose.test.yml. Never shipped/deployed outside integration testing.
+FROM --platform=$BUILDPLATFORM golang:1.25.6-alpine3.23 AS build
+WORKDIR /go/src/github.com/VATUSA/cobalt
+COPY src/ ./
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o bin/mockidp ./cmd/mockidp/
+
+FROM alpine:3.23 AS app
+WORKDIR /app
+COPY --from=build /go/src/github.com/VATUSA/cobalt/bin/mockidp ./
+ENTRYPOINT ["/app/mockidp"]

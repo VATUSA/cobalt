@@ -1,0 +1,83 @@
+services:
+  mysql:
+    image: mysql:9
+    restart: "no"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: cobalt
+    ports:
+      - 3306:3306
+    healthcheck:
+      # -h127.0.0.1 (not "localhost") forces the TCP listener rather than the
+      # unix socket, which mysqld's brief internal-initialization temp server
+      # doesn't serve -- otherwise this can report healthy one restart too
+      # early and cobalt's own (TCP) connection gets "connection refused".
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-ppassword"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Stand-in for VATSIM Connect. cobalt talks to it directly (never through a
+  # browser redirect chain it can't see), but the Hurl client acting as the
+  # "browser" must independently be able to follow GetLogin's redirect to
+  # /oauth/authorize, so this is published to the host as well as reachable
+  # on the compose network — see the cobalt service's VATSIM_CONNECT_* split
+  # below.
+  mock-idp:
+    image: localhost/cobalt-mockidp:latest
+    restart: "no"
+    environment:
+      MOCK_IDP_CLIENT_ID: test-client-id
+      MOCK_IDP_CLIENT_SECRET: test-client-secret
+    ports:
+      - 9100:9100
+
+  cobalt:
+    image: localhost/cobalt:latest
+    restart: "no"
+    environment:
+      APP_ENV: dev
+      APP_BASE_URL: http://localhost:8080
+      POST_LOGIN_URL: http://localhost:8080/login/whoami
+      JWT_KEY: test
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASS: password
+      DB_NAME: cobalt
+      VATSIM_CONNECT_CLIENT_ID: test-client-id
+      VATSIM_CONNECT_CLIENT_SECRET: test-client-secret
+      # Server-to-server calls (token exchange, user fetch) go over the
+      # compose network directly to mock-idp.
+      VATSIM_CONNECT_BASE_URL: http://mock-idp:9100
+      # The browser-facing /oauth/authorize redirect must resolve from the
+      # host, where Hurl runs.
+      VATSIM_CONNECT_AUTHORIZE_BASE_URL: http://localhost:9100
+      VATSIM_CONNECT_REDIRECT_URI: http://localhost:8080/login/connect
+      REDIRECT_ALLOWLIST: vatusa.test
+    ports:
+      - 8080:8080
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      # alpine's busybox wget ships in the base image; no dedicated /health
+      # route exists (routes.go), so this hits the root "Hello, World!" handler.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # One-shot: cobalt's own golang-migrate Up() (cmd/server/main.go) creates
+  # the schema on startup, so this runs only after cobalt is healthy (schema
+  # exists) to insert rows nothing in the login path creates itself — see
+  # tests/fixtures/seed.sql.
+  seed:
+    image: mysql:9
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c", "mysql -h mysql -uroot -ppassword cobalt < /seed.sql"]
+    volumes:
+      - ./tests/fixtures/seed.sql:/seed.sql:ro
+    depends_on:
+      cobalt:
+        condition: service_healthy
