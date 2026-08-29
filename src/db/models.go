@@ -335,6 +335,20 @@ type Event struct {
 	ReviewedOn     sql.NullInt64
 }
 
+type FaqCategory struct {
+	ID        int32
+	Title     string
+	SortOrder int32
+}
+
+type FaqItem struct {
+	ID            int32
+	FaqCategoryID int32
+	Question      string
+	Answer        string
+	SortOrder     int32
+}
+
 type NewsPost struct {
 	ID        int32
 	Title     string

@@ -219,6 +219,10 @@ var (
 			},
 			{
 				Action: ActionWrite,
+				Object: ObjectFaq,
+			},
+			{
+				Action: ActionWrite,
 				Object: ObjectEvent,
 			},
 			{
