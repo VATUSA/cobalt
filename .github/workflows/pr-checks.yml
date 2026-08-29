@@ -20,3 +20,16 @@ jobs:
       - name: Run tests
         working-directory: src
         run: go test ./...
+  test-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - name: Install hurl
+        run: |
+          curl -sLO https://github.com/Orange-OpenSource/hurl/releases/download/8.0.1/hurl_8.0.1_amd64.deb
+          sudo dpkg -i hurl_8.0.1_amd64.deb
+      - name: Run integration tests
+        run: just test-integration
