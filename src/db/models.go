@@ -358,6 +358,16 @@ type NewsPost struct {
 	EditTime  int64
 }
 
+type SoloCert struct {
+	ID        int64
+	Cid       int64
+	Facility  string
+	Position  string
+	Expires   time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type TransferHistory struct {
 	ID           int64
 	Cid          int64

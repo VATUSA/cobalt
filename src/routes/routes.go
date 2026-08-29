@@ -36,6 +36,12 @@ func SetupRoutes(e *echo.Echo) {
 	faq.POST("/item/:id", endpoints.UpdateFaqItem)
 	faq.DELETE("/item/:id", endpoints.DeleteFaqItem)
 
+	solo := e.Group("/solo")
+	solo.GET("", endpoints.GetSoloCerts)
+	solo.POST("", endpoints.CreateSoloCert)
+	solo.POST("/:id", endpoints.UpdateSoloCert)
+	solo.DELETE("/:id", endpoints.DeleteSoloCert)
+
 	roles := e.Group("/roles")
 	roles.POST("/legacy_sync", endpoints.LegacySyncRoles)
 	roles.POST("/legacy_sync/bulk", endpoints.LegacySyncRolesBulk)
