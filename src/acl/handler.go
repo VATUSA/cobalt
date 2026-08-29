@@ -108,6 +108,25 @@ func (ph *PermissionHandler) HasFacility(facility string, object Object, action 
 	return res
 }
 
+// HasAny reports whether the caller holds object:action at any scope at all —
+// globally or at any single facility. Used to distinguish "this caller could
+// never perform this action" from "this caller lacks it for this specific
+// target", so a permission check can fail fast with 403 before looking up
+// the target and risking a 404 that leaks whether it exists.
+func (ph *PermissionHandler) HasAny(object Object, action Action) bool {
+	if ph.HasGlobal(object, action) {
+		return true
+	}
+	key := createGlobalPermissionKey(object, action)
+	for facilityKey := range ph.facilityPermissions {
+		_, facilityObject, facilityAction := extractFacilityPermissionKey(facilityKey)
+		if createGlobalPermissionKey(facilityObject, facilityAction) == key {
+			return true
+		}
+	}
+	return false
+}
+
 func (ph *PermissionHandler) GetGlobalPermissions() []PermissionDefinition {
 	var output []PermissionDefinition
 	for key := range ph.globalPermissions {

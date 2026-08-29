@@ -219,6 +219,18 @@ var (
 			},
 			{
 				Action: ActionWrite,
+				Object: ObjectFaq,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectSoloCert,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectPolicy,
+			},
+			{
+				Action: ActionWrite,
 				Object: ObjectEvent,
 			},
 			{
@@ -334,6 +346,10 @@ var (
 				Action: ActionRead,
 				Object: ObjectFacilityTechConfig,
 			},
+			{
+				Action: ActionWrite,
+				Object: ObjectSoloCert,
+			},
 		},
 		RoleDeputyAirTrafficManager: {
 			{
@@ -360,11 +376,19 @@ var (
 				Action: ActionRead,
 				Object: ObjectFacilityTechConfig,
 			},
+			{
+				Action: ActionWrite,
+				Object: ObjectSoloCert,
+			},
 		},
 		RoleTrainingAdministrator: {
 			{
 				Action: ActionWrite,
 				Object: ObjectFacilityTrainingRole,
+			},
+			{
+				Action: ActionWrite,
+				Object: ObjectSoloCert,
 			},
 		},
 		RoleEventCoordinator: {
@@ -380,8 +404,18 @@ var (
 				Object: ObjectFacilityTechConfig,
 			},
 		},
-		RoleInstructor: {},
-		RoleMentor:     {},
+		RoleInstructor: {
+			{
+				Action: ActionWrite,
+				Object: ObjectSoloCert,
+			},
+		},
+		RoleMentor: {
+			{
+				Action: ActionWrite,
+				Object: ObjectSoloCert,
+			},
+		},
 
 		RoleSystemFacility: {
 			{

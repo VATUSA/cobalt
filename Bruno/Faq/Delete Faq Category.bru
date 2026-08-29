@@ -1,0 +1,20 @@
+meta {
+  name: Delete Faq Category
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{hostname}}/faq/category/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 1
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

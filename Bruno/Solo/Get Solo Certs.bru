@@ -1,0 +1,16 @@
+meta {
+  name: Get Solo Certs
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{hostname}}/solo
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

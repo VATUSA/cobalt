@@ -1,0 +1,20 @@
+meta {
+  name: Delete Solo Cert
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{hostname}}/solo/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 1
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

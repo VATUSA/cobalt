@@ -1,0 +1,23 @@
+meta {
+  name: Create Faq Category
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{hostname}}/faq/category
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "title": "Test Category",
+    "sort_order": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

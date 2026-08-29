@@ -70,6 +70,11 @@ func (phc *PermissionHandlerCache) HasFacility(c *echo.Context, facility string,
 	return ph.HasFacility(facility, object, action)
 }
 
+func (phc *PermissionHandlerCache) HasAny(c *echo.Context, object Object, action Action) bool {
+	ph := phc.getPermissionHandlerFromContext(c)
+	return ph.HasAny(object, action)
+}
+
 func (phc *PermissionHandlerCache) GetHandler(c *echo.Context) *PermissionHandler {
 	ph := phc.getPermissionHandlerFromContext(c)
 	return ph

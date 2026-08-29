@@ -36,6 +36,36 @@ func TestPermissionHandler_SuperAdminOverridesEverything(t *testing.T) {
 	}
 }
 
+// TestPermissionHandler_HasAny covers the fast-path check used to reject a
+// caller with no grant of an object/action at any scope before looking up a
+// specific target — without it, a lookup-then-403 flow can leak via a
+// 404-vs-403 split whether a target exists to a caller who could never have
+// permission on it regardless.
+func TestPermissionHandler_HasAny(t *testing.T) {
+	ph := NewPermissionHandler([]ScopedRole{
+		{Role: RoleAirTrafficManager, Facility: "ZDV"},
+	})
+
+	if !ph.HasAny(ObjectEvent, ActionWrite) {
+		t.Error("expected HasAny to report true for a facility-scoped grant")
+	}
+	if ph.HasAny(ObjectSystemRole, ActionWrite) {
+		t.Error("did not expect HasAny to report true for an ungranted object")
+	}
+
+	empty := NewPermissionHandler([]ScopedRole{})
+	if empty.HasAny(ObjectEvent, ActionWrite) {
+		t.Error("did not expect HasAny to report true for a caller with no roles")
+	}
+
+	global := NewPermissionHandler([]ScopedRole{
+		{Role: RoleDivisionManagement, Facility: ScopedRoleGlobalFacility},
+	})
+	if !global.HasAny(ObjectDivisionManagementRole, ActionWrite) {
+		t.Error("expected HasAny to report true for a global grant")
+	}
+}
+
 // TestPermissionHandler_HasFacility covers facility-scoped grants, and that
 // a global grant of the same object/action still satisfies a facility check
 // (a divison-wide permission should not need to be duplicated per facility).

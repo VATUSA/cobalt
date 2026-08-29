@@ -21,6 +21,26 @@ var ErrNotConfigured = errors.New("object storage is not configured")
 
 var httpClient = &http.Client{Timeout: 30 * time.Second}
 
+// uploadSemaphore bounds concurrent in-flight uploads. Each one holds the
+// full file in memory twice — once read from the multipart form, once
+// re-read by putObject while signing — so unbounded concurrency on
+// MaxDocumentBytes-sized (50 MB) uploads is a real memory risk. SigV4 needs
+// the whole body up front to compute the payload hash, so streaming isn't an
+// option without reworking the signer.
+var uploadSemaphore = make(chan struct{}, 4)
+
+// acquireUploadSlot blocks until an upload slot is free or ctx is done,
+// returning a release function to call (via defer) once the upload
+// completes.
+func acquireUploadSlot(ctx context.Context) (func(), error) {
+	select {
+	case uploadSemaphore <- struct{}{}:
+		return func() { <-uploadSemaphore }, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
 // UploadEventBanner validates an uploaded banner and stores it in the Spaces
 // bucket, returning the public URL to record on the event. Callers should run
 // their permission checks first — this writes to the bucket unconditionally.
@@ -50,7 +70,7 @@ func UploadEventBanner(ctx context.Context, facility string, header *multipart.F
 	}
 
 	key := eventBannerKey(facility, info.extension)
-	if err := putObject(ctx, key, info.contentType, data); err != nil {
+	if err := putObject(ctx, config.SpacesEndpoint(), config.SpacesRegion(), key, info.contentType, data); err != nil {
 		return "", err
 	}
 
@@ -60,6 +80,11 @@ func UploadEventBanner(ctx context.Context, facility string, header *multipart.F
 // eventBannerKey builds an unguessable, collision-free object key. Keys are
 // never reused, so an edit that replaces a banner simply writes a new object
 // and leaves the old one behind rather than risking a cache-stale overwrite.
+//
+// rand.Read panics rather than returning an error as of Go 1.24 (it reads
+// from the OS CSPRNG, which cannot meaningfully fail at runtime), so there is
+// no fallback path to write here — one that swapped the unguessable key for
+// a predictable timestamp would defeat the property this function exists for.
 func eventBannerKey(facility, extension string) string {
 	facility = strings.ToLower(strings.TrimSpace(facility))
 	if facility == "" {
@@ -68,12 +93,7 @@ func eventBannerKey(facility, extension string) string {
 	facility = sanitizeKeySegment(facility)
 
 	var random [16]byte
-	if _, err := rand.Read(random[:]); err != nil {
-		// crypto/rand does not fail in practice; fall back to a timestamp so a
-		// banner upload never hard-fails on entropy.
-		return fmt.Sprintf("event-banners/%s/%d.%s", facility, time.Now().UnixNano(), extension)
-	}
-
+	_, _ = rand.Read(random[:])
 	return fmt.Sprintf("event-banners/%s/%s.%s", facility, hex.EncodeToString(random[:]), extension)
 }
 
@@ -91,8 +111,16 @@ func sanitizeKeySegment(s string) string {
 	return out.String()
 }
 
-func putObject(ctx context.Context, key, contentType string, data []byte) error {
-	url := config.SpacesEndpoint() + "/" + key
+// putObject uploads data to the given bucket endpoint (e.g.
+// config.SpacesEndpoint() or config.DocsEndpoint()), signed for region.
+func putObject(ctx context.Context, endpoint, region, key, contentType string, data []byte) error {
+	release, err := acquireUploadSlot(ctx)
+	if err != nil {
+		return fmt.Errorf("waiting for an upload slot: %w", err)
+	}
+	defer release()
+
+	url := endpoint + "/" + key
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(data))
 	if err != nil {
@@ -102,11 +130,16 @@ func putObject(ctx context.Context, key, contentType string, data []byte) error 
 	req.ContentLength = int64(len(data))
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("X-Amz-Acl", "public-read")
+	// The bucket serves arbitrary user-uploaded file types (including plain
+	// text and images); nosniff stops a browser from reinterpreting one as
+	// HTML/JS based on content sniffing regardless of the Content-Type set
+	// above.
+	req.Header.Set("X-Content-Type-Options", "nosniff")
 	// Keys embed random bytes and are never rewritten, so the object at a
 	// given URL is immutable and safe to cache indefinitely at the edge.
 	req.Header.Set("Cache-Control", "public, max-age=31536000, immutable")
 
-	signRequest(req, config.SpacesKey(), config.SpacesSecret(), config.SpacesRegion(), "s3", hashHex(data), time.Now())
+	signRequest(req, config.SpacesKey(), config.SpacesSecret(), region, "s3", hashHex(data), time.Now())
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
