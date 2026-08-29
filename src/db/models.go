@@ -358,6 +358,26 @@ type NewsPost struct {
 	EditTime  int64
 }
 
+type PolicyCategory struct {
+	ID        int32
+	Title     string
+	SortOrder int32
+}
+
+type PolicyDocument struct {
+	ID               int32
+	PolicyCategoryID int32
+	Ident            string
+	Title            string
+	Summary          string
+	DocumentUrl      string
+	EffectiveDate    time.Time
+	Hidden           bool
+	SortOrder        int32
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
 type SoloCert struct {
 	ID        int64
 	Cid       int64

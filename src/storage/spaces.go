@@ -50,7 +50,7 @@ func UploadEventBanner(ctx context.Context, facility string, header *multipart.F
 	}
 
 	key := eventBannerKey(facility, info.extension)
-	if err := putObject(ctx, key, info.contentType, data); err != nil {
+	if err := putObject(ctx, config.SpacesEndpoint(), config.SpacesRegion(), key, info.contentType, data); err != nil {
 		return "", err
 	}
 
@@ -91,8 +91,10 @@ func sanitizeKeySegment(s string) string {
 	return out.String()
 }
 
-func putObject(ctx context.Context, key, contentType string, data []byte) error {
-	url := config.SpacesEndpoint() + "/" + key
+// putObject uploads data to the given bucket endpoint (e.g.
+// config.SpacesEndpoint() or config.DocsEndpoint()), signed for region.
+func putObject(ctx context.Context, endpoint, region, key, contentType string, data []byte) error {
+	url := endpoint + "/" + key
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(data))
 	if err != nil {
@@ -106,7 +108,7 @@ func putObject(ctx context.Context, key, contentType string, data []byte) error 
 	// given URL is immutable and safe to cache indefinitely at the edge.
 	req.Header.Set("Cache-Control", "public, max-age=31536000, immutable")
 
-	signRequest(req, config.SpacesKey(), config.SpacesSecret(), config.SpacesRegion(), "s3", hashHex(data), time.Now())
+	signRequest(req, config.SpacesKey(), config.SpacesSecret(), region, "s3", hashHex(data), time.Now())
 
 	resp, err := httpClient.Do(req)
 	if err != nil {

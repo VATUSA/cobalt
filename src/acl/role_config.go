@@ -227,6 +227,10 @@ var (
 			},
 			{
 				Action: ActionWrite,
+				Object: ObjectPolicy,
+			},
+			{
+				Action: ActionWrite,
 				Object: ObjectEvent,
 			},
 			{
