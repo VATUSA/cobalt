@@ -9,7 +9,6 @@ CREATE TABLE faq_item (
     faq_category_id integer not null,
     question varchar(500) not null,
     answer text not null,
-    sort_order integer not null default 0
+    sort_order integer not null default 0,
+    FOREIGN KEY (faq_category_id) REFERENCES faq_category(id) ON DELETE RESTRICT
 );
-
-CREATE INDEX idx_faq_item_category ON faq_item (faq_category_id);

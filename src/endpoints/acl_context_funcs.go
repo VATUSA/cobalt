@@ -1,7 +1,6 @@
 package endpoints
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -20,7 +19,7 @@ func AssertGlobal(c *echo.Context, object acl.Object, action acl.Action) bool {
 		return true
 	}
 	_ = GenericError(c, http.StatusForbidden,
-		errors.New(fmt.Sprintf("missing acl global %s:%s", object, action)))
+		fmt.Errorf("missing acl global %s:%s", object, action))
 	return false
 }
 
@@ -33,8 +32,14 @@ func AssertFacility(c *echo.Context, facility string, object acl.Object, action 
 		return true
 	}
 	_ = GenericError(c, http.StatusForbidden,
-		errors.New(fmt.Sprintf("missing acl %s %s:%s", facility, object, action)))
+		fmt.Errorf("missing acl %s %s:%s", facility, object, action))
 	return false
+}
+
+// HasAny reports whether the caller holds object:action at any scope at all,
+// without regard to any specific target.
+func HasAny(c *echo.Context, object acl.Object, action acl.Action) bool {
+	return acl.GetPermissionHandlerCache().HasAny(c, object, action)
 }
 
 func GetPermissionHandler(c *echo.Context) *acl.PermissionHandler {
@@ -44,29 +49,46 @@ func GetPermissionHandler(c *echo.Context) *acl.PermissionHandler {
 // AssertFacilityForCid checks whether the caller may perform action on object for the
 // specific controller identified by targetCid — either via a global grant, or a facility
 // grant matching that controller's current home or visiting facility. Returns the
-// controller's current home facility (for stamping onto the record being written) and true
-// on success; writes the 403/404 itself and returns false on failure.
+// specific facility that granted access (for stamping onto the record being written) and
+// true on success; writes the 403/404 itself and returns false on failure.
+//
+// The HasAny check runs before the GetCombinedUserByCID lookup so that a caller who could
+// never perform this action at any scope gets a flat 403 without a DB round trip — and,
+// more importantly, without letting the presence/absence of a 404 reveal whether targetCid
+// is a real controller to a caller who holds no relevant permission at all.
 func AssertFacilityForCid(c *echo.Context, targetCid int, object acl.Object, action acl.Action) (string, bool) {
-	user, err := dbconn.GetCombinedUserByCID(targetCid)
-	if err != nil || user == nil {
-		_ = GenericError(c, http.StatusNotFound, errors.New("user not found"))
+	if HasGlobal(c, object, action) {
+		user, err := dbconn.GetCombinedUserByCID(targetCid)
+		if err != nil || user == nil {
+			_ = GenericError(c, http.StatusNotFound, fmt.Errorf("user not found"))
+			return "", false
+		}
+		return user.Facility, true
+	}
+	if !HasAny(c, object, action) {
+		_ = GenericError(c, http.StatusForbidden,
+			fmt.Errorf("missing acl %s:%s for cid %d", object, action, targetCid))
 		return "", false
 	}
 
-	if HasGlobal(c, object, action) {
-		return user.Facility, true
+	user, err := dbconn.GetCombinedUserByCID(targetCid)
+	if err != nil || user == nil {
+		_ = GenericError(c, http.StatusNotFound, fmt.Errorf("user not found"))
+		return "", false
 	}
+
 	if HasFacility(c, user.Facility, object, action) {
 		return user.Facility, true
 	}
 	if user.VisitingFacilities.Valid {
 		for _, facility := range strings.Split(user.VisitingFacilities.String, ",") {
+			facility = strings.TrimSpace(facility)
 			if HasFacility(c, facility, object, action) {
-				return user.Facility, true
+				return facility, true
 			}
 		}
 	}
 	_ = GenericError(c, http.StatusForbidden,
-		errors.New(fmt.Sprintf("missing acl %s:%s for cid %d", object, action, targetCid)))
+		fmt.Errorf("missing acl %s:%s for cid %d", object, action, targetCid))
 	return "", false
 }

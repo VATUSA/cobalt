@@ -96,6 +96,7 @@ var RoleFacilityPermissions = map[Role][]PermissionDefinition{ ... }
 
 `Action` is one of `read`, `write`, `manage_unowned`, `usage`. `Object` is a
 business resource: `superadmin`, `news_post`, `event`, `event_approval`,
+`faq`, `solo_cert`, `policy`,
 `user_sensitive_details`, `roster`, `facility_tech_config`,
 `facility_title`, `facility_title_management`,
 `facility_title_senior_staff`, `facility_title_junior_staff`,
@@ -315,6 +316,25 @@ func checkRoleManagePerm(c *echo.Context, facility string, object acl.Object) bo
     return AssertFacility(c, facility, object, acl.ActionWrite)
 }
 ```
+
+**Scoped to a specific controller, not a fixed facility** — solo certs don't have
+a facility known up front the way an event's `facility` field does; the
+facility to check is the *target controller's own*, and it may be their home
+facility or one they're only visiting. `AssertFacilityForCid` handles this:
+
+```go
+func AssertFacilityForCid(c *echo.Context, targetCid int, object acl.Object, action acl.Action) (string, bool)
+```
+
+It looks up `targetCid` via `dbconn.GetCombinedUserByCID`, then checks (in
+order) a global grant, a facility grant on the controller's home facility, and
+a facility grant on each of the controller's visiting facilities — returning
+whichever facility actually granted access, which is what the caller stamps
+onto the record being written (e.g. `solo_cert.facility`). A caller with no
+grant of `object:action` at *any* scope (checked via `acl.HasAny`, hoisted
+above the CID lookup) gets a flat 403 without a DB round trip and without a
+404-vs-403 split that would otherwise let an unprivileged caller enumerate
+which CIDs exist.
 
 Note `"ZHQ"` here — the HTTP/URL layer uses the literal facility code
 `"ZHQ"` to mean "division-wide," while the DB/ACL layer uses the sentinel

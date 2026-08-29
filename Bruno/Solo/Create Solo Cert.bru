@@ -1,0 +1,24 @@
+meta {
+  name: Create Solo Cert
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{hostname}}/solo
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "cid": 900001,
+    "position": "ZHQ_APP",
+    "expires": "2026-09-15"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

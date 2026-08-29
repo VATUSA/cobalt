@@ -98,6 +98,67 @@ func TestUploadPolicyDocumentRoundTrip(t *testing.T) {
 	}
 }
 
+func TestUploadPolicyDocumentSetsNosniff(t *testing.T) {
+	pdf := append([]byte("%PDF-1.4\n"), []byte("rest of a fake but valid-enough pdf")...)
+
+	var gotNosniff string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotNosniff = r.Header.Get("X-Content-Type-Options")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	configureDocs(t, server.URL, server.URL)
+
+	if _, err := UploadPolicyDocument(context.Background(), documentUpload(t, "policy.pdf", pdf)); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotNosniff != "nosniff" {
+		t.Errorf("x-content-type-options = %q, want nosniff", gotNosniff)
+	}
+}
+
+func TestUploadPolicyDocumentAcceptsPlainTextFormats(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	configureDocs(t, server.URL, server.URL)
+
+	url, err := UploadPolicyDocument(context.Background(), documentUpload(t, "notes.txt", []byte("plain text notes")))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.HasSuffix(url, ".txt") {
+		t.Errorf("url = %q, want .txt suffix", url)
+	}
+
+	url, err = UploadPolicyDocument(context.Background(), documentUpload(t, "data.csv", []byte("a,b,c\n1,2,3")))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.HasSuffix(url, ".csv") {
+		t.Errorf("url = %q, want .csv suffix", url)
+	}
+}
+
+func TestUploadPolicyDocumentRejectsOversizedFile(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("an oversized upload must not reach the bucket")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	configureDocs(t, server.URL, server.URL)
+
+	oversized := append([]byte("%PDF-1.4\n"), make([]byte, MaxDocumentBytes)...)
+	_, err := UploadPolicyDocument(context.Background(), documentUpload(t, "policy.pdf", oversized))
+	if !errors.Is(err, ErrInvalidDocument) {
+		t.Fatalf("got %v, want ErrInvalidDocument", err)
+	}
+}
+
 func TestUploadPolicyDocumentAcceptsZipBasedFormats(t *testing.T) {
 	docx := append([]byte("PK\x03\x04"), []byte("rest of a fake but valid-enough docx")...)
 

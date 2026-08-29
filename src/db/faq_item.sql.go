@@ -30,13 +30,12 @@ func (q *Queries) CreateFaqItem(ctx context.Context, arg CreateFaqItemParams) (s
 	)
 }
 
-const deleteFaqItem = `-- name: DeleteFaqItem :exec
+const deleteFaqItem = `-- name: DeleteFaqItem :execresult
 DELETE FROM faq_item WHERE id = ?
 `
 
-func (q *Queries) DeleteFaqItem(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteFaqItem, id)
-	return err
+func (q *Queries) DeleteFaqItem(ctx context.Context, id int32) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteFaqItem, id)
 }
 
 const getAllFaqItems = `-- name: GetAllFaqItems :many
@@ -89,7 +88,7 @@ func (q *Queries) GetFaqItemById(ctx context.Context, id int32) (FaqItem, error)
 	return i, err
 }
 
-const updateFaqItem = `-- name: UpdateFaqItem :exec
+const updateFaqItem = `-- name: UpdateFaqItem :execresult
 UPDATE faq_item
 SET faq_category_id = ?, question = ?, answer = ?, sort_order = ?
 WHERE id = ?
@@ -103,13 +102,12 @@ type UpdateFaqItemParams struct {
 	ID            int32
 }
 
-func (q *Queries) UpdateFaqItem(ctx context.Context, arg UpdateFaqItemParams) error {
-	_, err := q.db.ExecContext(ctx, updateFaqItem,
+func (q *Queries) UpdateFaqItem(ctx context.Context, arg UpdateFaqItemParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateFaqItem,
 		arg.FaqCategoryID,
 		arg.Question,
 		arg.Answer,
 		arg.SortOrder,
 		arg.ID,
 	)
-	return err
 }

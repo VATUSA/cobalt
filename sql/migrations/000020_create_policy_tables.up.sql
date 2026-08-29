@@ -14,8 +14,9 @@ CREATE TABLE policy_document (
     effective_date date not null,
     hidden boolean not null default false,
     sort_order integer not null default 0,
+    created_by_cid int not null,
+    updated_by_cid int not null,
     created_at timestamp not null,
-    updated_at timestamp not null
+    updated_at timestamp not null,
+    FOREIGN KEY (policy_category_id) REFERENCES policy_category(id) ON DELETE RESTRICT
 );
-
-CREATE INDEX idx_policy_document_category ON policy_document (policy_category_id);

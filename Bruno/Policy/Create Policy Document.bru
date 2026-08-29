@@ -1,0 +1,29 @@
+meta {
+  name: Create Policy Document
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{hostname}}/policy/document
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "policy_category_id": 1,
+    "ident": "TEST-1",
+    "title": "Test Document",
+    "summary": "A test document.",
+    "document_url": "https://www.vatusa.net/files/test.pdf",
+    "effective_date": "2026-01-01",
+    "hidden": false,
+    "sort_order": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

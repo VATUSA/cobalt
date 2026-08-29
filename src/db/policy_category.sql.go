@@ -10,6 +10,17 @@ import (
 	"database/sql"
 )
 
+const countPolicyDocumentsInCategory = `-- name: CountPolicyDocumentsInCategory :one
+SELECT COUNT(*) FROM policy_document WHERE policy_category_id = ?
+`
+
+func (q *Queries) CountPolicyDocumentsInCategory(ctx context.Context, policyCategoryID int32) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countPolicyDocumentsInCategory, policyCategoryID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createPolicyCategory = `-- name: CreatePolicyCategory :execresult
 INSERT INTO policy_category (title, sort_order) VALUES (?, ?)
 `
@@ -23,13 +34,12 @@ func (q *Queries) CreatePolicyCategory(ctx context.Context, arg CreatePolicyCate
 	return q.db.ExecContext(ctx, createPolicyCategory, arg.Title, arg.SortOrder)
 }
 
-const deletePolicyCategory = `-- name: DeletePolicyCategory :exec
+const deletePolicyCategory = `-- name: DeletePolicyCategory :execresult
 DELETE FROM policy_category WHERE id = ?
 `
 
-func (q *Queries) DeletePolicyCategory(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deletePolicyCategory, id)
-	return err
+func (q *Queries) DeletePolicyCategory(ctx context.Context, id int32) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deletePolicyCategory, id)
 }
 
 const getPolicyCategories = `-- name: GetPolicyCategories :many
@@ -70,7 +80,7 @@ func (q *Queries) GetPolicyCategoryById(ctx context.Context, id int32) (PolicyCa
 	return i, err
 }
 
-const updatePolicyCategory = `-- name: UpdatePolicyCategory :exec
+const updatePolicyCategory = `-- name: UpdatePolicyCategory :execresult
 UPDATE policy_category
 SET title = ?, sort_order = ?
 WHERE id = ?
@@ -82,7 +92,6 @@ type UpdatePolicyCategoryParams struct {
 	ID        int32
 }
 
-func (q *Queries) UpdatePolicyCategory(ctx context.Context, arg UpdatePolicyCategoryParams) error {
-	_, err := q.db.ExecContext(ctx, updatePolicyCategory, arg.Title, arg.SortOrder, arg.ID)
-	return err
+func (q *Queries) UpdatePolicyCategory(ctx context.Context, arg UpdatePolicyCategoryParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updatePolicyCategory, arg.Title, arg.SortOrder, arg.ID)
 }

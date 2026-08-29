@@ -12,8 +12,8 @@ import (
 )
 
 const createPolicyDocument = `-- name: CreatePolicyDocument :execresult
-INSERT INTO policy_document (policy_category_id, ident, title, summary, document_url, effective_date, hidden, sort_order, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO policy_document (policy_category_id, ident, title, summary, document_url, effective_date, hidden, sort_order, created_by_cid, updated_by_cid, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreatePolicyDocumentParams struct {
@@ -25,6 +25,8 @@ type CreatePolicyDocumentParams struct {
 	EffectiveDate    time.Time
 	Hidden           bool
 	SortOrder        int32
+	CreatedByCid     int32
+	UpdatedByCid     int32
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }
@@ -39,22 +41,23 @@ func (q *Queries) CreatePolicyDocument(ctx context.Context, arg CreatePolicyDocu
 		arg.EffectiveDate,
 		arg.Hidden,
 		arg.SortOrder,
+		arg.CreatedByCid,
+		arg.UpdatedByCid,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
 }
 
-const deletePolicyDocument = `-- name: DeletePolicyDocument :exec
+const deletePolicyDocument = `-- name: DeletePolicyDocument :execresult
 DELETE FROM policy_document WHERE id = ?
 `
 
-func (q *Queries) DeletePolicyDocument(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deletePolicyDocument, id)
-	return err
+func (q *Queries) DeletePolicyDocument(ctx context.Context, id int32) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deletePolicyDocument, id)
 }
 
 const getAllPolicyDocuments = `-- name: GetAllPolicyDocuments :many
-SELECT id, policy_category_id, ident, title, summary, document_url, effective_date, hidden, sort_order, created_at, updated_at FROM policy_document ORDER BY policy_category_id, sort_order, id
+SELECT id, policy_category_id, ident, title, summary, document_url, effective_date, hidden, sort_order, created_by_cid, updated_by_cid, created_at, updated_at FROM policy_document ORDER BY policy_category_id, sort_order, id
 `
 
 func (q *Queries) GetAllPolicyDocuments(ctx context.Context) ([]PolicyDocument, error) {
@@ -76,6 +79,8 @@ func (q *Queries) GetAllPolicyDocuments(ctx context.Context) ([]PolicyDocument, 
 			&i.EffectiveDate,
 			&i.Hidden,
 			&i.SortOrder,
+			&i.CreatedByCid,
+			&i.UpdatedByCid,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -93,7 +98,7 @@ func (q *Queries) GetAllPolicyDocuments(ctx context.Context) ([]PolicyDocument, 
 }
 
 const getPolicyDocumentById = `-- name: GetPolicyDocumentById :one
-SELECT id, policy_category_id, ident, title, summary, document_url, effective_date, hidden, sort_order, created_at, updated_at FROM policy_document WHERE id = ?
+SELECT id, policy_category_id, ident, title, summary, document_url, effective_date, hidden, sort_order, created_by_cid, updated_by_cid, created_at, updated_at FROM policy_document WHERE id = ?
 `
 
 func (q *Queries) GetPolicyDocumentById(ctx context.Context, id int32) (PolicyDocument, error) {
@@ -109,6 +114,8 @@ func (q *Queries) GetPolicyDocumentById(ctx context.Context, id int32) (PolicyDo
 		&i.EffectiveDate,
 		&i.Hidden,
 		&i.SortOrder,
+		&i.CreatedByCid,
+		&i.UpdatedByCid,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -116,7 +123,7 @@ func (q *Queries) GetPolicyDocumentById(ctx context.Context, id int32) (PolicyDo
 }
 
 const getVisiblePolicyDocuments = `-- name: GetVisiblePolicyDocuments :many
-SELECT id, policy_category_id, ident, title, summary, document_url, effective_date, hidden, sort_order, created_at, updated_at FROM policy_document WHERE hidden = false ORDER BY policy_category_id, sort_order, id
+SELECT id, policy_category_id, ident, title, summary, document_url, effective_date, hidden, sort_order, created_by_cid, updated_by_cid, created_at, updated_at FROM policy_document WHERE hidden = false ORDER BY policy_category_id, sort_order, id
 `
 
 func (q *Queries) GetVisiblePolicyDocuments(ctx context.Context) ([]PolicyDocument, error) {
@@ -138,6 +145,8 @@ func (q *Queries) GetVisiblePolicyDocuments(ctx context.Context) ([]PolicyDocume
 			&i.EffectiveDate,
 			&i.Hidden,
 			&i.SortOrder,
+			&i.CreatedByCid,
+			&i.UpdatedByCid,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -154,9 +163,9 @@ func (q *Queries) GetVisiblePolicyDocuments(ctx context.Context) ([]PolicyDocume
 	return items, nil
 }
 
-const updatePolicyDocument = `-- name: UpdatePolicyDocument :exec
+const updatePolicyDocument = `-- name: UpdatePolicyDocument :execresult
 UPDATE policy_document
-SET policy_category_id = ?, ident = ?, title = ?, summary = ?, document_url = ?, effective_date = ?, hidden = ?, sort_order = ?, updated_at = ?
+SET policy_category_id = ?, ident = ?, title = ?, summary = ?, document_url = ?, effective_date = ?, hidden = ?, sort_order = ?, updated_by_cid = ?, updated_at = ?
 WHERE id = ?
 `
 
@@ -169,12 +178,13 @@ type UpdatePolicyDocumentParams struct {
 	EffectiveDate    time.Time
 	Hidden           bool
 	SortOrder        int32
+	UpdatedByCid     int32
 	UpdatedAt        time.Time
 	ID               int32
 }
 
-func (q *Queries) UpdatePolicyDocument(ctx context.Context, arg UpdatePolicyDocumentParams) error {
-	_, err := q.db.ExecContext(ctx, updatePolicyDocument,
+func (q *Queries) UpdatePolicyDocument(ctx context.Context, arg UpdatePolicyDocumentParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updatePolicyDocument,
 		arg.PolicyCategoryID,
 		arg.Ident,
 		arg.Title,
@@ -183,8 +193,8 @@ func (q *Queries) UpdatePolicyDocument(ctx context.Context, arg UpdatePolicyDocu
 		arg.EffectiveDate,
 		arg.Hidden,
 		arg.SortOrder,
+		arg.UpdatedByCid,
 		arg.UpdatedAt,
 		arg.ID,
 	)
-	return err
 }

@@ -2,11 +2,12 @@ package endpoints
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 	"vatusa-cobalt/acl"
+	"vatusa-cobalt/auth"
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/models"
@@ -28,7 +29,7 @@ func parseSoloCertExpires(raw string) (time.Time, error) {
 		return time.Time{}, errors.New("expires must not be in the past")
 	}
 	if expires.After(today.AddDate(0, 0, soloCertMaxExpiresDays)) {
-		return time.Time{}, errors.New("expires must not be more than 45 days from today")
+		return time.Time{}, fmt.Errorf("expires must not be more than %d days from today", soloCertMaxExpiresDays)
 	}
 
 	return expires, nil
@@ -54,27 +55,44 @@ func CreateSoloCert(c *echo.Context) error {
 	}
 
 	position := strings.TrimSpace(request.Position)
-	if position == "" {
-		return GenericError(c, http.StatusBadRequest, errors.New("position is required"))
+	if err := requireText("position", position, 20); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
 	}
 	expires, err := parseSoloCertExpires(request.Expires)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
 
+	// The facility returned here is the one that granted access (the
+	// controller's home facility, or the specific visiting facility the
+	// caller matched on) — that's what gets stamped onto the record.
 	facility, ok := AssertFacilityForCid(c, request.Cid, acl.ObjectSoloCert, acl.ActionWrite)
 	if !ok {
 		return nil
 	}
 
+	existing, err := dbconn.Queries().GetActiveSoloCertForCidPosition(ctx, db.GetActiveSoloCertForCidPositionParams{
+		Cid:      int64(request.Cid),
+		Position: position,
+	})
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if len(existing) > 0 {
+		return GenericError(c, http.StatusConflict, errors.New("this controller already has an active solo cert for this position"))
+	}
+
+	userCid := int32(auth.GetUserCid(c))
 	now := time.Now()
 	result, err := dbconn.Queries().CreateSoloCert(ctx, db.CreateSoloCertParams{
-		Cid:       int64(request.Cid),
-		Facility:  facility,
-		Position:  position,
-		Expires:   expires,
-		CreatedAt: now,
-		UpdatedAt: now,
+		Cid:          int64(request.Cid),
+		Facility:     facility,
+		Position:     position,
+		Expires:      expires,
+		CreatedByCid: userCid,
+		UpdatedByCid: userCid,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, err)
@@ -88,15 +106,22 @@ func CreateSoloCert(c *echo.Context) error {
 }
 
 func UpdateSoloCert(c *echo.Context) error {
-	certId, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid solo cert id"))
+	certId, ok := parseId64(c, "id")
+	if !ok {
+		return nil
 	}
 	ctx := c.Request().Context()
 
-	existing, err := dbconn.Queries().GetSoloCertById(ctx, int64(certId))
+	existing, err := dbconn.Queries().GetSoloCertById(ctx, certId)
 	if err != nil {
 		return GenericError(c, http.StatusNotFound, errors.New("solo cert not found"))
+	}
+
+	// Scoped to the facility that granted the cert, not the controller's
+	// current facility — a transfer must not silently move edit rights to
+	// the new facility.
+	if !AssertFacility(c, existing.Facility, acl.ObjectSoloCert, acl.ActionWrite) {
+		return nil
 	}
 
 	var request models.SoloCertUpdateRequest
@@ -105,51 +130,52 @@ func UpdateSoloCert(c *echo.Context) error {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
 	position := strings.TrimSpace(request.Position)
-	if position == "" {
-		return GenericError(c, http.StatusBadRequest, errors.New("position is required"))
+	if err := requireText("position", position, 20); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
 	}
 	expires, err := parseSoloCertExpires(request.Expires)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
 
-	facility, ok := AssertFacilityForCid(c, int(existing.Cid), acl.ObjectSoloCert, acl.ActionWrite)
-	if !ok {
-		return nil
-	}
-
-	err = dbconn.Queries().UpdateSoloCert(ctx, db.UpdateSoloCertParams{
-		Facility:  facility,
-		Position:  position,
-		Expires:   expires,
-		UpdatedAt: time.Now(),
-		ID:        int64(certId),
+	result, err := dbconn.Queries().UpdateSoloCert(ctx, db.UpdateSoloCertParams{
+		Position:     position,
+		Expires:      expires,
+		UpdatedByCid: int32(auth.GetUserCid(c)),
+		UpdatedAt:    time.Now(),
+		ID:           certId,
 	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to update solo cert"))
 	}
-	return GenericSuccess(c, certId)
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return GenericError(c, http.StatusNotFound, errors.New("solo cert not found"))
+	}
+	return GenericSuccess(c, int(certId))
 }
 
 func DeleteSoloCert(c *echo.Context) error {
-	certId, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid solo cert id"))
+	certId, ok := parseId64(c, "id")
+	if !ok {
+		return nil
 	}
 	ctx := c.Request().Context()
 
-	existing, err := dbconn.Queries().GetSoloCertById(ctx, int64(certId))
+	existing, err := dbconn.Queries().GetSoloCertById(ctx, certId)
 	if err != nil {
 		return GenericError(c, http.StatusNotFound, errors.New("solo cert not found"))
 	}
 
-	if _, ok := AssertFacilityForCid(c, int(existing.Cid), acl.ObjectSoloCert, acl.ActionWrite); !ok {
+	if !AssertFacility(c, existing.Facility, acl.ObjectSoloCert, acl.ActionWrite) {
 		return nil
 	}
 
-	err = dbconn.Queries().DeleteSoloCert(ctx, int64(certId))
+	result, err := dbconn.Queries().DeleteSoloCert(ctx, certId)
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to delete solo cert"))
 	}
-	return GenericSuccess(c, certId)
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return GenericError(c, http.StatusNotFound, errors.New("solo cert not found"))
+	}
+	return GenericSuccess(c, int(certId))
 }

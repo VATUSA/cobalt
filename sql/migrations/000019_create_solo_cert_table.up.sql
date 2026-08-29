@@ -1,9 +1,11 @@
 CREATE TABLE solo_cert (
     id bigint not null auto_increment primary key,
     cid bigint not null,
-    facility varchar(12) not null,
+    facility varchar(4) not null,
     position varchar(20) not null,
     expires date not null,
+    created_by_cid int not null,
+    updated_by_cid int not null,
     created_at timestamp not null,
     updated_at timestamp not null
 );

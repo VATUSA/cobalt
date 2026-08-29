@@ -3,7 +3,6 @@ package endpoints
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"vatusa-cobalt/acl"
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/dbconn"
@@ -47,6 +46,9 @@ func CreateFaqCategory(c *echo.Context) error {
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
+	if err := requireText("title", request.Title, 120); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
 
 	result, err := dbconn.Queries().CreateFaqCategory(ctx, db.CreateFaqCategoryParams{
 		Title:     request.Title,
@@ -67,43 +69,60 @@ func UpdateFaqCategory(c *echo.Context) error {
 	if !AssertGlobal(c, acl.ObjectFaq, acl.ActionWrite) {
 		return nil
 	}
-	categoryId, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid category id"))
+	categoryId, ok := parseId32(c, "id")
+	if !ok {
+		return nil
 	}
 	ctx := c.Request().Context()
 	var request models.FaqCategoryRequest
-	err = c.Bind(&request)
+	err := c.Bind(&request)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
+	if err := requireText("title", request.Title, 120); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
 
-	err = dbconn.Queries().UpdateFaqCategory(ctx, db.UpdateFaqCategoryParams{
+	result, err := dbconn.Queries().UpdateFaqCategory(ctx, db.UpdateFaqCategoryParams{
 		Title:     request.Title,
 		SortOrder: int32(request.SortOrder),
-		ID:        int32(categoryId),
+		ID:        categoryId,
 	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to update category"))
 	}
-	return GenericSuccess(c, categoryId)
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return GenericError(c, http.StatusNotFound, errors.New("faq category not found"))
+	}
+	return GenericSuccess(c, int(categoryId))
 }
 
 func DeleteFaqCategory(c *echo.Context) error {
 	if !AssertGlobal(c, acl.ObjectFaq, acl.ActionWrite) {
 		return nil
 	}
-	categoryId, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid category id"))
+	categoryId, ok := parseId32(c, "id")
+	if !ok {
+		return nil
 	}
 	ctx := c.Request().Context()
 
-	err = dbconn.Queries().DeleteFaqCategory(ctx, int32(categoryId))
+	count, err := dbconn.Queries().CountFaqItemsInCategory(ctx, categoryId)
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if count > 0 {
+		return GenericError(c, http.StatusConflict, errors.New("category still has items"))
+	}
+
+	result, err := dbconn.Queries().DeleteFaqCategory(ctx, categoryId)
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to delete category"))
 	}
-	return GenericSuccess(c, categoryId)
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return GenericError(c, http.StatusNotFound, errors.New("faq category not found"))
+	}
+	return GenericSuccess(c, int(categoryId))
 }
 
 func CreateFaqItem(c *echo.Context) error {
@@ -115,6 +134,18 @@ func CreateFaqItem(c *echo.Context) error {
 	err := c.Bind(&request)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
+	}
+	if request.FaqCategoryId <= 0 {
+		return GenericError(c, http.StatusBadRequest, errors.New("faq_category_id is required"))
+	}
+	if err := requireText("question", request.Question, 500); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
+	if err := requireText("answer", request.Answer, 65535); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
+	if _, err := dbconn.Queries().GetFaqCategoryById(ctx, int32(request.FaqCategoryId)); err != nil {
+		return GenericError(c, http.StatusBadRequest, errors.New("faq_category_id does not exist"))
 	}
 
 	result, err := dbconn.Queries().CreateFaqItem(ctx, db.CreateFaqItemParams{
@@ -138,43 +169,61 @@ func UpdateFaqItem(c *echo.Context) error {
 	if !AssertGlobal(c, acl.ObjectFaq, acl.ActionWrite) {
 		return nil
 	}
-	itemId, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid item id"))
+	itemId, ok := parseId32(c, "id")
+	if !ok {
+		return nil
 	}
 	ctx := c.Request().Context()
 	var request models.FaqItemRequest
-	err = c.Bind(&request)
+	err := c.Bind(&request)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
+	if request.FaqCategoryId <= 0 {
+		return GenericError(c, http.StatusBadRequest, errors.New("faq_category_id is required"))
+	}
+	if err := requireText("question", request.Question, 500); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
+	if err := requireText("answer", request.Answer, 65535); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
+	if _, err := dbconn.Queries().GetFaqCategoryById(ctx, int32(request.FaqCategoryId)); err != nil {
+		return GenericError(c, http.StatusBadRequest, errors.New("faq_category_id does not exist"))
+	}
 
-	err = dbconn.Queries().UpdateFaqItem(ctx, db.UpdateFaqItemParams{
+	result, err := dbconn.Queries().UpdateFaqItem(ctx, db.UpdateFaqItemParams{
 		FaqCategoryID: int32(request.FaqCategoryId),
 		Question:      request.Question,
 		Answer:        request.Answer,
 		SortOrder:     int32(request.SortOrder),
-		ID:            int32(itemId),
+		ID:            itemId,
 	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to update item"))
 	}
-	return GenericSuccess(c, itemId)
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return GenericError(c, http.StatusNotFound, errors.New("faq item not found"))
+	}
+	return GenericSuccess(c, int(itemId))
 }
 
 func DeleteFaqItem(c *echo.Context) error {
 	if !AssertGlobal(c, acl.ObjectFaq, acl.ActionWrite) {
 		return nil
 	}
-	itemId, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid item id"))
+	itemId, ok := parseId32(c, "id")
+	if !ok {
+		return nil
 	}
 	ctx := c.Request().Context()
 
-	err = dbconn.Queries().DeleteFaqItem(ctx, int32(itemId))
+	result, err := dbconn.Queries().DeleteFaqItem(ctx, itemId)
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to delete item"))
 	}
-	return GenericSuccess(c, itemId)
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return GenericError(c, http.StatusNotFound, errors.New("faq item not found"))
+	}
+	return GenericSuccess(c, int(itemId))
 }

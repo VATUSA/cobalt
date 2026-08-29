@@ -374,18 +374,22 @@ type PolicyDocument struct {
 	EffectiveDate    time.Time
 	Hidden           bool
 	SortOrder        int32
+	CreatedByCid     int32
+	UpdatedByCid     int32
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }
 
 type SoloCert struct {
-	ID        int64
-	Cid       int64
-	Facility  string
-	Position  string
-	Expires   time.Time
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID           int64
+	Cid          int64
+	Facility     string
+	Position     string
+	Expires      time.Time
+	CreatedByCid int32
+	UpdatedByCid int32
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type TransferHistory struct {

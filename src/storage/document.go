@@ -12,7 +12,6 @@ import (
 	"mime/multipart"
 	"path/filepath"
 	"strings"
-	"time"
 	"vatusa-cobalt/config"
 )
 
@@ -134,12 +133,13 @@ func inspectDocument(ext string, data []byte) error {
 // the docs/ prefix already live in the vatusa-storage bucket. Keys are never
 // reused, so an edit that replaces a document simply writes a new object and
 // leaves the old one behind rather than risking a cache-stale overwrite.
+//
+// rand.Read panics rather than returning an error as of Go 1.24 (it reads
+// from the OS CSPRNG, which cannot meaningfully fail at runtime), so there is
+// no fallback path to write here — one that swapped the unguessable key for
+// a predictable timestamp would defeat the property this function exists for.
 func policyDocumentKey(extension string) string {
 	var random [16]byte
-	if _, err := rand.Read(random[:]); err != nil {
-		// crypto/rand does not fail in practice; fall back to a timestamp so
-		// a document upload never hard-fails on entropy.
-		return fmt.Sprintf("docs/%d.%s", time.Now().UnixNano(), extension)
-	}
+	_, _ = rand.Read(random[:])
 	return fmt.Sprintf("docs/%s.%s", hex.EncodeToString(random[:]), extension)
 }

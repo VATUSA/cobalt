@@ -3,12 +3,15 @@ package endpoints
 import (
 	"context"
 	"errors"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 	"vatusa-cobalt/acl"
+	"vatusa-cobalt/auth"
+	"vatusa-cobalt/config"
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/dbconn"
 	"vatusa-cobalt/models"
@@ -21,6 +24,11 @@ import (
 // document file under.
 const documentFormField = "document"
 
+// errDocumentRequired marks resolveDocumentURL's "no file and no existing
+// URL" case so callers can distinguish it from a storage failure via
+// errors.Is instead of a magic status-code return.
+var errDocumentRequired = errors.New("a document file is required")
+
 // bindPolicyDocumentRequest fills request from the incoming body and returns
 // the uploaded document, if any. A multipart submission may carry a file; a
 // JSON body is still accepted so a caller that already has a hosted URL keeps
@@ -28,8 +36,7 @@ const documentFormField = "document"
 // which is what lets an edit that doesn't replace the file keep the document
 // it already has.
 func bindPolicyDocumentRequest(c *echo.Context, request *models.PolicyDocumentRequest) (*multipart.FileHeader, error) {
-	contentType := c.Request().Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "multipart/form-data") {
+	if !isMultipartRequest(c) {
 		return nil, c.Bind(request)
 	}
 
@@ -53,20 +60,36 @@ func bindPolicyDocumentRequest(c *echo.Context, request *models.PolicyDocumentRe
 		return ""
 	}
 
-	categoryId, _ := strconv.Atoi(field("policy_category_id"))
-	sortOrder, _ := strconv.Atoi(field("sort_order"))
-	hidden, _ := strconv.ParseBool(field("hidden"))
-
+	categoryId, err := strconv.Atoi(field("policy_category_id"))
+	if err != nil {
+		return nil, errors.New("policy_category_id must be a number")
+	}
 	request.PolicyCategoryId = categoryId
 	request.Ident = field("ident")
 	request.Title = field("title")
 	request.Summary = field("summary")
 	request.DocumentUrl = field("document_url")
 	request.EffectiveDate = field("effective_date")
-	request.Hidden = hidden
-	request.SortOrder = sortOrder
 
-	if files := form.File[documentFormField]; len(files) > 0 && files[0].Size > 0 {
+	if raw := field("hidden"); raw != "" {
+		hidden, err := strconv.ParseBool(raw)
+		if err != nil {
+			return nil, errors.New("hidden must be a boolean")
+		}
+		request.Hidden = &hidden
+	}
+	if raw := field("sort_order"); raw != "" {
+		sortOrder, err := strconv.Atoi(raw)
+		if err != nil {
+			return nil, errors.New("sort_order must be a number")
+		}
+		request.SortOrder = &sortOrder
+	}
+
+	if files := form.File[documentFormField]; len(files) > 0 {
+		if files[0].Size == 0 {
+			return nil, errors.New("uploaded document is empty")
+		}
 		return files[0], nil
 	}
 	return nil, nil
@@ -76,22 +99,14 @@ func bindPolicyDocumentRequest(c *echo.Context, request *models.PolicyDocumentRe
 // store, or falls back to the URL already on the request when no new file
 // was chosen. Call it only after the permission check has passed, so an
 // unauthorised request can't write to the bucket.
-func resolveDocumentURL(ctx context.Context, existingURL string, document *multipart.FileHeader) (string, int, error) {
+func resolveDocumentURL(ctx context.Context, existingURL string, document *multipart.FileHeader) (string, error) {
 	if document == nil {
 		if existingURL == "" {
-			return "", http.StatusBadRequest, errors.New("a document file is required")
+			return "", errDocumentRequired
 		}
-		return existingURL, 0, nil
+		return existingURL, nil
 	}
-
-	url, err := storage.UploadPolicyDocument(ctx, document)
-	if err != nil {
-		if errors.Is(err, storage.ErrInvalidDocument) {
-			return "", http.StatusBadRequest, err
-		}
-		return "", http.StatusInternalServerError, err
-	}
-	return url, 0, nil
+	return storage.UploadPolicyDocument(ctx, document)
 }
 
 func parsePolicyEffectiveDate(raw string) (time.Time, error) {
@@ -100,6 +115,15 @@ func parsePolicyEffectiveDate(raw string) (time.Time, error) {
 		return time.Time{}, errors.New("effective_date must be a date in YYYY-MM-DD format")
 	}
 	return effectiveDate, nil
+}
+
+// documentURLStatus maps a resolveDocumentURL/document-validation error to
+// the HTTP status a handler should answer with.
+func documentURLStatus(err error) int {
+	if errors.Is(err, errDocumentRequired) || errors.Is(err, storage.ErrInvalidDocument) {
+		return http.StatusBadRequest
+	}
+	return http.StatusInternalServerError
 }
 
 func GetPolicies(c *echo.Context) error {
@@ -144,6 +168,9 @@ func CreatePolicyCategory(c *echo.Context) error {
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
+	if err := requireText("title", request.Title, 120); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
 
 	result, err := dbconn.Queries().CreatePolicyCategory(ctx, db.CreatePolicyCategoryParams{
 		Title:     request.Title,
@@ -164,43 +191,94 @@ func UpdatePolicyCategory(c *echo.Context) error {
 	if !AssertGlobal(c, acl.ObjectPolicy, acl.ActionWrite) {
 		return nil
 	}
-	categoryId, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid category id"))
+	categoryId, ok := parseId32(c, "id")
+	if !ok {
+		return nil
 	}
 	ctx := c.Request().Context()
 	var request models.PolicyCategoryRequest
-	err = c.Bind(&request)
+	err := c.Bind(&request)
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
+	if err := requireText("title", request.Title, 120); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
 
-	err = dbconn.Queries().UpdatePolicyCategory(ctx, db.UpdatePolicyCategoryParams{
+	result, err := dbconn.Queries().UpdatePolicyCategory(ctx, db.UpdatePolicyCategoryParams{
 		Title:     request.Title,
 		SortOrder: int32(request.SortOrder),
-		ID:        int32(categoryId),
+		ID:        categoryId,
 	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to update category"))
 	}
-	return GenericSuccess(c, categoryId)
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return GenericError(c, http.StatusNotFound, errors.New("policy category not found"))
+	}
+	return GenericSuccess(c, int(categoryId))
 }
 
 func DeletePolicyCategory(c *echo.Context) error {
 	if !AssertGlobal(c, acl.ObjectPolicy, acl.ActionWrite) {
 		return nil
 	}
-	categoryId, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid category id"))
+	categoryId, ok := parseId32(c, "id")
+	if !ok {
+		return nil
 	}
 	ctx := c.Request().Context()
 
-	err = dbconn.Queries().DeletePolicyCategory(ctx, int32(categoryId))
+	count, err := dbconn.Queries().CountPolicyDocumentsInCategory(ctx, categoryId)
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	if count > 0 {
+		return GenericError(c, http.StatusConflict, errors.New("category still has documents"))
+	}
+
+	result, err := dbconn.Queries().DeletePolicyCategory(ctx, categoryId)
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to delete category"))
 	}
-	return GenericSuccess(c, categoryId)
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return GenericError(c, http.StatusNotFound, errors.New("policy category not found"))
+	}
+	return GenericSuccess(c, int(categoryId))
+}
+
+// validatePolicyDocumentFields checks everything except document_url, which
+// isn't known until after resolveDocumentURL runs. Called before the upload
+// so a malformed ident/title/summary/category doesn't orphan an uploaded
+// file in the bucket.
+func validatePolicyDocumentFields(request *models.PolicyDocumentRequest) error {
+	if request.PolicyCategoryId <= 0 {
+		return errors.New("policy_category_id is required")
+	}
+	if err := requireText("ident", request.Ident, 20); err != nil {
+		return err
+	}
+	if err := requireText("title", request.Title, 255); err != nil {
+		return err
+	}
+	if len(request.Summary) > 500 {
+		return errors.New("summary must be 500 characters or fewer")
+	}
+	return nil
+}
+
+// validateDocumentURL checks the resolved document_url — the caller-supplied
+// URL on the JSON path, or the freshly uploaded object's URL on the
+// multipart path. Rejects a javascript: (or other non-http(s)) scheme, since
+// the staff app renders this value as an href.
+func validateDocumentURL(documentUrl string) error {
+	if err := requireText("document_url", documentUrl, 500); err != nil {
+		return err
+	}
+	if !config.IsSafeDocumentURL(documentUrl) {
+		return fmt.Errorf("document_url must be an https URL")
+	}
+	return nil
 }
 
 func CreatePolicyDocument(c *echo.Context) error {
@@ -218,14 +296,33 @@ func CreatePolicyDocument(c *echo.Context) error {
 	if err != nil {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
+	if err := validatePolicyDocumentFields(&request); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
+	if _, err := dbconn.Queries().GetPolicyCategoryById(ctx, int32(request.PolicyCategoryId)); err != nil {
+		return GenericError(c, http.StatusBadRequest, errors.New("policy_category_id does not exist"))
+	}
 
 	// Last thing before the insert: an upload that succeeds but is then
 	// followed by a rejected request leaves an orphaned object in the bucket.
-	documentUrl, status, err := resolveDocumentURL(ctx, request.DocumentUrl, document)
+	documentUrl, err := resolveDocumentURL(ctx, request.DocumentUrl, document)
 	if err != nil {
-		return GenericError(c, status, err)
+		return GenericError(c, documentURLStatus(err), err)
+	}
+	if err := validateDocumentURL(documentUrl); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
 	}
 
+	hidden := false
+	if request.Hidden != nil {
+		hidden = *request.Hidden
+	}
+	sortOrder := 0
+	if request.SortOrder != nil {
+		sortOrder = *request.SortOrder
+	}
+
+	userCid := int32(auth.GetUserCid(c))
 	now := time.Now()
 	result, err := dbconn.Queries().CreatePolicyDocument(ctx, db.CreatePolicyDocumentParams{
 		PolicyCategoryID: int32(request.PolicyCategoryId),
@@ -234,8 +331,10 @@ func CreatePolicyDocument(c *echo.Context) error {
 		Summary:          request.Summary,
 		DocumentUrl:      documentUrl,
 		EffectiveDate:    effectiveDate,
-		Hidden:           request.Hidden,
-		SortOrder:        int32(request.SortOrder),
+		Hidden:           hidden,
+		SortOrder:        int32(sortOrder),
+		CreatedByCid:     userCid,
+		UpdatedByCid:     userCid,
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	})
@@ -254,13 +353,13 @@ func UpdatePolicyDocument(c *echo.Context) error {
 	if !AssertGlobal(c, acl.ObjectPolicy, acl.ActionWrite) {
 		return nil
 	}
-	documentId, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid document id"))
+	documentId, ok := parseId32(c, "id")
+	if !ok {
+		return nil
 	}
 	ctx := c.Request().Context()
 
-	existing, err := dbconn.Queries().GetPolicyDocumentById(ctx, int32(documentId))
+	existing, err := dbconn.Queries().GetPolicyDocumentById(ctx, documentId)
 	if err != nil {
 		return GenericError(c, http.StatusNotFound, errors.New("policy document not found"))
 	}
@@ -276,48 +375,76 @@ func UpdatePolicyDocument(c *echo.Context) error {
 		return GenericError(c, http.StatusBadRequest, err)
 	}
 
+	if err := validatePolicyDocumentFields(&request); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
+	if _, err := dbconn.Queries().GetPolicyCategoryById(ctx, int32(request.PolicyCategoryId)); err != nil {
+		return GenericError(c, http.StatusBadRequest, errors.New("policy_category_id does not exist"))
+	}
+
 	// Without a replacement file the document keeps the file it already has,
 	// even if the client omitted document_url entirely.
 	existingUrl := request.DocumentUrl
 	if existingUrl == "" {
 		existingUrl = existing.DocumentUrl
 	}
-	documentUrl, status, err := resolveDocumentURL(ctx, existingUrl, document)
+	documentUrl, err := resolveDocumentURL(ctx, existingUrl, document)
 	if err != nil {
-		return GenericError(c, status, err)
+		return GenericError(c, documentURLStatus(err), err)
+	}
+	if err := validateDocumentURL(documentUrl); err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
 	}
 
-	err = dbconn.Queries().UpdatePolicyDocument(ctx, db.UpdatePolicyDocumentParams{
+	// Absent from the request means "keep the existing value", which is what
+	// stops an update that omits hidden/sort_order from resetting them.
+	hidden := existing.Hidden
+	if request.Hidden != nil {
+		hidden = *request.Hidden
+	}
+	sortOrder := int(existing.SortOrder)
+	if request.SortOrder != nil {
+		sortOrder = *request.SortOrder
+	}
+
+	result, err := dbconn.Queries().UpdatePolicyDocument(ctx, db.UpdatePolicyDocumentParams{
 		PolicyCategoryID: int32(request.PolicyCategoryId),
 		Ident:            request.Ident,
 		Title:            request.Title,
 		Summary:          request.Summary,
 		DocumentUrl:      documentUrl,
 		EffectiveDate:    effectiveDate,
-		Hidden:           request.Hidden,
-		SortOrder:        int32(request.SortOrder),
+		Hidden:           hidden,
+		SortOrder:        int32(sortOrder),
+		UpdatedByCid:     int32(auth.GetUserCid(c)),
 		UpdatedAt:        time.Now(),
-		ID:               int32(documentId),
+		ID:               documentId,
 	})
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to update policy document"))
 	}
-	return GenericSuccess(c, documentId)
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return GenericError(c, http.StatusNotFound, errors.New("policy document not found"))
+	}
+	return GenericSuccess(c, int(documentId))
 }
 
 func DeletePolicyDocument(c *echo.Context) error {
 	if !AssertGlobal(c, acl.ObjectPolicy, acl.ActionWrite) {
 		return nil
 	}
-	documentId, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return GenericError(c, http.StatusBadRequest, errors.New("invalid document id"))
+	documentId, ok := parseId32(c, "id")
+	if !ok {
+		return nil
 	}
 	ctx := c.Request().Context()
 
-	err = dbconn.Queries().DeletePolicyDocument(ctx, int32(documentId))
+	result, err := dbconn.Queries().DeletePolicyDocument(ctx, documentId)
 	if err != nil {
 		return GenericError(c, http.StatusInternalServerError, errors.New("failed to delete policy document"))
 	}
-	return GenericSuccess(c, documentId)
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return GenericError(c, http.StatusNotFound, errors.New("policy document not found"))
+	}
+	return GenericSuccess(c, int(documentId))
 }

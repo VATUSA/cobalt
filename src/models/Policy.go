@@ -2,6 +2,7 @@ package models
 
 import (
 	"time"
+	"vatusa-cobalt/config"
 	"vatusa-cobalt/db"
 )
 
@@ -10,7 +11,25 @@ type PolicyCategoryRequest struct {
 	SortOrder int    `json:"sort_order"`
 }
 
+// PolicyDocumentRequest's Hidden and SortOrder are pointers so a create can
+// tell "the caller didn't specify hidden" (defaults to false) apart from an
+// update's "the caller didn't specify hidden" (keep the existing value) —
+// with plain bool/int, an omitted multipart checkbox and an explicit false
+// are indistinguishable, which previously let an update silently publish a
+// hidden policy document.
 type PolicyDocumentRequest struct {
+	PolicyCategoryId int    `json:"policy_category_id"`
+	Ident            string `json:"ident"`
+	Title            string `json:"title"`
+	Summary          string `json:"summary"`
+	DocumentUrl      string `json:"document_url"`
+	EffectiveDate    string `json:"effective_date"`
+	Hidden           *bool  `json:"hidden"`
+	SortOrder        *int   `json:"sort_order"`
+}
+
+type PolicyDocument struct {
+	Id               int    `json:"id"`
 	PolicyCategoryId int    `json:"policy_category_id"`
 	Ident            string `json:"ident"`
 	Title            string `json:"title"`
@@ -19,20 +38,10 @@ type PolicyDocumentRequest struct {
 	EffectiveDate    string `json:"effective_date"`
 	Hidden           bool   `json:"hidden"`
 	SortOrder        int    `json:"sort_order"`
-}
-
-type PolicyDocument struct {
-	Id                int       `json:"id"`
-	PolicyCategoryId  int       `json:"policy_category_id"`
-	Ident             string    `json:"ident"`
-	Title             string    `json:"title"`
-	Summary           string    `json:"summary"`
-	DocumentUrl       string    `json:"document_url"`
-	EffectiveDate     time.Time `json:"effective_date"`
-	Hidden            bool      `json:"hidden"`
-	SortOrder         int       `json:"sort_order"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	CreatedByCid     int    `json:"created_by_cid"`
+	UpdatedByCid     int    `json:"updated_by_cid"`
+	CreatedAt        string `json:"created_at"`
+	UpdatedAt        string `json:"updated_at"`
 }
 
 type PolicyCategory struct {
@@ -50,11 +59,13 @@ func PolicyDocumentFromDatabase(ent db.PolicyDocument) PolicyDocument {
 		Title:            ent.Title,
 		Summary:          ent.Summary,
 		DocumentUrl:      ent.DocumentUrl,
-		EffectiveDate:    ent.EffectiveDate,
+		EffectiveDate:    ent.EffectiveDate.Format(time.DateOnly),
 		Hidden:           ent.Hidden,
 		SortOrder:        int(ent.SortOrder),
-		CreatedAt:        ent.CreatedAt,
-		UpdatedAt:        ent.UpdatedAt,
+		CreatedByCid:     int(ent.CreatedByCid),
+		UpdatedByCid:     int(ent.UpdatedByCid),
+		CreatedAt:        ent.CreatedAt.Format(config.TimestampFormat),
+		UpdatedAt:        ent.UpdatedAt.Format(config.TimestampFormat),
 	}
 }
 

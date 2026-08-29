@@ -10,6 +10,17 @@ import (
 	"database/sql"
 )
 
+const countFaqItemsInCategory = `-- name: CountFaqItemsInCategory :one
+SELECT COUNT(*) FROM faq_item WHERE faq_category_id = ?
+`
+
+func (q *Queries) CountFaqItemsInCategory(ctx context.Context, faqCategoryID int32) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countFaqItemsInCategory, faqCategoryID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createFaqCategory = `-- name: CreateFaqCategory :execresult
 INSERT INTO faq_category (title, sort_order) VALUES (?, ?)
 `
@@ -23,13 +34,12 @@ func (q *Queries) CreateFaqCategory(ctx context.Context, arg CreateFaqCategoryPa
 	return q.db.ExecContext(ctx, createFaqCategory, arg.Title, arg.SortOrder)
 }
 
-const deleteFaqCategory = `-- name: DeleteFaqCategory :exec
+const deleteFaqCategory = `-- name: DeleteFaqCategory :execresult
 DELETE FROM faq_category WHERE id = ?
 `
 
-func (q *Queries) DeleteFaqCategory(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteFaqCategory, id)
-	return err
+func (q *Queries) DeleteFaqCategory(ctx context.Context, id int32) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteFaqCategory, id)
 }
 
 const getFaqCategories = `-- name: GetFaqCategories :many
@@ -70,7 +80,7 @@ func (q *Queries) GetFaqCategoryById(ctx context.Context, id int32) (FaqCategory
 	return i, err
 }
 
-const updateFaqCategory = `-- name: UpdateFaqCategory :exec
+const updateFaqCategory = `-- name: UpdateFaqCategory :execresult
 UPDATE faq_category
 SET title = ?, sort_order = ?
 WHERE id = ?
@@ -82,7 +92,6 @@ type UpdateFaqCategoryParams struct {
 	ID        int32
 }
 
-func (q *Queries) UpdateFaqCategory(ctx context.Context, arg UpdateFaqCategoryParams) error {
-	_, err := q.db.ExecContext(ctx, updateFaqCategory, arg.Title, arg.SortOrder, arg.ID)
-	return err
+func (q *Queries) UpdateFaqCategory(ctx context.Context, arg UpdateFaqCategoryParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateFaqCategory, arg.Title, arg.SortOrder, arg.ID)
 }

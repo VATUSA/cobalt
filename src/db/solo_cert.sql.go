@@ -12,17 +12,19 @@ import (
 )
 
 const createSoloCert = `-- name: CreateSoloCert :execresult
-INSERT INTO solo_cert (cid, facility, position, expires, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO solo_cert (cid, facility, position, expires, created_by_cid, updated_by_cid, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateSoloCertParams struct {
-	Cid       int64
-	Facility  string
-	Position  string
-	Expires   time.Time
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Cid          int64
+	Facility     string
+	Position     string
+	Expires      time.Time
+	CreatedByCid int32
+	UpdatedByCid int32
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 func (q *Queries) CreateSoloCert(ctx context.Context, arg CreateSoloCertParams) (sql.Result, error) {
@@ -31,22 +33,65 @@ func (q *Queries) CreateSoloCert(ctx context.Context, arg CreateSoloCertParams) 
 		arg.Facility,
 		arg.Position,
 		arg.Expires,
+		arg.CreatedByCid,
+		arg.UpdatedByCid,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
 }
 
-const deleteSoloCert = `-- name: DeleteSoloCert :exec
+const deleteSoloCert = `-- name: DeleteSoloCert :execresult
 DELETE FROM solo_cert WHERE id = ?
 `
 
-func (q *Queries) DeleteSoloCert(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteSoloCert, id)
-	return err
+func (q *Queries) DeleteSoloCert(ctx context.Context, id int64) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteSoloCert, id)
+}
+
+const getActiveSoloCertForCidPosition = `-- name: GetActiveSoloCertForCidPosition :many
+SELECT id, cid, facility, position, expires, created_by_cid, updated_by_cid, created_at, updated_at FROM solo_cert WHERE cid = ? AND position = ? AND expires >= UTC_DATE()
+`
+
+type GetActiveSoloCertForCidPositionParams struct {
+	Cid      int64
+	Position string
+}
+
+func (q *Queries) GetActiveSoloCertForCidPosition(ctx context.Context, arg GetActiveSoloCertForCidPositionParams) ([]SoloCert, error) {
+	rows, err := q.db.QueryContext(ctx, getActiveSoloCertForCidPosition, arg.Cid, arg.Position)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SoloCert
+	for rows.Next() {
+		var i SoloCert
+		if err := rows.Scan(
+			&i.ID,
+			&i.Cid,
+			&i.Facility,
+			&i.Position,
+			&i.Expires,
+			&i.CreatedByCid,
+			&i.UpdatedByCid,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getActiveSoloCerts = `-- name: GetActiveSoloCerts :many
-SELECT id, cid, facility, position, expires, created_at, updated_at FROM solo_cert WHERE expires >= CURDATE() ORDER BY expires ASC
+SELECT id, cid, facility, position, expires, created_by_cid, updated_by_cid, created_at, updated_at FROM solo_cert WHERE expires >= UTC_DATE() ORDER BY expires ASC
 `
 
 func (q *Queries) GetActiveSoloCerts(ctx context.Context) ([]SoloCert, error) {
@@ -64,6 +109,8 @@ func (q *Queries) GetActiveSoloCerts(ctx context.Context) ([]SoloCert, error) {
 			&i.Facility,
 			&i.Position,
 			&i.Expires,
+			&i.CreatedByCid,
+			&i.UpdatedByCid,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -81,7 +128,7 @@ func (q *Queries) GetActiveSoloCerts(ctx context.Context) ([]SoloCert, error) {
 }
 
 const getSoloCertById = `-- name: GetSoloCertById :one
-SELECT id, cid, facility, position, expires, created_at, updated_at FROM solo_cert WHERE id = ?
+SELECT id, cid, facility, position, expires, created_by_cid, updated_by_cid, created_at, updated_at FROM solo_cert WHERE id = ?
 `
 
 func (q *Queries) GetSoloCertById(ctx context.Context, id int64) (SoloCert, error) {
@@ -93,33 +140,34 @@ func (q *Queries) GetSoloCertById(ctx context.Context, id int64) (SoloCert, erro
 		&i.Facility,
 		&i.Position,
 		&i.Expires,
+		&i.CreatedByCid,
+		&i.UpdatedByCid,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const updateSoloCert = `-- name: UpdateSoloCert :exec
+const updateSoloCert = `-- name: UpdateSoloCert :execresult
 UPDATE solo_cert
-SET facility = ?, position = ?, expires = ?, updated_at = ?
+SET position = ?, expires = ?, updated_by_cid = ?, updated_at = ?
 WHERE id = ?
 `
 
 type UpdateSoloCertParams struct {
-	Facility  string
-	Position  string
-	Expires   time.Time
-	UpdatedAt time.Time
-	ID        int64
+	Position     string
+	Expires      time.Time
+	UpdatedByCid int32
+	UpdatedAt    time.Time
+	ID           int64
 }
 
-func (q *Queries) UpdateSoloCert(ctx context.Context, arg UpdateSoloCertParams) error {
-	_, err := q.db.ExecContext(ctx, updateSoloCert,
-		arg.Facility,
+func (q *Queries) UpdateSoloCert(ctx context.Context, arg UpdateSoloCertParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateSoloCert,
 		arg.Position,
 		arg.Expires,
+		arg.UpdatedByCid,
 		arg.UpdatedAt,
 		arg.ID,
 	)
-	return err
 }

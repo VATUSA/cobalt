@@ -1,17 +1,20 @@
 -- name: GetActiveSoloCerts :many
-SELECT * FROM solo_cert WHERE expires >= CURDATE() ORDER BY expires ASC;
+SELECT * FROM solo_cert WHERE expires >= UTC_DATE() ORDER BY expires ASC;
 
 -- name: GetSoloCertById :one
 SELECT * FROM solo_cert WHERE id = ?;
 
--- name: CreateSoloCert :execresult
-INSERT INTO solo_cert (cid, facility, position, expires, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?);
+-- name: GetActiveSoloCertForCidPosition :many
+SELECT * FROM solo_cert WHERE cid = ? AND position = ? AND expires >= UTC_DATE();
 
--- name: UpdateSoloCert :exec
+-- name: CreateSoloCert :execresult
+INSERT INTO solo_cert (cid, facility, position, expires, created_by_cid, updated_by_cid, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- name: UpdateSoloCert :execresult
 UPDATE solo_cert
-SET facility = ?, position = ?, expires = ?, updated_at = ?
+SET position = ?, expires = ?, updated_by_cid = ?, updated_at = ?
 WHERE id = ?;
 
--- name: DeleteSoloCert :exec
+-- name: DeleteSoloCert :execresult
 DELETE FROM solo_cert WHERE id = ?;

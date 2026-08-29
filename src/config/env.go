@@ -121,3 +121,19 @@ func IsAllowedRedirect(target string) bool {
 	}
 	return false
 }
+
+// IsSafeDocumentURL reports whether target is a parseable https URL (http
+// permitted only in development), with no host allowlist. Used to validate a
+// caller-supplied policy document_url before storing it, since it is later
+// rendered as an href — without this check a scheme like javascript: would be
+// stored and executed in the staff app.
+func IsSafeDocumentURL(target string) bool {
+	if target == "" {
+		return false
+	}
+	u, err := url.Parse(target)
+	if err != nil || u.Hostname() == "" {
+		return false
+	}
+	return u.Scheme == "https" || (IsDevelopment() && u.Scheme == "http")
+}
