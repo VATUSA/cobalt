@@ -30,6 +30,26 @@ func GetFacilityRoster(c *echo.Context) error {
 	return c.JSON(http.StatusOK, model)
 }
 
+func GetFacilityStaff(c *echo.Context) error {
+	facility := c.Param("facility")
+
+	roles := make([]string, 0, len(acl.FacilitySeniorStaffRoles)+len(acl.FacilityJuniorStaffRoles))
+	for _, r := range acl.FacilitySeniorStaffRoles {
+		roles = append(roles, string(r))
+	}
+	for _, r := range acl.FacilityJuniorStaffRoles {
+		roles = append(roles, string(r))
+	}
+
+	rows, err := dbconn.GetFacilityStaffRoles(facility, roles)
+	if err != nil {
+		return RespondError(c, http.StatusInternalServerError, err)
+	}
+
+	model := models.FacilityStaffFromDatabase(rows)
+	return c.JSON(http.StatusOK, model)
+}
+
 func GetFacilityPendingTransfers(c *echo.Context) error {
 	facility := c.Param("facility")
 	if !AssertFacility(c, facility, acl.ObjectUserSensitiveDetails, acl.ActionRead) {

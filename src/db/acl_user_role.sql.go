@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
 )
 
 const addRoleToUser = `-- name: AddRoleToUser :exec
@@ -32,6 +33,60 @@ func (q *Queries) AddRoleToUser(ctx context.Context, arg AddRoleToUserParams) er
 		arg.GrantedAt,
 	)
 	return err
+}
+
+const getFacilityStaffRoles = `-- name: GetFacilityStaffRoles :many
+SELECT aur.role, u.cid, u.display_name
+FROM acl_user_role aur
+JOIN user u ON u.cid = aur.cid
+WHERE aur.facility = ?
+  AND aur.role IN (/*SLICE:roles*/?)
+ORDER BY aur.role, u.display_name
+`
+
+type GetFacilityStaffRolesParams struct {
+	Facility string
+	Roles    []string
+}
+
+type GetFacilityStaffRolesRow struct {
+	Role        string
+	Cid         int64
+	DisplayName string
+}
+
+func (q *Queries) GetFacilityStaffRoles(ctx context.Context, arg GetFacilityStaffRolesParams) ([]GetFacilityStaffRolesRow, error) {
+	query := getFacilityStaffRoles
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.Facility)
+	if len(arg.Roles) > 0 {
+		for _, v := range arg.Roles {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:roles*/?", strings.Repeat(",?", len(arg.Roles))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:roles*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetFacilityStaffRolesRow
+	for rows.Next() {
+		var i GetFacilityStaffRolesRow
+		if err := rows.Scan(&i.Role, &i.Cid, &i.DisplayName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getRolesForUser = `-- name: GetRolesForUser :many

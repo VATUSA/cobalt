@@ -64,6 +64,7 @@ func SetupRoutes(e *echo.Echo) {
 
 	roster := e.Group("/roster/:facility")
 	roster.GET("", endpoints.GetFacilityRoster)
+	roster.GET("/staff", endpoints.GetFacilityStaff)
 	roster.GET("/transfer", endpoints.GetFacilityPendingTransfers)
 	roster.POST("/transfer", endpoints.ActionFacilityPendingTransfer)
 
