@@ -360,6 +360,20 @@ type FacilityTitle struct {
 	CreatedAt int64
 }
 
+type FaqCategory struct {
+	ID        int32
+	Title     string
+	SortOrder int32
+}
+
+type FaqItem struct {
+	ID            int32
+	FaqCategoryID int32
+	Question      string
+	Answer        string
+	SortOrder     int32
+}
+
 type NewsPost struct {
 	ID        int32
 	Title     string
@@ -367,6 +381,40 @@ type NewsPost struct {
 	AuthorCid int32
 	PostTime  int64
 	EditTime  int64
+}
+
+type PolicyCategory struct {
+	ID        int32
+	Title     string
+	SortOrder int32
+}
+
+type PolicyDocument struct {
+	ID               int32
+	PolicyCategoryID int32
+	Ident            string
+	Title            string
+	Summary          string
+	DocumentUrl      string
+	EffectiveDate    time.Time
+	Hidden           bool
+	SortOrder        int32
+	CreatedByCid     int32
+	UpdatedByCid     int32
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+type SoloCert struct {
+	ID           int64
+	Cid          int64
+	Facility     string
+	Position     string
+	Expires      time.Time
+	CreatedByCid int32
+	UpdatedByCid int32
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type TransferHistory struct {

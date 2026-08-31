@@ -61,3 +61,49 @@ func SpacesPublicBaseURL() string {
 func IsSpacesConfigured() bool {
 	return SpacesKey() != "" && SpacesSecret() != "" && SpacesBucket() != ""
 }
+
+// Policy documents live in a separate bucket (vatusa-storage, nyc3) from
+// event banners (vatusa-events, sfo3), but under the same DO Spaces account,
+// so they reuse SpacesKey()/SpacesSecret().
+
+func DocsBucket() string {
+	return os.Getenv("DO_SPACES_DOCS_BUCKET")
+}
+
+// DocsRegion defaults to nyc3, where the vatusa-storage bucket lives.
+func DocsRegion() string {
+	val, ok := os.LookupEnv("DO_SPACES_DOCS_REGION")
+	if !ok || val == "" {
+		return "nyc3"
+	}
+	return val
+}
+
+// DocsEndpoint is the virtual-hosted-style origin for the docs bucket.
+// Derived from the bucket and region unless DO_SPACES_DOCS_ENDPOINT overrides
+// it.
+func DocsEndpoint() string {
+	val, ok := os.LookupEnv("DO_SPACES_DOCS_ENDPOINT")
+	if ok && val != "" {
+		return strings.TrimSuffix(val, "/")
+	}
+	return fmt.Sprintf("https://%s.%s.digitaloceanspaces.com", DocsBucket(), DocsRegion())
+}
+
+// DocsPublicBaseURL is the base URL written into policy_document rows. It
+// defaults to the bucket origin but should be set to the Spaces CDN endpoint
+// in deployed environments so documents are served from the edge.
+func DocsPublicBaseURL() string {
+	val, ok := os.LookupEnv("DO_SPACES_DOCS_PUBLIC_BASE_URL")
+	if ok && val != "" {
+		return strings.TrimSuffix(val, "/")
+	}
+	return DocsEndpoint()
+}
+
+// IsDocsConfigured reports whether document uploads can be served. When
+// false the policy endpoints fall back to accepting a caller-supplied
+// document_url only.
+func IsDocsConfigured() bool {
+	return SpacesKey() != "" && SpacesSecret() != "" && DocsBucket() != ""
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Delete Faq Item
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{hostname}}/faq/item/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 1
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

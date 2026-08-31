@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"sync"
-	"time"
 	"vatusa-cobalt/dbconn"
 )
 
@@ -21,15 +20,18 @@ type TokenActor struct {
 }
 
 type TokenActorCache struct {
-	sync.RWMutex
-	tokenActorMap *map[string]*TokenActor
-	lastRefresh   time.Time
+	mu sync.RWMutex
+	// tokenActorMap is nil until the first Load completes. A plain nil map
+	// is safe to read — it behaves like empty — so a request arriving before
+	// that first Load just misses the cache instead of dereferencing a nil
+	// pointer.
+	tokenActorMap map[string]*TokenActor
 }
 
 func (c *TokenActorCache) Get(token string) (*TokenActor, bool) {
-	c.RLock()
-	tokenActor, ok := (*c.tokenActorMap)[token]
-	c.RUnlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	tokenActor, ok := c.tokenActorMap[token]
 	return tokenActor, ok
 }
 
@@ -50,9 +52,8 @@ func (c *TokenActorCache) Load(ctx context.Context) error {
 		}
 		newMap[token.Token] = &tokenActor
 	}
-	c.Lock()
-	c.tokenActorMap = &newMap
-	c.lastRefresh = time.Now()
-	c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.tokenActorMap = newMap
 	return nil
 }

@@ -34,8 +34,7 @@ const bannerFormField = "banner_image"
 // as the existing value, which is what lets an edit that doesn't replace the
 // image keep the banner it already has.
 func bindEventRequest(c *echo.Context, request *models.EventRequest) (*multipart.FileHeader, error) {
-	contentType := c.Request().Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "multipart/form-data") {
+	if !isMultipartRequest(c) {
 		return nil, c.Bind(request)
 	}
 

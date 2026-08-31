@@ -133,6 +133,37 @@ Config lives in `config/spaces.go` (`DO_SPACES_KEY`, `DO_SPACES_SECRET`, `DO_SPA
 key/secret set — the normal local setup — uploads return `storage.ErrNotConfigured` and only
 the JSON/URL path works.
 
+Policy documents (see below) reuse this same pattern against a **second bucket**,
+`vatusa-storage` in region `nyc3`, sharing `DO_SPACES_KEY`/`DO_SPACES_SECRET` but with its
+own `DO_SPACES_DOCS_REGION`/`DO_SPACES_DOCS_BUCKET`/`DO_SPACES_DOCS_ENDPOINT`/
+`DO_SPACES_DOCS_PUBLIC_BASE_URL` in `config/spaces.go`. `storage/document.go` validates and
+uploads via the same hand-rolled SigV4 signer in `storage/sigv4.go`; concurrent uploads
+across both buckets share a package-level 4-slot semaphore in `storage/spaces.go` since each
+upload holds the whole file in memory twice (multipart read, then SigV4 payload hash).
+
+## FAQ, solo certs, and policy documents
+
+Three simple CRUD table groups, each following the `event`/`news` pattern of a public read
+endpoint plus `AssertGlobal`/`AssertFacility`-gated writes:
+
+- **FAQ** (`/faq`) — `faq_category` and `faq_item`, global-write only (`acl.ObjectFaq`).
+- **Solo certs** (`/solo`) — `solo_cert`, one active cert per `(cid, position)` enforced at
+  the application level (MySQL can't express a filtered unique index). Write access is
+  scoped per-controller via `endpoints.AssertFacilityForCid`, which resolves the caller's
+  permission against the target controller's home *and* visiting facilities and returns
+  whichever facility actually granted access — that's the facility stamped onto the record,
+  and edits/deletes are scoped to the record's own `facility` column (not the controller's
+  possibly-since-transferred current facility).
+- **Policy** (`/policy`) — `policy_category` and `policy_document`, global-write only
+  (`acl.ObjectPolicy`). `policy_document.document_url` is validated with
+  `config.IsSafeDocumentURL` (https-only, same scheme rule as `IsAllowedRedirect`) since it's
+  rendered as an `href` in the staff app.
+
+All three follow `event`'s multipart-or-JSON upload pattern (`isMultipartRequest` in
+`endpoints/params.go`, shared with `event.go`), stamp `created_by_cid`/`updated_by_cid` from
+`auth.GetUserCid(c)`, and return dates/timestamps as formatted strings
+(`time.DateOnly`/`config.TimestampFormat`), not raw `time.Time`, matching `models/Event.go`.
+
 ## API testing
 
 A **Bruno** collection lives in `Bruno/` (api, login, roster, user, Events, News, etc.) for

@@ -1,0 +1,29 @@
+meta {
+  name: Update Faq Item
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{hostname}}/faq/item/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 1
+}
+
+body:json {
+  {
+    "faq_category_id": 1,
+    "question": "Is this an updated question?",
+    "answer": "Yes.",
+    "sort_order": 0
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

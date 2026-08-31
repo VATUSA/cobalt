@@ -1,0 +1,27 @@
+meta {
+  name: Update Solo Cert
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{hostname}}/solo/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 1
+}
+
+body:json {
+  {
+    "position": "ZHQ_APP",
+    "expires": "2026-09-20"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
