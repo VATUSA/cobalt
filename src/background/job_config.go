@@ -9,4 +9,5 @@ var JobDefinitions = map[string]JobFunc{
 	"migrate_titles":      MigrateTitles,
 	"check_rating_hours":  CheckRatingHours,
 	"migrate_action_logs": MigrateActionLogs,
+	"migrate_policies":    MigratePolicies,
 }
