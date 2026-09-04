@@ -41,6 +41,7 @@ var documentContentTypes = map[string]string{
 	"gif":  "image/gif",
 	"txt":  "text/plain; charset=utf-8",
 	"csv":  "text/csv; charset=utf-8",
+	"md":   "text/markdown; charset=utf-8",
 }
 
 // UploadPolicyDocument validates an uploaded policy document and stores it in
@@ -95,8 +96,8 @@ func UploadPolicyDocument(ctx context.Context, header *multipart.FileHeader) (st
 // have a reliable one. This is the security-relevant step for the same
 // reason as inspectImage: without it, an attacker could upload HTML/SVG
 // disguised as e.g. a .pdf to a public bucket and get back a trusted-looking
-// URL, which is a stored-XSS primitive. txt/csv have no reliable magic number
-// and are accepted as-is — the lowest-risk formats in the allowlist.
+// URL, which is a stored-XSS primitive. txt/csv/md have no reliable magic
+// number and are accepted as-is — the lowest-risk formats in the allowlist.
 func inspectDocument(ext string, data []byte) error {
 	switch ext {
 	case "pdf":
