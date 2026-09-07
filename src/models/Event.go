@@ -27,6 +27,7 @@ type Event struct {
 	Facility       string  `json:"facility"`
 	StartTimestamp string  `json:"start_timestamp"`
 	EndTimestamp   string  `json:"end_timestamp"`
+	CreatedAt      string  `json:"created_at"`
 	ReviewStatus   *string `json:"review_status"`
 	ReviewedBy     *int32  `json:"reviewed_by"`
 	ReviewedOn     *int64  `json:"reviewed_on"`
@@ -35,6 +36,7 @@ type Event struct {
 func EventFromDatabase(ent db.Event) Event {
 	startTime := time.Unix(ent.StartTime, 0)
 	endTime := time.Unix(ent.EndTime, 0)
+	createdAt := time.Unix(ent.CreatedAt, 0)
 	var reviewStatus *string
 	if ent.ReviewStatus.Valid {
 		reviewStatus = &ent.ReviewStatus.String
@@ -55,6 +57,7 @@ func EventFromDatabase(ent db.Event) Event {
 		Facility:       ent.Facility,
 		StartTimestamp: startTime.Format(config.TimestampFormat),
 		EndTimestamp:   endTime.Format(config.TimestampFormat),
+		CreatedAt:      createdAt.Format(config.TimestampFormat),
 		ReviewStatus:   reviewStatus,
 		ReviewedBy:     reviewedBy,
 		ReviewedOn:     reviewedOn,
