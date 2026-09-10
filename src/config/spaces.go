@@ -56,10 +56,22 @@ func SpacesPublicBaseURL() string {
 	return SpacesEndpoint()
 }
 
-// IsSpacesConfigured reports whether uploads can be served. When false the
-// event endpoints fall back to accepting a caller-supplied banner URL only.
+// IsSpacesConfigured reports whether uploads can be served from Spaces.
+// IsObjectStorageConfigured is what callers actually gate on — it also
+// covers Azure Blob (see azure_blob.go) — this stays exported for its
+// existing test coverage and for IsDocsConfigured below.
 func IsSpacesConfigured() bool {
 	return SpacesKey() != "" && SpacesSecret() != "" && SpacesBucket() != ""
+}
+
+// IsObjectStorageConfigured reports whether event banner uploads can be
+// served by whichever backend StorageProvider() selects. When false the
+// event endpoints fall back to accepting a caller-supplied banner URL only.
+func IsObjectStorageConfigured() bool {
+	if StorageProvider() == "azure_blob" {
+		return IsAzureBlobConfigured()
+	}
+	return IsSpacesConfigured()
 }
 
 // Policy documents live in a separate bucket (vatusa-storage, nyc3) from
@@ -101,9 +113,18 @@ func DocsPublicBaseURL() string {
 	return DocsEndpoint()
 }
 
-// IsDocsConfigured reports whether document uploads can be served. When
-// false the policy endpoints fall back to accepting a caller-supplied
-// document_url only.
+// IsDocsConfigured reports whether document uploads can be served from
+// Spaces. IsDocsStorageConfigured is what callers actually gate on.
 func IsDocsConfigured() bool {
 	return SpacesKey() != "" && SpacesSecret() != "" && DocsBucket() != ""
+}
+
+// IsDocsStorageConfigured reports whether document uploads can be served by
+// whichever backend StorageProvider() selects. When false the policy
+// endpoints fall back to accepting a caller-supplied document_url only.
+func IsDocsStorageConfigured() bool {
+	if StorageProvider() == "azure_blob" {
+		return IsAzureDocsConfigured()
+	}
+	return IsDocsConfigured()
 }
