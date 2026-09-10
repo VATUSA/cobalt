@@ -45,7 +45,7 @@ func acquireUploadSlot(ctx context.Context) (func(), error) {
 // bucket, returning the public URL to record on the event. Callers should run
 // their permission checks first — this writes to the bucket unconditionally.
 func UploadEventBanner(ctx context.Context, facility string, header *multipart.FileHeader) (string, error) {
-	if !config.IsSpacesConfigured() {
+	if !config.IsObjectStorageConfigured() {
 		return "", ErrNotConfigured
 	}
 	if header.Size > MaxBannerBytes {
@@ -70,11 +70,29 @@ func UploadEventBanner(ctx context.Context, facility string, header *multipart.F
 	}
 
 	key := eventBannerKey(facility, info.extension)
-	if err := putObject(ctx, config.SpacesEndpoint(), config.SpacesRegion(), key, info.contentType, data); err != nil {
+	if err := putEventObject(ctx, key, info.contentType, data); err != nil {
 		return "", err
 	}
 
-	return config.SpacesPublicBaseURL() + "/" + key, nil
+	return eventPublicBaseURL() + "/" + key, nil
+}
+
+// putEventObject uploads to whichever object storage backend
+// config.StorageProvider() selects, using the event-banner bucket/container
+// config for that backend. See azure_blob.go for why the same built image
+// needs to support both at once.
+func putEventObject(ctx context.Context, key, contentType string, data []byte) error {
+	if config.StorageProvider() == "azure_blob" {
+		return putObjectAzure(ctx, config.AzureEndpoint(), config.AzureStorageAccount(), config.AzureStorageKey(), config.AzureContainer()+"/"+key, contentType, data)
+	}
+	return putObjectSpaces(ctx, config.SpacesEndpoint(), config.SpacesRegion(), key, contentType, data)
+}
+
+func eventPublicBaseURL() string {
+	if config.StorageProvider() == "azure_blob" {
+		return config.AzurePublicBaseURL()
+	}
+	return config.SpacesPublicBaseURL()
 }
 
 // eventBannerKey builds an unguessable, collision-free object key. Keys are
@@ -111,9 +129,10 @@ func sanitizeKeySegment(s string) string {
 	return out.String()
 }
 
-// putObject uploads data to the given bucket endpoint (e.g.
-// config.SpacesEndpoint() or config.DocsEndpoint()), signed for region.
-func putObject(ctx context.Context, endpoint, region, key, contentType string, data []byte) error {
+// putObjectSpaces uploads data to the given Spaces bucket endpoint (e.g.
+// config.SpacesEndpoint() or config.DocsEndpoint()), signed via SigV4 for
+// region. See azure_blob.go's putObjectAzure for the Azure Blob equivalent.
+func putObjectSpaces(ctx context.Context, endpoint, region, key, contentType string, data []byte) error {
 	release, err := acquireUploadSlot(ctx)
 	if err != nil {
 		return fmt.Errorf("waiting for an upload slot: %w", err)

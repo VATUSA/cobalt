@@ -48,7 +48,7 @@ var documentContentTypes = map[string]string{
 // Callers should run their permission checks first — this writes to the
 // bucket unconditionally.
 func UploadPolicyDocument(ctx context.Context, header *multipart.FileHeader) (string, error) {
-	if !config.IsDocsConfigured() {
+	if !config.IsDocsStorageConfigured() {
 		return "", ErrNotConfigured
 	}
 	if header.Size > MaxDocumentBytes {
@@ -84,11 +84,29 @@ func UploadPolicyDocument(ctx context.Context, header *multipart.FileHeader) (st
 	}
 
 	key := policyDocumentKey(ext)
-	if err := putObject(ctx, config.DocsEndpoint(), config.DocsRegion(), key, contentType, data); err != nil {
+	if err := putDocsObject(ctx, key, contentType, data); err != nil {
 		return "", err
 	}
 
-	return config.DocsPublicBaseURL() + "/" + key, nil
+	return docsPublicBaseURL() + "/" + key, nil
+}
+
+// putDocsObject uploads to whichever object storage backend
+// config.StorageProvider() selects, using the policy-document bucket/
+// container config for that backend. See azure_blob.go for why the same
+// built image needs to support both at once.
+func putDocsObject(ctx context.Context, key, contentType string, data []byte) error {
+	if config.StorageProvider() == "azure_blob" {
+		return putObjectAzure(ctx, config.AzureEndpoint(), config.AzureStorageAccount(), config.AzureStorageKey(), config.AzureDocsContainer()+"/"+key, contentType, data)
+	}
+	return putObjectSpaces(ctx, config.DocsEndpoint(), config.DocsRegion(), key, contentType, data)
+}
+
+func docsPublicBaseURL() string {
+	if config.StorageProvider() == "azure_blob" {
+		return config.AzureDocsPublicBaseURL()
+	}
+	return config.DocsPublicBaseURL()
 }
 
 // inspectDocument does lightweight magic-byte validation for the formats that

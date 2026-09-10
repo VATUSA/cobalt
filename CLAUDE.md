@@ -91,7 +91,7 @@ without a `cobalt_dev` row.
 `current`'s side of this (the one-time `/auth/callback` handoff, decoupled from cobalt after
 login) is documented in that repo's `CLAUDE.md`.
 
-## Event banner uploads (DigitalOcean Spaces)
+## Event banner uploads (DigitalOcean Spaces / Azure Blob)
 
 Event banners used to be caller-supplied URLs, which in practice meant Imgur (blocked in
 several jurisdictions, including the UK) or Discord (which discourages off-app CDN use).
@@ -131,6 +131,21 @@ own `DO_SPACES_DOCS_REGION`/`DO_SPACES_DOCS_BUCKET`/`DO_SPACES_DOCS_ENDPOINT`/
 uploads via the same hand-rolled SigV4 signer in `storage/sigv4.go`; concurrent uploads
 across both buckets share a package-level 4-slot semaphore in `storage/spaces.go` since each
 upload holds the whole file in memory twice (multipart read, then SigV4 payload hash).
+
+**Azure Blob backend (migration).** The DO→Azure migration means the same built image runs
+against both clouds at once during the coexistence window (DOKS-dev still on Spaces,
+AKS-dev-azure on Blob) — see `gitops`' `docs/migration-steps.md` §3. `STORAGE_PROVIDER`
+(`spaces`, the default, or `azure_blob`) is read at request time in `config/azure_blob.go`
+to pick a backend; there's deliberately no compile-time or startup-time branch, since one
+binary has to serve either. `storage/azure_blob.go`'s `putObjectAzure` is the Blob
+equivalent of `putObjectSpaces` — Blob isn't S3-compatible, so it needs its own signer.
+It uses Shared Key authorization (`signAzureBlobRequest`, pinned against an independently
+computed vector in `storage/azure_blob_test.go`, using Azurite's public well-known emulator
+key — not a real secret) rather than pulling in the Azure SDK, for the same reason SigV4 is
+hand-rolled: this package only ever makes one kind of call. Config:
+`AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_KEY`, `AZURE_STORAGE_CONTAINER` (events),
+`AZURE_STORAGE_DOCS_CONTAINER` (policy documents), optional `AZURE_STORAGE_ENDPOINT` /
+`AZURE_STORAGE_PUBLIC_BASE_URL` / `AZURE_STORAGE_DOCS_PUBLIC_BASE_URL` overrides.
 
 ## FAQ, solo certs, and policy documents
 
