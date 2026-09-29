@@ -83,6 +83,39 @@ func ConnectRedirectURIOverride() string {
 	return os.Getenv("VATSIM_CONNECT_REDIRECT_URI")
 }
 
+// RelaysLoginToProd reports whether this instance must hand its logins to the
+// production instance's staging relay (GetLoginForStaging) instead of running
+// the VATSIM Connect round trip itself.
+//
+// This used to be plain IsStaging(), on the assumption that VATSIM had a
+// redirect_uri registered only for cobalt.vatusa.net and therefore no other
+// deployment could ever complete an OAuth round trip. That assumption has two
+// costs which came due during the Azure migration:
+//
+//   - A dev environment cannot log anybody in unless production is healthy and
+//     pointed at that exact instance, so dev inherits a prod dependency for the
+//     one thing dev exists to test.
+//   - The relay's target (STAGING_PUBLIC_URL / STAGING_INTERNAL_URL) is
+//     single-valued and the internal hop uses in-cluster DNS, so only one dev
+//     environment can have logins at a time and it has to share a cluster with
+//     production. A second dev cluster cannot be reached at all.
+//
+// An organisation whose VATSIM Connect registration is approved can create
+// additional OAuth clients itself, so a dev deployment can simply have its own.
+// One that does sets VATSIM_CONNECT_REDIRECT_URI to its own callback and no
+// longer needs the relay. Anything that sets nothing keeps the old behaviour
+// byte for byte, which is what keeps the existing DOKS dev instance working.
+//
+// Note there is deliberately no separate on/off flag: the override *is* the
+// thing that makes a direct round trip possible, so a second variable could
+// only ever disagree with it. If the override is set without a matching
+// VATSIM_CONNECT_CLIENT_ID/SECRET for the same client, the round trip fails at
+// VATSIM with a redirect_uri mismatch — which is a clearer signal than silently
+// falling back to a relay that the operator did not ask for.
+func RelaysLoginToProd() bool {
+	return IsStaging() && ConnectRedirectURIOverride() == ""
+}
+
 func RedirectAllowlist() []string {
 	val, ok := os.LookupEnv("REDIRECT_ALLOWLIST")
 	if !ok || val == "" {

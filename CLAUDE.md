@@ -52,13 +52,30 @@ all three and defaults its entrypoint to `server`. Packages under `src/`:
 ## Login / VATSIM Connect flow
 
 Cobalt is the sole identity provider for the VATUSA stack (`webapps` and `current` both
-delegate login to it). It owns the VATSIM Connect OAuth registration — VATSIM only
-whitelists a `redirect_uri` on **cobalt.vatusa.net**, so every hosted dev/staging login has
-to proxy through the prod instance:
+delegate login to it).
 
-- `GET /login` (`endpoints/login.go: GetLogin`) — on a non-prod (`IsStaging()`) instance,
+**A deployment either has its own VATSIM Connect client or it relays through prod.**
+`config.RelaysLoginToProd()` decides, and it is true only for a `staging` instance that has
+**not** set `VATSIM_CONNECT_REDIRECT_URI`. Historically this was a bare `IsStaging()` check,
+on the assumption that VATSIM whitelists a `redirect_uri` only on **cobalt.vatusa.net** and
+so no other deployment could complete an OAuth round trip. An organisation with an approved
+Connect registration can create further clients itself, so that is not a fixed constraint —
+and treating it as one made dev depend on prod for the one thing dev exists to test. See
+`RelaysLoginToProd`'s doc comment for why that coupling had to go (the relay target is
+single-valued and its internal hop uses in-cluster DNS, so only one dev environment can have
+logins at a time, and it must share a cluster with production).
+
+An instance with its own client sets `VATSIM_CONNECT_REDIRECT_URI` to its own
+`/login/connect`, plus the matching `VATSIM_CONNECT_CLIENT_ID`/`VATSIM_CONNECT_CLIENT_SECRET`.
+There is deliberately no separate on/off flag — the override *is* what makes a direct round
+trip possible. Set it without a matching client and the round trip fails at VATSIM with a
+redirect_uri mismatch, which is a clearer signal than silently relaying instead.
+
+The relay path, used by any staging deployment that sets no override:
+
+- `GET /login` (`endpoints/login.go: GetLogin`) — when `config.RelaysLoginToProd()`,
   redirects to prod's `/login/staging` instead of hitting VATSIM directly, since VATSIM would
-  reject a non-prod redirect_uri.
+  reject a redirect_uri it has no registration for.
 - `GET /login/staging` (`GetLoginForStaging`, prod-only) — if not already logged into prod,
   kicks off VATSIM Connect on prod; once logged in, calls back to the origin dev/staging
   instance's internal `/token/:cid` (ACL-gated via `acl` + `middleware/auth_actor.go`'s
@@ -68,7 +85,10 @@ to proxy through the prod instance:
   this is prod runnning mid-relay (see below), loops back into `/login/staging` to complete
   the handoff instead of stopping at prod's own `POST_LOGIN_URL`.
 - `GET /login/useToken/:token` (`LoginUseToken`, non-prod only) — sets the session cookie
-  from the relayed token.
+  from the relayed token. Still gated on `IsStaging()` rather than on
+  `RelaysLoginToProd()`: an own-client instance no longer uses it, but leaving it reachable
+  is harmless (the token must be a JWT signed with this instance's `JWT_KEY`) and keeps the
+  two gates from drifting apart.
 
 **Caller-supplied redirect target**: any of `GetLogin` / `GetLoginForStaging` /
 `LoginUseToken` accept a `redirect` query param (e.g. so `current` can request its own

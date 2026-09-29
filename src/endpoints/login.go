@@ -67,7 +67,7 @@ func parseStagingRelayState(state string) (redirect string, isRelay bool) {
 
 func GetLogin(c *echo.Context) error {
 	redirect := validatedRedirect(c)
-	if config.IsStaging() {
+	if config.RelaysLoginToProd() {
 		target := "https://cobalt.vatusa.net/login/staging"
 		if redirect != "" {
 			target += "?redirect=" + url.QueryEscape(redirect)
