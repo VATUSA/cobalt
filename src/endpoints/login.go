@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -102,8 +103,13 @@ func Connect(c *echo.Context) error {
 		return GenericError(c, http.StatusInternalServerError, errors.New("error storing vatsim user record"), err)
 	}
 
-	if userData.Vatsim.Rating.Id == config.RatingInactive || userData.Vatsim.Rating.Id == config.RatingSuspended {
-		return GenericError(c, http.StatusForbidden, errors.New("account is inactive or suspended"))
+	switch userData.Vatsim.Rating.Id {
+	case config.RatingInactive:
+		return loginBlockedPage(c, "Your VATSIM account is inactive.",
+			"https://support.vatsim.net/kb/faq.php?id=2", "how to reactivate your VATSIM account")
+	case config.RatingSuspended:
+		return loginBlockedPage(c, "Your VATSIM account is suspended.",
+			"https://support.vatsim.net/", "VATSIM Support")
 	}
 
 	if config.IsProduction() || config.IsStaging() {
@@ -332,4 +338,18 @@ func LoginUseToken(c *echo.Context) error {
 		return c.Redirect(http.StatusFound, redirect)
 	}
 	return c.Redirect(http.StatusFound, config.PostLoginURL())
+}
+
+// loginBlockedPage renders a human-readable page for a user who reached the
+// Connect callback in a browser but can't log in because of their VATSIM
+// account status, instead of a bare JSON error.
+func loginBlockedPage(c *echo.Context, reason, link, linkText string) error {
+	page := fmt.Sprintf(`<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Unable to log in</title></head>
+<body style="font-family: sans-serif; max-width: 40em; margin: 3em auto; padding: 0 1em;">
+<h1>Unable to log in</h1>
+<p>%s You can't log in to VATUSA until this is resolved.</p>
+<p>For help, see <a href="%s">%s</a>.</p>
+</body></html>`, html.EscapeString(reason), html.EscapeString(link), html.EscapeString(linkText))
+	return c.HTML(http.StatusForbidden, page)
 }
