@@ -5,10 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 	"vatusa-cobalt/action"
 	"vatusa-cobalt/db"
 	"vatusa-cobalt/dbconn"
+	"vatusa-cobalt/vatsim/api2"
 )
 
 const (
@@ -139,6 +141,7 @@ func doTransfer(user db.GetCombinedUserRow, fromFacility string, toFacility stri
 	if err != nil {
 		return err
 	}
+	syncVatsimSubdivision(user.Cid, toFacility)
 
 	_, err = queries.CreateTransferHistoryRecord(ctx, db.CreateTransferHistoryRecordParams{
 		Cid:          user.Cid,
@@ -155,4 +158,16 @@ func doTransfer(user db.GetCombinedUserRow, fromFacility string, toFacility stri
 		return err
 	}
 	return nil
+}
+
+// syncVatsimSubdivision pushes the new home facility to VATSIM. Failures are logged and
+// never block the transfer. ZZN/ZZI are VATUSA-internal and clear the subdivision.
+func syncVatsimSubdivision(cid int64, facility string) {
+	var subdivision *string
+	if facility != "ZZN" && facility != "ZZI" {
+		subdivision = &facility
+	}
+	if err := api2.UpdateMemberSubdivision(cid, subdivision); err != nil {
+		log.Printf("VATSIM subdivision update to %s failed for %d: %v", facility, cid, err)
+	}
 }
