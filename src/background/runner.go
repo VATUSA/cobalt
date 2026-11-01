@@ -91,7 +91,7 @@ func launchK8sJob(name string, cmdArgs []string) error {
 	jobs := clientSet.BatchV1().Jobs(namespace)
 
 	var backoffLimit int32 = 0
-	var ttlSecondsAfterFinished int32 = 86400 // Delete job 1 day after completion
+	var ttlSecondsAfterFinished int32 = 3600 // Delete job 1 hour after completion
 
 	jobSpec := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
