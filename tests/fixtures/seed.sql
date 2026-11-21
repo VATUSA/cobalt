@@ -43,3 +43,19 @@ VALUES (900010, 'Mock', 'Other Facility', 'mock-other-facility@example.test', 5,
 
 INSERT INTO user (cid, display_name, facility) VALUES
     (900010, 'Mock Other Facility', 'ZAB');
+
+-- Fixed-date events (January 2020, long past) for event_range.hurl, which
+-- checks that GET /event/range returns approved events that have already
+-- finished, includes events straddling the window edges, and excludes
+-- unapproved or out-of-window ones.
+INSERT INTO event (title, body, banner_image_url, facility, start_time, end_time, created_at, created_by, updated_at, updated_by, review_status) VALUES
+    -- 2020-01-10 00:00 -> 03:00 UTC, approved, inside the window
+    ('Range Test Inside', '', '', 'ZLA', 1578614400, 1578625200, 1577836800, 900001, 1577836800, 900001, 'approved'),
+    -- 2020-01-31 23:00 -> 2020-02-01 02:00 UTC, approved, straddles the end
+    ('Range Test Straddle End', '', '', 'ZDC', 1580511600, 1580522400, 1577836800, 900001, 1577836800, 900001, 'approved'),
+    -- 2019-12-31 22:00 -> 2020-01-01 01:00 UTC, approved, straddles the start
+    ('Range Test Straddle Start', '', '', 'ZNY', 1577829600, 1577840400, 1577836800, 900001, 1577836800, 900001, 'approved'),
+    -- 2020-01-15, pending: must not appear publicly
+    ('Range Test Pending', '', '', 'ZLA', 1579046400, 1579057200, 1577836800, 900001, 1577836800, 900001, 'pending'),
+    -- 2020-03-10, approved but outside the window
+    ('Range Test Outside', '', '', 'ZLA', 1583798400, 1583809200, 1577836800, 900001, 1577836800, 900001, 'approved');

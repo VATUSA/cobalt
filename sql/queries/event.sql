@@ -19,6 +19,17 @@ WHERE end_time > ?
 ORDER BY start_time ASC
 LIMIT ?, ?;
 
+-- name: GetApprovedEventsInRange :many
+-- Approved events that overlap [range_start, range_end), past or future, so a
+-- calendar can show any month instead of only what has not finished yet.
+SELECT *
+FROM event
+WHERE review_status = 'approved'
+  AND end_time > sqlc.arg(range_start)
+  AND start_time < sqlc.arg(range_end)
+ORDER BY start_time ASC
+LIMIT ?;
+
 -- name: GetUpcomingEventsAll :many
 SELECT *
 FROM event

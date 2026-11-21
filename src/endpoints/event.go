@@ -303,9 +303,58 @@ func GetUpcomingEvents(c *echo.Context) error {
 	return c.JSON(http.StatusOK, models.EventsFromDatabase(events))
 }
 
-func GetEventsPage(c *echo.Context) error {
-	page, err := strconv.Atoi(c.QueryParamOr("page", "1"))
+// maxEventRangeSeconds caps how wide a window GET /event/range may ask for, so
+// a single public request cannot pull the whole event table. A year covers any
+// calendar view with room to spare.
+const maxEventRangeSeconds = int64(366 * 24 * 60 * 60)
+
+// maxEventRangeResults bounds the rows a range request returns.
+const maxEventRangeResults = 500
+
+// parseEventRange reads the from/to unix-second query params of GET
+// /event/range and checks that they form a non-empty window no wider than
+// maxEventRangeSeconds.
+func parseEventRange(c *echo.Context) (from int64, to int64, err error) {
+	from, err = strconv.ParseInt(strings.TrimSpace(c.QueryParam("from")), 10, 64)
 	if err != nil {
+		return 0, 0, errors.New("from must be a unix timestamp in seconds")
+	}
+	to, err = strconv.ParseInt(strings.TrimSpace(c.QueryParam("to")), 10, 64)
+	if err != nil {
+		return 0, 0, errors.New("to must be a unix timestamp in seconds")
+	}
+	if to <= from {
+		return 0, 0, errors.New("to must be after from")
+	}
+	if to-from > maxEventRangeSeconds {
+		return 0, 0, errors.New("range must not exceed 366 days")
+	}
+	return from, to, nil
+}
+
+// GetEventsInRange returns approved events overlapping [from, to), including
+// ones that have already finished, for the public events calendar.
+func GetEventsInRange(c *echo.Context) error {
+	from, to, err := parseEventRange(c)
+	if err != nil {
+		return GenericError(c, http.StatusBadRequest, err)
+	}
+	events, err := dbconn.Queries().GetApprovedEventsInRange(c.Request().Context(), db.GetApprovedEventsInRangeParams{
+		RangeStart: from,
+		RangeEnd:   to,
+		Limit:      maxEventRangeResults,
+	})
+	if err != nil {
+		return GenericError(c, http.StatusInternalServerError, err)
+	}
+	return c.JSON(http.StatusOK, models.EventsFromDatabase(events))
+}
+
+func GetEventsPage(c *echo.Context) error {
+	// The route is /event/page/:page, so the page number is a path param. Reading
+	// it from the query string silently pinned every request to page 1.
+	page, err := strconv.Atoi(c.Param("page"))
+	if err != nil || page < 1 {
 		return GenericError(c, http.StatusBadRequest, errors.New("invalid page"))
 	}
 	facility := strings.ToUpper(strings.TrimSpace(c.QueryParamOr("facility", "")))

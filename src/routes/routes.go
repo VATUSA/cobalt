@@ -58,6 +58,7 @@ func SetupRoutes(e *echo.Echo) {
 	event := e.Group("/event")
 	event.GET("/upcoming/:count", endpoints.GetUpcomingEvents)
 	event.GET("/page/:page", endpoints.GetEventsPage)
+	event.GET("/range", endpoints.GetEventsInRange)
 	event.GET("/:id", endpoints.GetEventById)
 	event.POST("/create", endpoints.CreateEvent)
 	event.POST("/:id", endpoints.UpdateEvent)
