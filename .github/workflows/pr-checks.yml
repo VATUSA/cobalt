@@ -21,7 +21,9 @@ jobs:
         working-directory: src
         run: go test ./...
   test-integration:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, which renamed libxml2, and hurl's
+    # 8.0.1 .deb still depends on the old package name.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@v2
@@ -30,6 +32,9 @@ jobs:
       - name: Install hurl
         run: |
           curl -sLO https://github.com/Orange-OpenSource/hurl/releases/download/8.0.1/hurl_8.0.1_amd64.deb
-          sudo dpkg -i hurl_8.0.1_amd64.deb
+          # apt (not dpkg -i) so the .deb's dependencies, e.g. libxml2, get
+          # pulled in if the runner image doesn't preinstall them.
+          sudo apt-get update
+          sudo apt-get install -y ./hurl_8.0.1_amd64.deb
       - name: Run integration tests
         run: just test-integration

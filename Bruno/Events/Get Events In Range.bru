@@ -1,0 +1,21 @@
+meta {
+  name: Get Events In Range
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{hostname}}/event/range?from=1767225600&to=1777593600
+  body: none
+  auth: inherit
+}
+
+params:query {
+  from: 1767225600
+  to: 1777593600
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

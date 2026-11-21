@@ -55,6 +55,62 @@ func (q *Queries) DeleteEvent(ctx context.Context, id int64) error {
 	return err
 }
 
+const getApprovedEventsInRange = `-- name: GetApprovedEventsInRange :many
+SELECT id, title, body, banner_image_url, facility, start_time, end_time, created_at, created_by, updated_at, updated_by, review_status, reviewed_by, reviewed_on
+FROM event
+WHERE review_status = 'approved'
+  AND end_time > ?
+  AND start_time < ?
+ORDER BY start_time ASC
+LIMIT ?
+`
+
+type GetApprovedEventsInRangeParams struct {
+	RangeStart int64
+	RangeEnd   int64
+	Limit      int32
+}
+
+// Approved events that overlap [range_start, range_end), past or future, so a
+// calendar can show any month instead of only what has not finished yet.
+func (q *Queries) GetApprovedEventsInRange(ctx context.Context, arg GetApprovedEventsInRangeParams) ([]Event, error) {
+	rows, err := q.db.QueryContext(ctx, getApprovedEventsInRange, arg.RangeStart, arg.RangeEnd, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Event
+	for rows.Next() {
+		var i Event
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Body,
+			&i.BannerImageUrl,
+			&i.Facility,
+			&i.StartTime,
+			&i.EndTime,
+			&i.CreatedAt,
+			&i.CreatedBy,
+			&i.UpdatedAt,
+			&i.UpdatedBy,
+			&i.ReviewStatus,
+			&i.ReviewedBy,
+			&i.ReviewedOn,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEventById = `-- name: GetEventById :one
 SELECT id, title, body, banner_image_url, facility, start_time, end_time, created_at, created_by, updated_at, updated_by, review_status, reviewed_by, reviewed_on
 FROM event
